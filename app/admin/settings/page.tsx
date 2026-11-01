@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeSettings } from "@/lib/event-settings";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
+  await connection();
   const supabase = await createClient();
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (isAdmin !== true) redirect("/admin/login");

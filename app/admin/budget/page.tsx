@@ -1,7 +1,9 @@
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { BudgetTracker, type Expense } from "@/components/admin/budget-tracker";
 
 export default async function BudgetPage() {
+  await connection();
   const supabase = await createClient();
   const { data } = await supabase.from("expenses").select("*").order("created_at", { ascending: false });
   const expenses: Expense[] = (data ?? []).map((r: Record<string, unknown>) => ({

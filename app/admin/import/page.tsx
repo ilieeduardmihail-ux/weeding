@@ -1,7 +1,9 @@
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { GuestImport } from "@/components/admin/guest-import";
 
 export default async function ImportPage() {
+  await connection();
   const supabase = await createClient();
   const { data } = await supabase.from("guests").select("full_name");
   return (

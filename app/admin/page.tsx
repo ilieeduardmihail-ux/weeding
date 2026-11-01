@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { deleteRsvp, signOut } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ type Row = {
 const tableLabel = (n: number | null) => (n === null ? "no table" : `Table ${n}`);
 
 export default async function Dashboard() {
+  // Admin data is per-request; never prerender a snapshot of the guest list.
+  await connection();
   const supabase = await createClient();
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (!isAdmin) redirect("/admin/login");

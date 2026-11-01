@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export const instant = false;
@@ -25,6 +26,7 @@ function byTable(a: ReportRow, b: ReportRow) {
 }
 
 export default async function ReportPage() {
+  await connection();
   const supabase = await createClient();
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (isAdmin !== true) redirect("/admin/login");

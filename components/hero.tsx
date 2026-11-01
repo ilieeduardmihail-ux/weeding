@@ -1,5 +1,6 @@
 "use client";
-import { MotionConfig, motion } from "framer-motion";
+import { useEffect } from "react";
+import { MotionConfig, motion, useAnimationControls } from "framer-motion";
 import { Countdown } from "./countdown";
 
 type HeroProps = {
@@ -17,12 +18,24 @@ const rise = {
 
 export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
   const [a, b] = names;
+  const controls = useAnimationControls();
+
+  // Start only once the browser is actually painting. If the page opens in a
+  // background or occluded window, frames are paused; starting on mount would
+  // run the whole entrance off-screen and the visitor would just see the end.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      void controls.start("show");
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [controls]);
+
   return (
     <MotionConfig reducedMotion="user">
       <motion.header
         variants={container}
         initial="hidden"
-        animate="show"
+        animate={controls}
         className="flex min-h-svh flex-col items-center justify-center px-6 text-center"
       >
         <motion.h1 variants={rise} className="font-display text-[clamp(4rem,16vw,11rem)] leading-[0.9] tracking-tight">

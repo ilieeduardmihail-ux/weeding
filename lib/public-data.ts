@@ -5,16 +5,15 @@
 import { cache } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { demoMode } from "./demo/mode";
+import { SUPABASE_KEY, SUPABASE_URL } from "./supabase/env";
 import { normalizeSettings, type EventSettings } from "./event-settings";
 
 export type SeatingTable = { table: number; names: string[] };
 
 function anonClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
-  );
+  return createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export const getEventSettings = cache(async (): Promise<EventSettings> => {

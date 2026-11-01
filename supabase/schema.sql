@@ -1,4 +1,6 @@
--- Run in Supabase SQL editor
+-- Run in Supabase SQL editor — ONCE, on a fresh project.
+-- This file is not idempotent: if you see `42P07 relation "rsvps" already exists`,
+-- the schema is already applied. Skip to migration-v2.sql.
 create table rsvps (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(name) between 2 and 120),

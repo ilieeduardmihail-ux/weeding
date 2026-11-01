@@ -24,10 +24,11 @@ Without `NEXT_PUBLIC_SUPABASE_URL`, the app runs in **demo mode**: everything wo
    ```
 4. Copy `.env.example` to `.env.local`:
    ```
-   NEXT_PUBLIC_SUPABASE_URL=...
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+   NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    RATE_LIMIT_SALT=<long random string>
    ```
+   (Projectele mai vechi au în loc de publishable key un `anon` JWT: pune-l în `NEXT_PUBLIC_SUPABASE_ANON_KEY`, codul acceptă ambele.)
 5. Restart `npm run dev` and sign in at `/admin` with one of those emails.
 
 ## Pages

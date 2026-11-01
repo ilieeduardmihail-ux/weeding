@@ -1,0 +1,49 @@
+"use client";
+import { MotionConfig, motion } from "framer-motion";
+import { Countdown } from "./countdown";
+
+type HeroProps = {
+  names: [string, string];
+  displayDate: string;
+  city: string;
+  eventIso: string;
+};
+
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.22 } } };
+const rise = {
+  hidden: { opacity: 0, y: 28 },
+  show: { opacity: 1, y: 0, transition: { duration: 1, ease: [0.22, 1, 0.36, 1] as const } },
+};
+
+export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
+  const [a, b] = names;
+  return (
+    <MotionConfig reducedMotion="user">
+      <motion.header
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="flex min-h-svh flex-col items-center justify-center px-6 text-center"
+      >
+        <motion.h1 variants={rise} className="font-display text-[clamp(4rem,16vw,11rem)] leading-[0.9] tracking-tight">
+          {a}
+          <span className="block text-gold italic">&amp;</span>
+          {b}
+        </motion.h1>
+        <motion.p variants={rise} className="mt-8 text-lg">
+          {displayDate}, {city}
+        </motion.p>
+        <motion.div variants={rise} className="mt-10">
+          <Countdown target={eventIso} />
+        </motion.div>
+        <motion.a
+          variants={rise}
+          href="#rsvp"
+          className="mt-12 rounded-full bg-ink px-8 py-3 text-sea transition hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
+        >
+          RSVP
+        </motion.a>
+      </motion.header>
+    </MotionConfig>
+  );
+}

@@ -8,7 +8,7 @@ type Result = { ok: true } | { ok: false; error: string };
 
 export async function addExpense(input: ExpenseInput): Promise<Result> {
   const parsed = expenseSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form." };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Verifică formularul." };
   const d = parsed.data;
   const supabase = await createClient();
   const { error } = await supabase.from("expenses").insert({
@@ -18,7 +18,7 @@ export async function addExpense(input: ExpenseInput): Promise<Result> {
     amount_paid: round2(d.amount_paid),
     notes: d.notes || null,
   });
-  if (error) return { ok: false, error: "Couldn’t save the expense." };
+  if (error) return { ok: false, error: "Nu am putut salva cheltuiala." };
   revalidatePath("/admin/budget");
   return { ok: true };
 }
@@ -26,13 +26,13 @@ export async function addExpense(input: ExpenseInput): Promise<Result> {
 /** Adds to amount_paid in one atomic SQL update. The total cost is never changed. */
 export async function addPayment(input: PaymentInput): Promise<Result> {
   const parsed = paymentSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid payment." };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Plată invalidă." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("add_payment", { p_id: parsed.data.id, p_amount: round2(parsed.data.amount) });
   if (error) {
     return {
       ok: false,
-      error: error.message.includes("paid_not_above_total") ? "That is more than what is left to pay." : "Couldn’t save the payment.",
+      error: error.message.includes("paid_not_above_total") ? "Suma depășește restul de plătit." : "Nu am putut salva plata.",
     };
   }
   revalidatePath("/admin/budget");
@@ -42,7 +42,7 @@ export async function addPayment(input: PaymentInput): Promise<Result> {
 export async function deleteExpense(id: string): Promise<Result> {
   const supabase = await createClient();
   const { error } = await supabase.from("expenses").delete().eq("id", id);
-  if (error) return { ok: false, error: "Couldn’t delete the expense." };
+  if (error) return { ok: false, error: "Nu am putut șterge cheltuiala." };
   revalidatePath("/admin/budget");
   return { ok: true };
 }

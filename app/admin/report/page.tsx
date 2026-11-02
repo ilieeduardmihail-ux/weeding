@@ -13,9 +13,9 @@ type ReportRow = {
 };
 
 const kindLabel: Record<ReportRow["kind"], string> = {
-  rsvp: "Reply",
-  plus: "Plus-one",
-  guest: "Guest list",
+  rsvp: "Răspuns",
+  plus: "Însoțitor",
+  guest: "Listă importată",
 };
 
 function byTable(a: ReportRow, b: ReportRow) {
@@ -47,18 +47,18 @@ export default async function ReportPage() {
   }
 
   const stats = [
-    ["Headcount", counted.length, "seated and confirmed"],
-    ["Adults", adults, "excluding children"],
-    ["Children", children, "confirmed"],
-    ["Unassigned", unassigned, "no table yet"],
+    ["Total persoane", counted.length, "așezați și confirmați"],
+    ["Adulți", adults, "fără copii"],
+    ["Copii", children, "confirmați"],
+    ["Nealocați", unassigned, "fără masă"],
   ] as const;
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
-      <h1 className="font-display text-4xl">Venue report</h1>
+      <h1 className="font-display text-4xl">Raport pentru local</h1>
       <p className="mt-2 text-ink/70">
-        Everyone the venue needs to plan for, grouped by table. Imported guests count only once they
-        have a table.
+        Toate persoanele pentru care localul trebuie să se pregătească, grupate pe mese.
+        Invitații importați contează doar după ce primesc o masă.
       </p>
 
       <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -72,21 +72,21 @@ export default async function ReportPage() {
       </dl>
 
       {rows.length === 0 ? (
-        <p className="mt-12 text-ink/70">Nothing to report yet — no replies or imported guests.</p>
+        <p className="mt-12 text-ink/70">Nimic de raportat încă — nu există răspunsuri sau invitați importați.</p>
       ) : (
         <div className="mt-12 space-y-10">
           {[...groups.entries()].map(([table, people]) => (
             <section key={table ?? "unassigned"}>
               <h2 className="font-display text-2xl">
-                {table === null ? "Unassigned" : `Table ${table}`}
-                <span className="ml-2 text-sm font-sans text-ink/50">{people.length} people</span>
+                {table === null ? "Nealocați" : `Masa ${table}`}
+                <span className="ml-2 text-sm font-sans text-ink/50">{people.length} persoane</span>
               </h2>
               <table className="mt-3 w-full border-collapse text-left text-sm">
                 <thead className="border-b border-ink/20 text-xs uppercase tracking-wide text-ink/50">
                   <tr>
-                    <th className="py-2 pr-4 font-medium">Name</th>
-                    <th className="py-2 pr-4 font-medium">Source</th>
-                    <th className="py-2 font-medium">Child</th>
+                    <th className="py-2 pr-4 font-medium">Nume</th>
+                    <th className="py-2 pr-4 font-medium">Sursă</th>
+                    <th className="py-2 font-medium">Copil</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -94,7 +94,7 @@ export default async function ReportPage() {
                     <tr key={`${row.kind}-${row.name}-${index}`} className="border-b border-ink/10">
                       <td className="py-2 pr-4">{row.name}</td>
                       <td className="py-2 pr-4 text-ink/60">{kindLabel[row.kind]}</td>
-                      <td className="py-2 text-ink/60">{row.is_child ? "Yes" : "—"}</td>
+                      <td className="py-2 text-ink/60">{row.is_child ? "Da" : "—"}</td>
                     </tr>
                   ))}
                 </tbody>

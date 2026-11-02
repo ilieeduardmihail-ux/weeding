@@ -10,13 +10,13 @@ export async function importGuests(
   input: { names: string[] }
 ): Promise<{ ok: true; inserted: number; skipped: number } | { ok: false; error: string }> {
   const parsed = schema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Check the list: 1 to 500 names, each 2 to 120 characters." };
+  if (!parsed.success) return { ok: false, error: "Verifică lista: între 1 și 500 de nume, fiecare între 2 și 120 de caractere." };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("import_guests", {
     p_guests: parsed.data.names.map((full_name) => ({ full_name })),
   });
-  if (error) return { ok: false, error: "Couldn’t import the list. Please try again." };
+  if (error) return { ok: false, error: "Nu am putut importa lista. Te rugăm să încerci din nou." };
 
   const inserted = Number(data ?? 0);
   revalidatePath("/admin/seating");

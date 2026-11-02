@@ -8,16 +8,16 @@ export async function GET() {
   await connection();
   const supabase = await createClient();
   const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (!isAdmin) return new Response("Unauthorized", { status: 401 });
+  if (!isAdmin) return new Response("Neautorizat", { status: 401 });
 
   const { data } = await supabase.from("rsvps").select("*, rsvp_guests(*)").order("name");
-  const lines = ["name,attending,table,party,message,replied"];
+  const lines = ["nume,participa,masa,insotitori,mesaj,raspuns_la"];
   for (const r of data ?? []) {
     const party = (r.rsvp_guests as { name: string; table_number: number | null }[])
-      .map((g) => `${g.name}${g.table_number ? ` (table ${g.table_number})` : ""}`)
+      .map((g) => `${g.name}${g.table_number ? ` (masa ${g.table_number})` : ""}`)
       .join("; ");
     lines.push(
-      [r.name, r.attending ? "yes" : "no", r.table_number ?? "", party, r.message, r.created_at].map(esc).join(",")
+      [r.name, r.attending ? "da" : "nu", r.table_number ?? "", party, r.message, r.created_at].map(esc).join(",")
     );
   }
   return new Response(lines.join("\n"), {

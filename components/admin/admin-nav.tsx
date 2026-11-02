@@ -3,12 +3,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  ["/admin", "Guests"],
-  ["/admin/seating", "Seating"],
-  ["/admin/report", "Report"],
-  ["/admin/budget", "Budget"],
+  ["/admin", "Invitați"],
+  ["/admin/seating", "Mese"],
+  ["/admin/locations", "Locații"],
+  ["/admin/report", "Raport"],
+  ["/admin/budget", "Buget"],
   ["/admin/import", "Import"],
-  ["/admin/settings", "Settings"],
+  ["/admin/settings", "Setări"],
 ] as const;
 
 export function AdminNav() {

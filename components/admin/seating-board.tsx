@@ -14,7 +14,7 @@ export type Person = { id: string; kind: Kind; name: string; table: number | nul
 
 const keyOf = (p: Person) => `${p.kind}:${p.id}`;
 const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
-const BADGE: Record<Kind, string> = { rsvp: "", plus: "plus-one", guest: "imported" };
+const BADGE: Record<Kind, string> = { rsvp: "", plus: "însoțitor", guest: "importat" };
 
 // Pointer position first (mouse/touch), element overlap as the keyboard fallback
 const detect: CollisionDetection = (args) => {
@@ -39,7 +39,7 @@ function PersonChip({ p, onDelete }: { p: Person; onDelete?: () => void }) {
         {BADGE[p.kind] && <span className="ml-2 text-xs text-ink/60">{BADGE[p.kind]}</span>}
       </div>
       {onDelete && (
-        <button type="button" onClick={onDelete} aria-label={`Remove ${p.name} from the list`}
+        <button type="button" onClick={onDelete} aria-label={`Scoate-l pe ${p.name} din listă`}
           className="rounded-md p-1.5 text-ink/60 hover:bg-ink/10">
           <X className="size-4" />
         </button>
@@ -54,7 +54,7 @@ function TableCard({ n, members }: { n: number; members: Person[] }) {
   return (
     <section
       ref={setNodeRef}
-      aria-label={`Table ${n}, ${members.length} of ${TABLE_CAPACITY} seats taken`}
+      aria-label={`Masa ${n}, ${members.length} din ${TABLE_CAPACITY} locuri ocupate`}
       className={cx(
         "rounded-2xl border p-3 transition",
         isOver ? (full ? "border-red-600 bg-red-600/10" : "border-gold bg-gold/10") : "border-ink/15"
@@ -71,7 +71,7 @@ function TableCard({ n, members }: { n: number; members: Person[] }) {
         })}
         <text x="60" y="58" textAnchor="middle" className="fill-ink font-display text-[20px]">{n}</text>
         <text x="60" y="74" textAnchor="middle" className="fill-ink text-[11px]">
-          {full ? "Full" : `${members.length}/${TABLE_CAPACITY}`}
+          {full ? "Plină" : `${members.length}/${TABLE_CAPACITY}`}
         </text>
       </svg>
       <ul className="mt-2 space-y-1">
@@ -119,7 +119,7 @@ export function SeatingBoard({ initial }: { initial: Person[] }) {
     const target = e.over.id === "pool" ? null : Number(String(e.over.id).split(":")[1]);
     if (target === p.table) return;
     if (target !== null && (byTable.get(target)?.length ?? 0) >= TABLE_CAPACITY) {
-      setMsg(`Table ${target} is full (${TABLE_CAPACITY} of ${TABLE_CAPACITY}).`);
+      setMsg(`Masa ${target} este plină (${TABLE_CAPACITY} din ${TABLE_CAPACITY}).`);
       return;
     }
     const before = people;
@@ -139,7 +139,7 @@ export function SeatingBoard({ initial }: { initial: Person[] }) {
     });
   };
 
-  const stats = [["Attending", total], ["Seated", seated], ["Unassigned", total - seated]] as const;
+  const stats = [["Participanți", total], ["Așezați", seated], ["Nealocați", total - seated]] as const;
 
   return (
     <DndContext sensors={sensors} collisionDetection={detect} onDragStart={onDragStart}
@@ -147,35 +147,35 @@ export function SeatingBoard({ initial }: { initial: Person[] }) {
       <dl className="mt-6 grid grid-cols-3 gap-3">
         {stats.map(([l, v]) => (
           <div key={l} className="rounded-lg bg-mist/70 p-4">
-            <dd className={cx("font-display text-3xl tabular-nums", l === "Unassigned" && v > 0 && "text-gold")}>{v}</dd>
+            <dd className={cx("font-display text-3xl tabular-nums", l === "Nealocați" && v > 0 && "text-gold")}>{v}</dd>
             <dt className="text-sm text-ink/70">{l}</dt>
           </div>
         ))}
       </dl>
-      <div className="mt-3 h-2 rounded bg-ink/15" role="progressbar" aria-label="Guests assigned to tables"
+      <div className="mt-3 h-2 rounded bg-ink/15" role="progressbar" aria-label="Invitați repartizați la mese"
         aria-valuenow={seated} aria-valuemin={0} aria-valuemax={total}>
         <div className="h-full rounded bg-gold transition-all" style={{ width: `${total ? (seated / total) * 100 : 0}%` }} />
       </div>
-      <p role="status" className="mt-3 min-h-6 text-sm text-red-700">{msg}</p>
+      <p role="status" className="mt-3 min-h-6 text-sm text-red-300">{msg}</p>
 
       <div className="mt-2 grid gap-6 lg:grid-cols-[18rem_1fr]">
-        <section ref={poolRef} aria-label="Guests without a table"
+        <section ref={poolRef} aria-label="Invitați fără masă"
           className={cx(
             "rounded-2xl border p-3 lg:sticky lg:top-4 lg:max-h-[calc(100svh-2rem)] lg:self-start lg:overflow-y-auto",
             overPool ? "border-gold bg-gold/10" : "border-ink/15"
           )}>
-          <h2 className="font-display text-xl">Guest pool <span className="text-base text-ink/60">({total - seated})</span></h2>
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name"
-            aria-label="Search the guest pool" className="mt-2 w-full rounded-md border border-ink/30 bg-transparent px-3 py-2 text-sm" />
+          <h2 className="font-display text-xl">Fără masă <span className="text-base text-ink/60">({total - seated})</span></h2>
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Caută după nume"
+            aria-label="Caută în lista fără masă" className="mt-2 w-full rounded-md border border-ink/30 bg-transparent px-3 py-2 text-sm" />
           <ul className="mt-3 max-h-80 space-y-1 overflow-y-auto lg:max-h-none">
             {pool.map((p) => (
               <PersonChip key={keyOf(p)} p={p} onDelete={p.kind === "guest" ? () => removeGuest(p) : undefined} />
             ))}
           </ul>
           {pool.length === 0 && (
-            <p className="mt-3 text-sm text-ink/70">{total - seated === 0 ? "Everyone has a seat." : "No match."}</p>
+            <p className="mt-3 text-sm text-ink/70">{total - seated === 0 ? "Toți au loc." : "Niciun rezultat."}</p>
           )}
-          <p className="mt-3 text-xs text-ink/60">Drag a name onto a table. Drop it back here to unseat.</p>
+          <p className="mt-3 text-xs text-ink/60">Trage un nume la o masă. Lasă-l aici ca să-l retragi.</p>
         </section>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">

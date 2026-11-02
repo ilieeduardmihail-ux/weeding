@@ -4,7 +4,7 @@ import { wedding } from "@/lib/config";
 export function Faq() {
   return (
     <section className="mx-auto max-w-2xl px-6 py-24">
-      <h2 className="font-display text-4xl">Good to know</h2>
+      <h2 className="font-display text-4xl">Bine de știut</h2>
       <Accordion type="single" collapsible className="mt-8">
         {wedding.faq.map((f, i) => (
           <AccordionItem key={f.q} value={`q${i}`}>

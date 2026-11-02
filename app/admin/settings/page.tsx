@@ -58,43 +58,43 @@ export default async function SettingsPage({
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="font-display text-4xl">Wedding settings</h1>
+      <h1 className="font-display text-4xl">Setările nunții</h1>
       <p className="mt-2 text-ink/70">
-        These values power the public page, the countdown and the RSVP cutoff.
+        Aceste valori apar pe pagina publică, în numărătoare și la termenul de confirmare.
       </p>
 
       {saved && (
         <p role="status" className="mt-6 rounded-lg bg-mist p-4 text-ink">
-          Saved. The public page now shows the new values.
+          Salvat. Pagina publică afișează acum valorile noi.
         </p>
       )}
       {error && (
-        <p role="alert" className="mt-6 rounded-lg bg-red-100 p-4 text-red-800">
+        <p role="alert" className="mt-6 rounded-lg bg-red-500/15 p-4 text-red-200">
           {error === "save"
-            ? "Could not save. Check the database connection and try again."
-            : "Some fields are invalid. Check the dates, the time and the URL."}
+            ? "Nu am putut salva. Verifică legătura la baza de date și încearcă din nou."
+            : "Unele câmpuri nu sunt valide. Verifică datele, ora și linkul."}
         </p>
       )}
 
       <form action={saveSettings} className="mt-8 grid gap-5 sm:grid-cols-2">
-        <Field label="First name">
+        <Field label="Primul nume">
           <Input name="partner_1" defaultValue={settings.partner_1} required minLength={2} maxLength={80} />
         </Field>
-        <Field label="Second name">
+        <Field label="Al doilea nume">
           <Input name="partner_2" defaultValue={settings.partner_2} required minLength={2} maxLength={80} />
         </Field>
 
-        <Field label="Date">
+        <Field label="Data">
           <Input type="date" name="event_date" defaultValue={settings.event_date} required />
         </Field>
-        <Field label="Time">
+        <Field label="Ora">
           <Input type="time" name="event_time" defaultValue={settings.event_time} required />
         </Field>
 
-        <Field label="City">
+        <Field label="Orașul">
           <Input name="city" defaultValue={settings.city} required minLength={2} maxLength={80} />
         </Field>
-        <Field label="Timezone" hint="Used for the countdown and the RSVP cutoff.">
+        <Field label="Fus orar" hint="Folosit pentru numărătoare și termenul de confirmare.">
           <Input
             list="timezones"
             name="timezone"
@@ -110,15 +110,15 @@ export default async function SettingsPage({
           </datalist>
         </Field>
 
-        <Field label="RSVP closes on" hint="Leave empty to keep the form open indefinitely.">
+        <Field label="Confirmările se închid pe" hint="Lasă gol ca formularul să rămână deschis fără termen.">
           <Input type="date" name="rsvp_cutoff_date" defaultValue={settings.rsvp_cutoff_date ?? ""} />
         </Field>
-        <Field label="Public URL" hint="Optional, must start with https://.">
+        <Field label="Link public" hint="Opțional, trebuie să înceapă cu https://.">
           <Input
             type="url"
             name="public_url"
             defaultValue={settings.public_url ?? ""}
-            placeholder="https://example.com"
+            placeholder="https://exemplu.ro"
           />
         </Field>
 
@@ -130,13 +130,13 @@ export default async function SettingsPage({
               defaultChecked={settings.seating_published}
               className="size-4 accent-ink"
             />
-            Publish the seating plan on the public page
+            Publică planul meselor pe pagina publică
           </label>
         </div>
 
         <div className="sm:col-span-2">
           <Button type="submit" className="bg-ink text-sea hover:bg-ink/85">
-            Save settings
+            Salvează setările
           </Button>
         </div>
       </form>

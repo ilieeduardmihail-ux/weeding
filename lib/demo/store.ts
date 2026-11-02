@@ -39,6 +39,15 @@ export type DemoExpense = {
   created_at: string;
 };
 
+export type DemoLocation = {
+  key: "church" | "venue";
+  label: string;
+  name: string;
+  address: string;
+  event_time: string;
+  embed_url: string | null;
+};
+
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 const now = Date.now();
@@ -166,6 +175,25 @@ const state = {
   ] as DemoExpense[],
 
   eventSettings: { ...DEFAULT_EVENT_SETTINGS } as EventSettings,
+
+  locations: [
+    {
+      key: "church",
+      label: "Biserică",
+      name: "Biserica Sfântul Nicolae",
+      address: "Strada Exemplu 12, București",
+      event_time: "16:00",
+      embed_url: null,
+    },
+    {
+      key: "venue",
+      label: "Local",
+      name: "Restaurant Grădina Verde",
+      address: "Șoseaua Exemplu 45, București",
+      event_time: "19:30",
+      embed_url: null,
+    },
+  ] as DemoLocation[],
 };
 
 let counter = 1000;
@@ -370,6 +398,19 @@ export function getEventSettings(): EventSettings {
 export function updateEventSettings(patch: Partial<EventSettings>): EventSettings {
   state.eventSettings = { ...state.eventSettings, ...patch };
   return { ...state.eventSettings };
+}
+
+/* ------------------------------------------------------------- locations */
+
+export function listLocations(): DemoLocation[] {
+  return [...state.locations].sort((a, b) => a.key.localeCompare(b.key));
+}
+
+export function upsertLocation(row: DemoLocation): DemoLocation {
+  const index = state.locations.findIndex((item) => item.key === row.key);
+  if (index >= 0) state.locations[index] = { ...row };
+  else state.locations.push({ ...row });
+  return { ...row };
 }
 
 /* --------------------------------------------------- v5 read-only features */

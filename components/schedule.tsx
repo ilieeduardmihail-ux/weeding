@@ -1,17 +1,24 @@
 "use client";
 import { MotionConfig, motion } from "framer-motion";
-import { wedding } from "@/lib/config";
+import { MapPin } from "lucide-react";
+import { mapsSearchUrl, type WeddingLocation } from "@/lib/config";
 
-export function Schedule() {
+export function Schedule({ locations }: { locations: WeddingLocation[] }) {
+  if (locations.length === 0) return null;
+
   return (
     <MotionConfig reducedMotion="user">
-      <section className="bg-mist/60 py-24">
-        <div className="mx-auto max-w-2xl px-6">
-          <h2 className="font-display text-4xl">The day</h2>
-          <ol className="relative mt-12 space-y-12 border-l border-ink/25 pl-8">
-            {wedding.events.map((e) => (
+      <section id="locatii" className="bg-mist/40 py-24">
+        <div className="mx-auto max-w-3xl px-6">
+          <h2 className="font-display text-4xl">Unde ne găsești</h2>
+          <p className="mt-3 text-ink/70">
+            Biserica și locul petrecerii, cu adresele la zi. Apasă pe hartă pentru indicații.
+          </p>
+
+          <ol className="relative mt-12 space-y-16 border-l border-ink/25 pl-8">
+            {locations.map((location) => (
               <motion.li
-                key={e.title}
+                key={location.key}
                 initial={{ opacity: 0, x: -16 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-80px" }}
@@ -19,23 +26,32 @@ export function Schedule() {
                 className="relative"
               >
                 <span className="absolute -left-[37px] top-2 size-2.5 rounded-full bg-gold" aria-hidden />
-                <p className="text-sm text-ink/60">{e.time}</p>
-                <h3 className="font-display text-2xl">{e.title}</h3>
-                <p className="mt-1">{e.place}</p>
-                <p className="text-ink/70">{e.address}</p>
-                <a href={e.mapsUrl} target="_blank" rel="noreferrer"
-                   className="mt-2 inline-block underline decoration-gold underline-offset-4">
-                  Open in Maps
+                <p className="text-sm text-ink/60">{location.event_time}</p>
+                <h3 className="font-display text-3xl">{location.label}</h3>
+                <p className="mt-1 text-lg">{location.name}</p>
+                <p className="text-ink/70">{location.address}</p>
+                <a
+                  href={mapsSearchUrl(location)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 text-sm text-gold underline decoration-gold/50 underline-offset-4 hover:decoration-gold"
+                >
+                  <MapPin className="size-4" aria-hidden />
+                  Deschide în Maps
                 </a>
+
+                {location.embed_url && (
+                  <iframe
+                    title={`Hartă: ${location.name}`}
+                    src={location.embed_url}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="mt-6 h-64 w-full rounded-xl border border-ink/15"
+                  />
+                )}
               </motion.li>
             ))}
           </ol>
-          <iframe
-            title="Reception venue map"
-            src={wedding.receptionEmbed}
-            loading="lazy"
-            className="mt-14 h-72 w-full rounded-lg border-0"
-          />
         </div>
       </section>
     </MotionConfig>

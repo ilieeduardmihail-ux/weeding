@@ -7,6 +7,8 @@ import { createClient } from "@supabase/supabase-js";
 import { demoMode } from "./demo/mode";
 import { SUPABASE_KEY, SUPABASE_URL } from "./supabase/env";
 import { normalizeSettings, type EventSettings } from "./event-settings";
+import { FALLBACK_LOCATIONS, type WeddingLocation } from "./config";
+import { cleanLocation } from "./location-text";
 
 export type SeatingTable = { table: number; names: string[] };
 
@@ -26,6 +28,25 @@ export const getEventSettings = cache(async (): Promise<EventSettings> => {
     return normalizeSettings(data as Record<string, unknown> | null);
   } catch {
     return normalizeSettings(null);
+  }
+});
+
+/** The church and the reception venue, edited from /admin/locations. */
+export const getLocations = cache(async (): Promise<WeddingLocation[]> => {
+  if (demoMode) {
+    const store = await import("./demo/store");
+    return store.listLocations();
+  }
+  try {
+    const { data } = await anonClient()
+      .from("locations")
+      .select("key, label, name, address, event_time, embed_url")
+      .order("key", { ascending: true });
+    return Array.isArray(data) && data.length > 0
+      ? (data as WeddingLocation[]).map(cleanLocation)
+      : FALLBACK_LOCATIONS;
+  } catch {
+    return FALLBACK_LOCATIONS;
   }
 });
 

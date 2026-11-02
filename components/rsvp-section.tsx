@@ -19,38 +19,38 @@ function StatusCard({ s, onChange, onOther }: { s: RsvpStatus; onChange: () => v
     <div role="status" className="mt-8 rounded-lg bg-mist p-8">
       {!s.attending ? (
         <>
-          <p className="font-display text-3xl">Thank you, {first}.</p>
-          <p className="mt-2 text-ink/75">You told us you can’t make it. We’ll miss you.</p>
+          <p className="font-display text-3xl">Mulțumim, {first}.</p>
+          <p className="mt-2 text-ink/75">Ne-ai spus că nu poți ajunge. Ne va fi dor de tine.</p>
         </>
       ) : (
         <>
-          <p className="font-display text-3xl">Hi {first}!</p>
-          {s.booked_by && <p className="mt-2 text-ink/75">{s.booked_by} replied for you.</p>}
+          <p className="font-display text-3xl">Bună, {first}!</p>
+          {s.booked_by && <p className="mt-2 text-ink/75">{s.booked_by} a răspuns pentru tine.</p>}
           {seated ? (
             <>
               <p className="mt-3 flex items-center gap-2 text-sm font-medium">
-                <CircleCheck className="size-5 text-gold" aria-hidden="true" /> RSVP Confirmed
+                <CircleCheck className="size-5 text-gold" aria-hidden="true" /> Prezență confirmată
               </p>
               <p className="mt-4 flex items-center gap-3 font-display text-3xl">
                 <Armchair className="size-7 shrink-0 text-gold" aria-hidden="true" />
-                You are seated at Table {s.table_number}
+                Stai la masa {s.table_number}
               </p>
             </>
           ) : (
             <p className="mt-3 flex items-start gap-2 text-lg">
               <CircleCheck className="mt-1 size-5 shrink-0 text-gold" aria-hidden="true" />
-              RSVP Confirmed. Your table assignment will be available soon.
+              Prezență confirmată. Îți spunem în curând la ce masă stai.
             </p>
           )}
 
           {s.party.length > 0 && (
             <div className="mt-6">
-              <p className="text-sm font-medium">{s.booked_by ? "Your party" : "Your party"}</p>
+              <p className="text-sm font-medium">Însoțitorii tăi</p>
               <ul className="mt-2 space-y-1 text-ink/80">
                 {s.party.map((p) => (
                   <li key={p.name} className="flex justify-between gap-4">
                     <span>{p.name}</span>
-                    <span className="text-ink/60">{p.table_number !== null ? `Table ${p.table_number}` : "Table to be assigned"}</span>
+                    <span className="text-ink/60">{p.table_number !== null ? `Masa ${p.table_number}` : "Masă nealocată"}</span>
                   </li>
                 ))}
               </ul>
@@ -60,15 +60,15 @@ function StatusCard({ s, onChange, onOther }: { s: RsvpStatus; onChange: () => v
       )}
       <div className="mt-8 flex flex-wrap gap-3">
         {/* A plus-one can't edit the reply of the person who invited them */}
-        {!s.booked_by && <Button type="button" variant="outline" onClick={onChange}>Change my reply</Button>}
-        <Button type="button" variant="ghost" onClick={onOther}>Use a different name</Button>
+        {!s.booked_by && <Button type="button" variant="outline" onClick={onChange}>Modifică răspunsul</Button>}
+        <Button type="button" variant="ghost" onClick={onOther}>Folosește alt nume</Button>
       </div>
     </div>
   );
 }
 
 const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat("en-GB", {
+  new Intl.DateTimeFormat("ro-RO", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -81,12 +81,12 @@ export function RsvpSection({ closed, cutoffDate }: { closed: boolean; cutoffDat
   return (
     <MotionConfig reducedMotion="user">
       <section id="rsvp" className="mx-auto max-w-xl px-6 py-24">
-        <h2 className="font-display text-4xl">Will you join us?</h2>
+        <h2 className="font-display text-4xl">Vii la nuntă?</h2>
         <div role="status" className="mt-8 rounded-lg bg-mist p-8">
-          <p className="font-display text-3xl">RSVPs are closed.</p>
+          <p className="font-display text-3xl">Confirmările sunt închise.</p>
           <p className="mt-2 text-ink/75">
-            {cutoffDate ? `The form closed on ${formatDate(cutoffDate)}. ` : ""}
-            If you still need to change your reply, please contact us directly.
+            {cutoffDate ? `Formularul s-a închis pe ${formatDate(cutoffDate)}. ` : ""}
+            Dacă mai vrei să modifici ceva, scrie-ne direct.
           </p>
         </div>
       </section>
@@ -120,11 +120,11 @@ function RsvpFlow() {
   return (
     <MotionConfig reducedMotion="user">
       <section id="rsvp" className="mx-auto max-w-xl px-6 py-24">
-        <h2 className="font-display text-4xl">Will you join us?</h2>
+        <h2 className="font-display text-4xl">Vii la nuntă?</h2>
         <p className="mt-3 text-ink/70">
-          {view === "lookup" && "Enter your name to reply, or to check your reply and your table."}
-          {view === "form" && (notFound ? "We don’t have a reply under that name yet. Check the spelling, or add your reply below." : "Update your reply below.")}
-          {view === "card" && "Here’s where things stand."}
+          {view === "lookup" && "Scrie-ți numele ca să răspunzi sau să-ți verifici răspunsul și masa."}
+          {view === "form" && (notFound ? "Nu avem încă un răspuns pe acest nume. Verifică ortografia sau adaugă răspunsul mai jos." : "Actualizează-ți răspunsul mai jos.")}
+          {view === "card" && "Iată situația."}
         </p>
 
         <AnimatePresence mode="wait" initial={false}>
@@ -132,12 +132,12 @@ function RsvpFlow() {
             {view === "lookup" && (
               <form onSubmit={(e) => { e.preventDefault(); lookup(clean, false); }} className="mt-8 space-y-4" noValidate>
                 <div className="space-y-2">
-                  <Label htmlFor="lookup-name">Your full name</Label>
+                  <Label htmlFor="lookup-name">Numele complet</Label>
                   <Input id="lookup-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
                 </div>
-                {error && <p role="alert" className="text-red-700">{error}</p>}
+                {error && <p role="alert" className="text-red-300">{error}</p>}
                 <Button type="submit" size="lg" disabled={pending || clean.length < 3} className="w-full bg-ink text-sea hover:bg-ink/85">
-                  {pending ? "Checking…" : "Continue"}
+                  {pending ? "Se verifică…" : "Continuă"}
                 </Button>
               </form>
             )}
@@ -145,7 +145,7 @@ function RsvpFlow() {
             {view === "form" && (
               <>
                 <RsvpForm initialName={clean} onDone={(n) => { setName(n); lookup(n, true); }} />
-                <Button type="button" variant="ghost" className="mt-4" onClick={reset}>Use a different name</Button>
+                <Button type="button" variant="ghost" className="mt-4" onClick={reset}>Folosește alt nume</Button>
               </>
             )}
 
@@ -155,9 +155,9 @@ function RsvpFlow() {
 
             {view === "thanks" && (
               <div role="status" className="mt-8 rounded-lg bg-mist p-8">
-                <p className="font-display text-3xl">Thank you!</p>
-                <p className="mt-2 text-ink/75">Your reply is in. Come back and enter your name any time to check your table.</p>
-                <Button type="button" variant="ghost" className="mt-6" onClick={reset}>Check another name</Button>
+                <p className="font-display text-3xl">Mulțumim!</p>
+                <p className="mt-2 text-ink/75">Răspunsul tău a fost înregistrat. Revino oricând cu numele tău ca să vezi masa.</p>
+                <Button type="button" variant="ghost" className="mt-6" onClick={reset}>Verifică alt nume</Button>
               </div>
             )}
           </motion.div>

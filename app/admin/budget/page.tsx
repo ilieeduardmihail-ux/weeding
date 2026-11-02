@@ -16,7 +16,7 @@ export default async function BudgetPage() {
   }));
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <h1 className="font-display text-4xl">Budget</h1>
+      <h1 className="font-display text-4xl">Buget</h1>
       <BudgetTracker expenses={expenses} />
     </main>
   );

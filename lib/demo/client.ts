@@ -38,6 +38,12 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
     return this;
   }
 
+  upsert(payload: Record<string, unknown>, _options?: { onConflict?: string }) {
+    this.op = "insert";
+    this.payload = payload;
+    return this;
+  }
+
   delete() {
     this.op = "delete";
     return this;
@@ -117,8 +123,13 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
       case "venue_report":
         return ok(store.venueReport());
 
-      case "locations":
-        return ok([]);
+      case "locations": {
+        if (this.op === "insert") {
+          const row = (Array.isArray(this.payload) ? this.payload[0] : this.payload) as store.DemoLocation;
+          return ok(store.upsertLocation(row));
+        }
+        return ok(store.listLocations());
+      }
 
       default:
         return ok([]);

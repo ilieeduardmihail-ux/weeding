@@ -87,11 +87,11 @@ export function normalizeSettings(row: Record<string, unknown> | null | undefine
   };
 }
 
-/** "2027-06-12" -> "12 June 2027" (no timezone drift: midday UTC). */
+/** "2027-06-12" -> "12 iunie 2027" (no timezone drift: midday UTC). */
 export function formatEventDate(settings: EventSettings) {
   const date = new Date(`${settings.event_date}T12:00:00Z`);
   if (Number.isNaN(date.getTime())) return settings.event_date;
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat("ro-RO", {
     day: "numeric",
     month: "long",
     year: "numeric",

@@ -54,7 +54,7 @@ export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
           href="#rsvp"
           className="mt-12 rounded-full bg-ink px-8 py-3 text-sea transition hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
         >
-          RSVP
+          Invitat
         </motion.a>
       </motion.header>
     </MotionConfig>

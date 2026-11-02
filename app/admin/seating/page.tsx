@@ -14,7 +14,7 @@ export default async function SeatingPage() {
   }));
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="font-display text-4xl">Seating</h1>
+      <h1 className="font-display text-4xl">Așezare la mese</h1>
       <SeatingBoard initial={people} />
     </main>
   );

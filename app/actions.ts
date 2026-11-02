@@ -10,7 +10,7 @@ type SubmitResult = { ok: true } | { ok: false; error: string };
 
 export async function submitRsvp(input: RsvpInput): Promise<SubmitResult> {
   const parsed = rsvpSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Check the highlighted fields and try again." };
+  if (!parsed.success) return { ok: false, error: "Verifică câmpurile marcate și încearcă din nou." };
   const d = parsed.data;
 
   if (d.website) return { ok: true }; // honeypot filled: pretend it worked, save nothing
@@ -28,10 +28,10 @@ export async function submitRsvp(input: RsvpInput): Promise<SubmitResult> {
     return {
       ok: false,
       error: error.message.includes("rate limited")
-        ? "Too many attempts. Please try again later."
+        ? "Prea multe încercări. Te rugăm să revii mai târziu."
         : error.message.includes("rsvp closed")
-          ? "The RSVP form is closed. Please contact us directly if you need to change your reply."
-          : "We couldn’t save your reply. Please try again.",
+          ? "Formularul de confirmare este închis. Scrie-ne direct dacă vrei să modifici ceva."
+          : "Nu am putut salva răspunsul. Te rugăm să încerci din nou.",
     };
   }
   return { ok: true };
@@ -45,8 +45,8 @@ export async function submitRsvp(input: RsvpInput): Promise<SubmitResult> {
 export async function checkRsvpStatus(
   name: string
 ): Promise<{ ok: true; status: RsvpStatus | null } | { ok: false; error: string }> {
-  const parsed = z.string().trim().min(3, "Enter your full name.").max(120).safeParse(name);
-  if (!parsed.success) return { ok: false, error: "Enter your full name." };
+  const parsed = z.string().trim().min(3, "Introdu numele complet.").max(120).safeParse(name);
+  if (!parsed.success) return { ok: false, error: "Introdu numele complet." };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("check_rsvp_status", {
@@ -57,8 +57,8 @@ export async function checkRsvpStatus(
     return {
       ok: false,
       error: error.message.includes("rate limited")
-        ? "Too many attempts. Please wait a few minutes and try again."
-        : "We couldn’t check right now. Please try again.",
+        ? "Prea multe încercări. Așteaptă câteva minute și încearcă din nou."
+        : "Nu am putut verifica acum. Te rugăm să încerci din nou.",
     };
   }
   return { ok: true, status: (data as RsvpStatus | null) ?? null };

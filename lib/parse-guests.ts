@@ -13,7 +13,7 @@ export function parseText(text: string): string[] {
 
 /** .xlsx, .xls, .csv or .txt: reads the first filled cell of every row. */
 export async function parseFile(file: File): Promise<string[]> {
-  if (file.size > MAX_BYTES) throw new Error("That file is too large (2 MB max).");
+  if (file.size > MAX_BYTES) throw new Error("Fișierul este prea mare (maximum 2 MB).");
   const ext = file.name.split(".").pop()?.toLowerCase();
   let rows: unknown[][];
 
@@ -26,7 +26,7 @@ export async function parseFile(file: File): Promise<string[]> {
     const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
     rows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, blankrows: false });
   } else {
-    throw new Error("Use a .xlsx, .xls, .csv or .txt file.");
+    throw new Error("Folosește un fișier .xlsx, .xls, .csv sau .txt.");
   }
 
   const names = rows

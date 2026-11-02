@@ -14,10 +14,10 @@ export function Countdown({ target }: { target: string }) {
 
   if (left === null) return <div className="h-16" aria-hidden />;
   const units = [
-    ["days", Math.floor(left / 864e5)],
-    ["hours", Math.floor(left / 36e5) % 24],
-    ["minutes", Math.floor(left / 6e4) % 60],
-    ["seconds", Math.floor(left / 1e3) % 60],
+    ["zile", Math.floor(left / 864e5)],
+    ["ore", Math.floor(left / 36e5) % 24],
+    ["minute", Math.floor(left / 6e4) % 60],
+    ["secunde", Math.floor(left / 1e3) % 60],
   ] as const;
 
   return (

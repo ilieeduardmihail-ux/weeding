@@ -1,21 +1,61 @@
 export const MAX_GUESTS = 6;
 
-const maps = (q: string) =>
-  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+/** A place guests need to find: the church and the reception venue. */
+export type WeddingLocation = {
+  key: string;
+  label: string;
+  name: string;
+  address: string;
+  event_time: string;
+  embed_url: string | null;
+};
 
-// Names, date, time, city and the RSVP cutoff live in `event_settings`
-// (edited from /admin/settings). Only the schedule, map and FAQ are code.
+/** Shown only if the database cannot be reached, so the page never looks broken. */
+export const FALLBACK_LOCATIONS: WeddingLocation[] = [
+  {
+    key: "church",
+    label: "Biserică",
+    name: "Biserica Sfântul Nicolae",
+    address: "Strada Exemplu 12, București",
+    event_time: "16:00",
+    embed_url: null,
+  },
+  {
+    key: "venue",
+    label: "Local",
+    name: "Restaurant Grădina Verde",
+    address: "Șoseaua Exemplu 45, București",
+    event_time: "19:30",
+    embed_url: null,
+  },
+];
+
+/** "Biserica Sfântul Nicolae, Strada Exemplu 12" -> Google Maps search link. */
+export const mapsSearchUrl = (location: Pick<WeddingLocation, "name" | "address">) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${location.name}, ${location.address}`
+  )}`;
+
+// Names, date, time, city and the RSVP cutoff live in `event_settings`.
+// The two locations live in `locations` and are edited from /admin/locations.
+// Only the FAQ is code.
 export const wedding = {
-  events: [
-    { time: "16:00", title: "Civil ceremony", place: "Conservatória do Registo Civil", address: "Rua do Século 1, Lisbon" },
-    { time: "17:30", title: "Religious service", place: "Igreja de São Roque", address: "Largo Trindade Coelho, Lisbon" },
-    { time: "20:00", title: "Reception", place: "Palácio do Grilo", address: "Calçada do Grilo 142, Lisbon" },
-  ].map((e) => ({ ...e, mapsUrl: maps(`${e.place}, ${e.address}`) })),
-  receptionEmbed: "https://www.google.com/maps?q=Palácio+do+Grilo+Lisbon&output=embed",
   faq: [
-    { q: "Where can we park?", a: "The reception venue has 40 free spaces. Parking near the church is limited, so we recommend a taxi or the 28 tram." },
-    { q: "What is the dress code?", a: "Formal. Think cocktail dresses and suits. The garden is gravel, so block heels may be easier than stilettos." },
-    { q: "Where should we stay?", a: "Hotel Avenida (10 min walk from the church) holds a block of rooms under “Ana & Marco”. Book by 12 April." },
-    { q: "Can we bring children?", a: "Yes. Add them as guests in the RSVP form and mark them as children so we can plan seating and meals." },
+    {
+      q: "Unde putem parca?",
+      a: "La local există parcare gratuită. În apropierea bisericii locurile sunt limitate, așa că vă recomandăm să veniți cu un taxi sau să lăsați mașina la local și să mergeți împreună.",
+    },
+    {
+      q: "Ce ținută este potrivită?",
+      a: "Ținută elegantă: rochii de cocktail și costume. Curtea este cu pietriș, așa că tocurile groase sau pantofii comozi sunt o idee mai bună decât tocurile foarte subțiri.",
+    },
+    {
+      q: "Unde ne putem caza?",
+      a: "În oraș sunt mai multe hoteluri la 10–15 minute de biserică. Vă recomandăm să rezervați din timp; dacă aveți nevoie de o recomandare, scrieți-ne și vă ajutăm cu drag.",
+    },
+    {
+      q: "Pot veni cu copiii?",
+      a: "Da. Adăugați-i în formularul de confirmare și marcați-i ca fiind copii, ca să putem planifica locurile la masă și meniurile.",
+    },
   ],
 };

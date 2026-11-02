@@ -38,14 +38,14 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="name">Your full name</Label>
+        <Label htmlFor="name">Numele complet</Label>
         <Input id="name" autoComplete="name" aria-invalid={!!errors.name} aria-describedby="name-hint" {...register("name")} />
-        <p id="name-hint" className="text-sm text-ink/60">Use the name on your invitation. You’ll use it again to check your table.</p>
-        {errors.name && <p className="text-sm text-red-700">{errors.name.message}</p>}
+        <p id="name-hint" className="text-sm text-ink/60">Folosește numele de pe invitație. Îl vei folosi și ca să-ți verifici masa.</p>
+        {errors.name && <p className="text-sm text-red-300">{errors.name.message}</p>}
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Can you make it?</legend>
+        <legend className="text-sm font-medium">Poți ajunge?</legend>
         <div className="grid grid-cols-2 gap-3">
           {(["yes", "no"] as const).map((v) => (
             <button
@@ -57,7 +57,7 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
                 attending === v ? "border-ink bg-ink text-sea" : "border-ink/30 hover:border-ink"
               }`}
             >
-              {v === "yes" ? "Joyfully accept" : "Regretfully decline"}
+              {v === "yes" ? "Da, vin cu drag" : "Din păcate, nu pot"}
             </button>
           ))}
         </div>
@@ -68,21 +68,21 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
           <motion.div key="party" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="space-y-4 pb-1">
-              <p className="text-sm font-medium">Others in your party</p>
+              <p className="text-sm font-medium">Alte persoane din grupul tău</p>
               {fields.map((f, i) => (
                 <div key={f.id} className="flex items-start gap-3">
                   <div className="flex-1 space-y-1">
-                    <Input aria-label={`Guest ${i + 1} full name`} placeholder="Full name" {...register(`guests.${i}.name`)} />
-                    {errors.guests?.[i]?.name && <p className="text-sm text-red-700">{errors.guests[i]!.name!.message}</p>}
+                    <Input aria-label={`Numele persoanei ${i + 1}`} placeholder="Nume complet" {...register(`guests.${i}.name`)} />
+                    {errors.guests?.[i]?.name && <p className="text-sm text-red-300">{errors.guests[i]!.name!.message}</p>}
                     <label className="flex items-center gap-2 text-sm text-ink/75">
-                      <input type="checkbox" {...register(`guests.${i}.isChild`)} /> Child
+                      <input type="checkbox" {...register(`guests.${i}.isChild`)} /> Copil
                     </label>
                   </div>
-                  <Button type="button" variant="ghost" onClick={() => remove(i)}>Remove</Button>
+                  <Button type="button" variant="ghost" onClick={() => remove(i)}>Elimină</Button>
                 </div>
               ))}
               {fields.length < MAX_GUESTS && (
-                <Button type="button" variant="outline" onClick={() => append({ name: "", isChild: false })}>Add a guest</Button>
+                <Button type="button" variant="outline" onClick={() => append({ name: "", isChild: false })}>Adaugă o persoană</Button>
               )}
             </div>
           </motion.div>
@@ -90,15 +90,15 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
       </AnimatePresence>
 
       <div className="space-y-2">
-        <Label htmlFor="message">Message for the couple (optional)</Label>
+        <Label htmlFor="message">Mesaj pentru mir(i) (opțional)</Label>
         <textarea id="message" rows={3} {...register("message")}
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 focus-visible:outline-2 focus-visible:outline-gold" />
-        {errors.message && <p className="text-sm text-red-700">{errors.message.message}</p>}
+        {errors.message && <p className="text-sm text-red-300">{errors.message.message}</p>}
       </div>
 
-      {serverError && <p role="alert" className="text-red-700">{serverError}</p>}
+      {serverError && <p role="alert" className="text-red-300">{serverError}</p>}
       <Button type="submit" size="lg" disabled={pending} className="w-full bg-ink text-sea hover:bg-ink/85">
-        {pending ? "Sending…" : "Send RSVP"}
+        {pending ? "Se trimite…" : "Trimite răspunsul"}
       </Button>
     </form>
   );

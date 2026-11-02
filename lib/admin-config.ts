@@ -1,6 +1,6 @@
 export const TABLE_COUNT = 10;
 export const TABLE_CAPACITY = 10;
-export const CURRENCY = "EUR";
+export const CURRENCY = "RON";
 export const CATEGORIES = [
-  "Venue", "Catering", "Photo & video", "Music", "Attire", "Flowers & decor", "Stationery", "Other",
+  "Locație", "Catering", "Foto & video", "Muzică", "Ținută", "Flori & decor", "Papetărie", "Altele",
 ] as const;

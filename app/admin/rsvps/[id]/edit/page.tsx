@@ -1,0 +1,37 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { RsvpEditor, type RsvpForEdit } from "@/components/admin/rsvp-editor";
+
+export const instant = false;
+
+export default async function EditRsvpPage({ params }: { params: Promise<{ id: string }> }) {
+  await connection();
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { data: isAdmin } = await supabase.rpc("is_admin");
+  if (isAdmin !== true) redirect("/admin/login");
+
+  const { data } = await supabase
+    .from("rsvps")
+    .select("id, name, attending, message, rsvp_guests(id, name, is_child, table_number)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!data) redirect("/admin?error=missing");
+
+  return (
+    <main className="mx-auto max-w-2xl px-6 py-12">
+      <Link href="/admin" className="text-sm text-ink/60 underline-offset-4 hover:underline">
+        ← Lista invitaților
+      </Link>
+      <h1 className="mt-4 font-display text-4xl">Editează răspunsul</h1>
+      <p className="mt-2 text-ink/70">
+        Modifică numele, prezența, mesajul și însoțitorii. Mesele deja alocate se păstrează.
+      </p>
+      <RsvpEditor rsvp={data as RsvpForEdit} />
+    </main>
+  );
+}

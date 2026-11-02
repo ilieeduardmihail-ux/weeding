@@ -12,6 +12,7 @@ export type EventSettings = {
   event_time: string; // HH:MM
   city: string;
   timezone: string; // IANA name, e.g. Europe/Bucharest
+  contact_email: string;
   rsvp_cutoff_date: string | null; // YYYY-MM-DD; null = RSVP never closes
   seating_published: boolean;
   public_url: string | null;
@@ -24,6 +25,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   event_time: "16:00",
   city: "Lisbon",
   timezone: "Europe/Lisbon",
+  contact_email: "ilieeduardmihail@gmail.com",
   rsvp_cutoff_date: null,
   seating_published: false,
   public_url: null,
@@ -55,6 +57,7 @@ export const eventSettingsSchema = z.object({
   event_time: z.string().regex(TIME, "Use HH:MM"),
   city: z.string().trim().min(2).max(80),
   timezone: z.string().trim().min(3).max(64),
+  contact_email: z.string().trim().email("Use a valid email address").max(200),
   rsvp_cutoff_date: optionalDate,
   seating_published: z.boolean(),
   public_url: optionalUrl,
@@ -78,6 +81,7 @@ export function normalizeSettings(row: Record<string, unknown> | null | undefine
     event_time: normalizeTime(text("event_time", DEFAULT_EVENT_SETTINGS.event_time)),
     city: text("city", DEFAULT_EVENT_SETTINGS.city),
     timezone: text("timezone", DEFAULT_EVENT_SETTINGS.timezone),
+    contact_email: text("contact_email", DEFAULT_EVENT_SETTINGS.contact_email),
     rsvp_cutoff_date:
       typeof row.rsvp_cutoff_date === "string" && row.rsvp_cutoff_date !== ""
         ? row.rsvp_cutoff_date

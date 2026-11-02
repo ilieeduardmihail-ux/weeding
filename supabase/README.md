@@ -7,15 +7,29 @@ Rulează fișierele în **ordinea de mai jos**, fiecare o singură dată:
 3. `migration-v3-roles.sql` — roluri admin/guest, `locations`, `rate_limits`, `hit_rate_limit`, RLS complet.
 4. `migration-v4-names.sql` — RSVP după nume (fără email), `norm_name`, `rsvp_log`, `check_rsvp_status` nou.
 5. `migration-v5-features.sql` — `event_settings`, blocare RSVP după cutoff, `public_seating`, `venue_report`, `expense_payments`.
+6. `migration-v6-locations-ro.sql` — **opțional**, repară textul demonstrativ din `locations`. Formularul din admin repară oricum textul la salvare.
+7. `migration-v7-admin-edit-contact.sql` — **necesar** pentru editarea RSVP din admin și pentru emailul de contact: adaugă `event_settings.contact_email` și funcția atomică `admin_update_rsvp`.
 
-De ce ordinea asta: `migration-v4` folosește `hit_rate_limit()`, care e creată în `migration-v3`, iar `migration-v5` redefineste `submit_rsvp` din `v4`. Dacă sari peste un pas, migrarea următoare pică.
+De ce ordinea asta: `migration-v4` folosește `hit_rate_limit()`, care e creată în `migration-v3`, iar `migration-v5` redefinește `submit_rsvp` din `v4`. Dacă sari peste un pas, migrarea următoare pică.
+
+## Ce face `migration-v7`
+
+- Adaugă coloana `contact_email` în `event_settings` și o completează cu `ilieeduardmihail@gmail.com` doar dacă e goală.
+- Creează `admin_update_rsvp(p_id, p_name, p_attending, p_message, p_guests)`:
+  - verifică `is_admin()`;
+  - actualizează răspunsul și însoțitorii într-o singură tranzacție;
+  - păstrează masa fiecărui însoțitor existent, după id;
+  - șterge însoțitorii când răspunsul devine „nu participă”.
+
+Fără această migrare, butonul **Editează** din `/admin` afișează un mesaj care cere rularea ei.
 
 ## Dacă apare o eroare
 
 - `42P07 relation "rsvps" already exists` → `schema.sql` a rulat deja. **Nu** îl rula din nou; treci la `migration-v2.sql`.
 - `function is_admin() does not exist` → lipsește `schema.sql`. Rulează-l o dată, apoi continuă.
 - `function hit_rate_limit(...) does not exist` → ai sărit peste `migration-v3-roles.sql`.
-- Restul migrărilor (v2–v5) sunt idempotente: dacă una a picat la mijloc, o poți rula din nou după ce repari cauza.
+- `function admin_update_rsvp(...) does not exist` → rulează `migration-v7-admin-edit-contact.sql`.
+- Migrările v2–v7 sunt idempotente: dacă una a picat la mijloc, o poți rula din nou după ce repari cauza.
 
 ## După migrări
 
@@ -30,7 +44,11 @@ De ce ordinea asta: `migration-v4` folosește `hit_rate_limit()`, care e creată
    NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...   # sau NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
    RATE_LIMIT_SALT=<șir lung, aleator>
+   NEXT_PUBLIC_SITE_URL=https://weeding.vercel.app
    ```
+5. Authentication → URL Configuration:
+   - Site URL: `https://weeding.vercel.app`
+   - Redirect URLs: `https://weeding.vercel.app/**` și `http://localhost:3000/**`
 
 Cheia `publishable`/`anon` e publică prin design. **Nu** folosi niciodată `sb_secret_...` sau `service_role` în site.
 

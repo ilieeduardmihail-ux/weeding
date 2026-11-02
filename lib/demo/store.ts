@@ -325,6 +325,37 @@ export function submitRsvp(input: {
   return row.id;
 }
 
+/** Mirrors migration-v7 `admin_update_rsvp`: edits a reply and its party, keeping assigned seats. */
+export function adminUpdateRsvp(input: {
+  id: string;
+  name: string;
+  attending: boolean;
+  message: string;
+  guests: { id?: string | null; name: string; isChild?: boolean; is_child?: boolean }[];
+}) {
+  const row = state.rsvps.find((r) => r.id === input.id);
+  if (!row) return { error: { message: "not found" } };
+
+  const seats = new Map(row.rsvp_guests.map((g) => [g.id, g.table_number]));
+
+  row.name = input.name.trim().replace(/\s+/g, " ");
+  row.attending = input.attending;
+  row.message = input.message.trim() === "" ? null : input.message;
+  row.rsvp_guests = input.attending
+    ? input.guests.map((g) => {
+        const id = g.id || nextId();
+        return {
+          id,
+          name: g.name.trim().replace(/\s+/g, " "),
+          is_child: Boolean(g.isChild ?? g.is_child ?? false),
+          table_number: seats.get(id) ?? null,
+        };
+      })
+    : [];
+
+  return { error: null };
+}
+
 export function deleteRsvp(id: string) {
   state.rsvps = state.rsvps.filter((r) => r.id !== id);
 }

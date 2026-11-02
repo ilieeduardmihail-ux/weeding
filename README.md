@@ -1,58 +1,122 @@
 # Wedding site
 
-Next.js 16 (App Router, Turbopack) + Tailwind v4 + Supabase. Public wedding page with RSVP by name, and an admin area for the couple: guest list, seating, venue report, budget, guest import and settings.
+Romanian wedding invitation built with **Next.js 16** (App Router, Turbopack), **Tailwind v4** and **Supabase**. Guests confirm by name; the couple manages everything from an admin area.
 
-## Quick start (no Supabase needed)
+## Features
+
+- Public page in Romanian: plum/gold design, animated hero, countdown, schedule with editable locations, public seating board and RSVP by name.
+- RSVP form with plus-ones, children, optional message, honeypot and server-side rate limiting.
+- Admin area: guest list, **edit any RSVP** (name, attendance, message, plus-ones, keeping assigned seats), seating board, venue report, budget, CSV/XLSX import and settings.
+- Editable event settings: names, date, time, city, timezone, RSVP cutoff, contact email and seating publication.
+- All-day **`.ics` calendar download** at `/calendar`.
+- Sticky **„Invitat”** button on mobile.
+- Privacy page at `/confidentialitate` with a contact email editable from admin.
+- **Vercel Analytics** (cookieless) in production.
+- Vitest tests for countdown, RSVP schemas, demo RSVP flow, event settings, locations and calendar.
+
+## Local quick start (demo mode, no Supabase)
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. The admin area is at http://localhost:3000/admin — sign in with **any email** and the password **`demo`**.
+Open http://localhost:3000. Admin: http://localhost:3000/admin — any email plus the password **`demo`**.
 
-Without `NEXT_PUBLIC_SUPABASE_URL`, the app runs in **demo mode**: everything works, but the data lives in the Node process (`lib/demo/`), so it resets when the dev server restarts. Demo mode is for local preview only — never deploy it.
+Without `NEXT_PUBLIC_SUPABASE_URL`, the app runs in **demo mode**: everything works, but data lives in the Node process (`lib/demo/`), so it resets when the server restarts. Demo mode is for preview only — never deploy it.
 
-## Real Supabase
+## Production setup with Supabase
 
-1. Create a Supabase project.
-2. Run the migrations **in this order**, from `supabase/` (details in `supabase/README.md`):
-   `schema.sql` → `migration-v2.sql` → `migration-v3-roles.sql` → `migration-v4-names.sql` → `migration-v5-features.sql`
-3. Authentication → Users: add one user per partner (Auto Confirm User), then:
+1. Create a project at [supabase.com](https://supabase.com).
+2. In **SQL Editor**, run the migrations in this order:
+   - `supabase/schema.sql`
+   - `supabase/migration-v2.sql`
+   - `supabase/migration-v3-roles.sql`
+   - `supabase/migration-v4-names.sql`
+   - `supabase/migration-v5-features.sql`
+   - `supabase/migration-v6-locations-ro.sql` *(optional one-time cleanup of the demo location rows)*
+   - `supabase/migration-v7-admin-edit-contact.sql` *(required for admin RSVP editing and the contact email)*
+
+   Details and troubleshooting: [`supabase/README.md`](supabase/README.md).
+3. **Authentication → Users**: create one user per partner and confirm the email manually. Turn off public sign-ups.
+4. Register the admin emails:
    ```sql
-   insert into admins (email) values ('you@example.com'), ('partner@example.com');
+   insert into admins (email) values ('you@example.com') on conflict do nothing;
    ```
-4. Copy `.env.example` to `.env.local`:
+5. Copy `.env.example` to `.env.local` and fill in:
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    RATE_LIMIT_SALT=<long random string>
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
    ```
-   (Projectele mai vechi au în loc de publishable key un `anon` JWT: pune-l în `NEXT_PUBLIC_SUPABASE_ANON_KEY`, codul acceptă ambele.)
-5. Restart `npm run dev` and sign in at `/admin` with one of those emails.
+   Older projects can use the legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` instead of the publishable key.
+6. Restart `npm run dev` and sign in at `/admin`.
 
-## Pages
+The `publishable`/`anon` key is public by design. Never put `sb_secret_...` or a `service_role` key in the site.
+
+## Deploy on Vercel (free)
+
+1. Install/log in with the Vercel CLI:
+   ```bash
+   npx vercel login
+   ```
+2. From the project folder, link or create the project and set the name to **`weeding`**:
+   ```bash
+   npx vercel link
+   ```
+   Choosing the name `weeding` gives the free URL **https://weeding.vercel.app** (if it is still available in your scope).
+3. Add the environment variables in **Vercel → Project → Settings → Environment Variables** (Production and Preview):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+   - `RATE_LIMIT_SALT`
+   - `NEXT_PUBLIC_SITE_URL=https://weeding.vercel.app`
+4. Deploy:
+   ```bash
+   npx vercel --prod
+   ```
+5. In **Vercel → Project → Analytics**, press **Enable**. The code already sends events; Vercel only starts recording after this switch.
+6. In **Supabase → Authentication → URL Configuration** set:
+   - **Site URL**: `https://weeding.vercel.app`
+   - **Redirect URLs**: `https://weeding.vercel.app/**` and `http://localhost:3000/**`
+7. Open the production URL, sign in at `/admin`, edit a test RSVP and confirm the public page updates.
+
+If the project name `weeding` is taken, Vercel assigns a different subdomain. You can rename the project in Vercel → Settings → General, then update `NEXT_PUBLIC_SITE_URL` and the Supabase URLs.
+
+## Routes
 
 | Route | What it does |
 |---|---|
-| `/` | Public page: hero + countdown, schedule, FAQ, RSVP lookup/form, public seating (once published) |
-| `/admin` | Guest list, stats, CSV export, sign out |
+| `/` | Public invitation: hero + countdown, schedule, seating (when published), RSVP lookup/form, footer |
+| `/calendar` | Downloads an all-day `.ics` event for the wedding date |
+| `/confidentialitate` | Privacy note and contact email |
+| `/admin` | Guest list, stats, edit/delete RSVP, CSV export |
+| `/admin/rsvps/[id]/edit` | Edit one RSVP and its plus-ones, preserving assigned seats |
 | `/admin/seating` | Drag guests onto tables (capacity limit) |
-| `/admin/report` | Venue report: headcount, adults, children, grouped by table |
+| `/admin/report` | Headcount, adults, children, grouped by table |
 | `/admin/budget` | Expenses, payments, remaining budget |
 | `/admin/import` | Bulk import guests from CSV/XLSX |
-| `/admin/settings` | Names, date, time, city, timezone, RSVP cutoff, publish seating |
+| `/admin/locations` | Edit the church and reception venue |
+| `/admin/settings` | Names, date, time, city, timezone, contact email, RSVP cutoff, publish seating |
 
 ## Where the content lives
 
-- **Names, date, time, city, timezone, RSVP cutoff, seating publication** — `event_settings` table, edited from `/admin/settings`.
-- **Schedule, map, FAQ** — `lib/config.ts` (code).
+- **Names, date, time, city, timezone, contact email, RSVP cutoff, seating publication** — `event_settings` table, edited from `/admin/settings`.
+- **Locations** — `locations` table, edited from `/admin/locations`.
 - **Tables, seats per table, currency** — `lib/admin-config.ts` (code).
+- **Schedule structure and fallback locations** — `lib/config.ts` (code).
 
 ## Verify before deploying
 
 ```bash
-npx tsc --noEmit
+npm test
+npm run typecheck
 npm run lint
 npm run build
 ```
+
+## Notes
+
+- `supabase/migration-v7-admin-edit-contact.sql` adds `event_settings.contact_email` and the atomic `admin_update_rsvp` function. Admin editing fails with a clear message until this migration is run.
+- The public site reads settings per request, so changes saved in `/admin` appear without a redeploy.
+- RSVP rate limiting hashes the client IP with `RATE_LIMIT_SALT`; it never stores the raw IP.

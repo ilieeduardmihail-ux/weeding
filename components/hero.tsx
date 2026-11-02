@@ -49,13 +49,23 @@ export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
         <motion.div variants={rise} className="mt-10">
           <Countdown target={eventIso} />
         </motion.div>
-        <motion.a
+        <motion.div
           variants={rise}
-          href="#rsvp"
-          className="mt-12 rounded-full bg-ink px-8 py-3 text-sea transition hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
+          className="mt-12 flex w-full max-w-sm flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center"
         >
-          Invitat
-        </motion.a>
+          <a
+            href="#rsvp"
+            className="rounded-full bg-ink px-8 py-3 text-center text-sea transition hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
+          >
+            Invitat
+          </a>
+          <a
+            href="/calendar"
+            className="rounded-full border border-ink/30 px-8 py-3 text-center transition hover:border-ink hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
+          >
+            Adaugă în calendar
+          </a>
+        </motion.div>
       </motion.header>
     </MotionConfig>
   );

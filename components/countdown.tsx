@@ -1,23 +1,24 @@
 "use client";
 import { useEffect, useState } from "react";
+import { remainingParts } from "@/lib/countdown";
 
 export function Countdown({ target }: { target: string }) {
-  const [left, setLeft] = useState<number | null>(null);
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
-    const t = new Date(target).getTime();
-    const tick = () => setLeft(Math.max(0, t - Date.now()));
+    const tick = () => setNow(Date.now());
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [target]);
 
-  if (left === null) return <div className="h-16" aria-hidden />;
+  if (now === null) return <div className="h-16" aria-hidden />;
+  const parts = remainingParts(target, now);
   const units = [
-    ["zile", Math.floor(left / 864e5)],
-    ["ore", Math.floor(left / 36e5) % 24],
-    ["minute", Math.floor(left / 6e4) % 60],
-    ["secunde", Math.floor(left / 1e3) % 60],
+    ["zile", parts.days],
+    ["ore", parts.hours],
+    ["minute", parts.minutes],
+    ["secunde", parts.seconds],
   ] as const;
 
   return (

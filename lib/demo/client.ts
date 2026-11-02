@@ -180,6 +180,17 @@ export function createDemoClient() {
         case "check_rsvp_status":
           return ok(store.checkRsvpStatus(String(args.p_name ?? "")));
 
+        case "admin_update_rsvp": {
+          const res = store.adminUpdateRsvp({
+            id: String(args.p_id ?? ""),
+            name: String(args.p_name ?? ""),
+            attending: Boolean(args.p_attending),
+            message: String(args.p_message ?? ""),
+            guests: (args.p_guests as { id?: string | null; name: string; isChild?: boolean }[]) ?? [],
+          });
+          return res.error ? fail(res.error.message) : ok(null);
+        }
+
         case "add_payment": {
           const payment = store.addPayment(String(args.p_id ?? ""), Number(args.p_amount ?? 0));
           return payment.error ? fail(payment.error.message) : ok(null);

@@ -110,6 +110,15 @@ export default async function SettingsPage({
           </datalist>
         </Field>
 
+        <div className="sm:col-span-2">
+          <Field
+            label="Email de contact"
+            hint="Apare în footer și pe pagina de confidențialitate, pentru întrebări legate de nuntă."
+          >
+            <Input type="email" name="contact_email" defaultValue={settings.contact_email} required maxLength={200} />
+          </Field>
+        </div>
+
         <Field label="Confirmările se închid pe" hint="Lasă gol ca formularul să rămână deschis fără termen.">
           <Input type="date" name="rsvp_cutoff_date" defaultValue={settings.rsvp_cutoff_date ?? ""} />
         </Field>

@@ -3,7 +3,6 @@ import { connection } from "next/server";
 import { Hero } from "@/components/hero";
 import { Particles } from "@/components/particles";
 import { Schedule } from "@/components/schedule";
-import { Faq } from "@/components/faq";
 import { PublicSeating } from "@/components/public-seating";
 import { RsvpSection } from "@/components/rsvp-section";
 import { getEventSettings, getLocations, getPublicSeating } from "@/lib/public-data";
@@ -41,7 +40,6 @@ export default async function Home() {
         eventIso={eventStartIso(settings)}
       />
       <Schedule locations={locations} />
-      <Faq />
       {tables && <PublicSeating tables={tables} />}
       <RsvpSection closed={isRsvpClosed(settings)} cutoffDate={settings.rsvp_cutoff_date} />
     </main>

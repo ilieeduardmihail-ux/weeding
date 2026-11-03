@@ -80,7 +80,8 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
           if (typeof idFilter === "string") store.deleteRsvp(idFilter);
           return ok(null);
         }
-        return ok(store.listRsvps(this.orderBy.column ? this.orderBy : undefined));
+        const rows = store.listRsvps(this.orderBy.column ? this.orderBy : undefined);
+        return ok(typeof idFilter === "string" ? rows.filter((row) => row.id === idFilter) : rows);
       }
 
       case "expenses": {

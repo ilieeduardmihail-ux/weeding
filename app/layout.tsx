@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ro" className={`${fraunces.variable} ${figtree.variable}`}>
+    <html lang="ro" data-scroll-behavior="smooth" className={`${fraunces.variable} ${figtree.variable}`}>
       <body className="bg-sea font-sans text-ink antialiased">
         {children}
         <Analytics />

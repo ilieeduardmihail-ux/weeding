@@ -2,6 +2,8 @@ import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { BudgetTracker, type Expense } from "@/components/admin/budget-tracker";
 
+export const instant = false;
+
 export default async function BudgetPage() {
   await connection();
   const supabase = await createClient();

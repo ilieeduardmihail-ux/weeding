@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { deleteRsvp, signOut } from "./actions";
 import { Button } from "@/components/ui/button";
 
+export const instant = false;
+
 type Row = {
   id: string; name: string; attending: boolean; message: string | null; created_at: string; table_number: number | null;
   rsvp_guests: { id: string; name: string; is_child: boolean; table_number: number | null }[];

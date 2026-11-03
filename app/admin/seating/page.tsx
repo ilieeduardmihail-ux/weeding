@@ -2,6 +2,8 @@ import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { SeatingBoard, type Kind, type Person } from "@/components/admin/seating-board";
 
+export const instant = false;
+
 export default async function SeatingPage() {
   await connection();
   const supabase = await createClient();

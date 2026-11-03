@@ -44,3 +44,5 @@ next-env.d.ts
 # local env files (keep the template)
 .env*
 !.env.example
+.vercel
+.env*

@@ -45,7 +45,7 @@ function hostOf(site: string) {
 export function buildCalendarEvent(settings: EventSettings, now: Date = new Date()) {
   const start = icsDate(settings.event_date);
   const end = icsDate(icsNextDate(settings.event_date));
-  const site = settings.public_url ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://weeding-plan.vercel.app";
+  const site = settings.public_url ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://wedding-ro.vercel.app";
 
   const lines = [
     "BEGIN:VCALENDAR",

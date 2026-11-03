@@ -61,27 +61,27 @@ The `publishable`/`anon` key is public by design. Never put `sb_secret_...` or a
    ```bash
    npx vercel login
    ```
-2. From the project folder, link or create the project and set the name to **`weeding-plan`**:
+2. From the project folder, link or create the project and set the name to **`wedding-ro`**:
    ```bash
    npx vercel link
    ```
-   This project is deployed at **https://weeding-plan.vercel.app**. If you pick another name, Vercel assigns a different free subdomain — update `NEXT_PUBLIC_SITE_URL` and the Supabase URLs to match.
+   This project is deployed at **https://wedding-ro.vercel.app**. If you pick another name, Vercel assigns a different free subdomain — update `NEXT_PUBLIC_SITE_URL` and the Supabase URLs to match.
 3. Add the environment variables in **Vercel → Project → Settings → Environment Variables** (Production and Preview):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
    - `RATE_LIMIT_SALT`
-   - `NEXT_PUBLIC_SITE_URL=https://weeding-plan.vercel.app`
+   - `NEXT_PUBLIC_SITE_URL=https://wedding-ro.vercel.app`
 4. Deploy:
    ```bash
    npx vercel --prod
    ```
 5. In **Vercel → Project → Analytics**, press **Enable**. The code already sends events; Vercel only starts recording after this switch.
 6. In **Supabase → Authentication → URL Configuration** set:
-   - **Site URL**: `https://weeding-plan.vercel.app`
-   - **Redirect URLs**: `https://weeding-plan.vercel.app/**` and `http://localhost:3000/**`
+   - **Site URL**: `https://wedding-ro.vercel.app`
+   - **Redirect URLs**: `https://wedding-ro.vercel.app/**` and `http://localhost:3000/**`
 7. Open the production URL, sign in at `/admin`, edit a test RSVP and confirm the public page updates.
 
-The domain `weeding-plan.vercel.app` is attached to the project, so it follows every new production deployment automatically. Redeploy with `npx vercel --prod --yes` after changing code or environment variables.
+The domain `wedding-ro.vercel.app` is attached to the project, so it follows every new production deployment automatically. Redeploy with `npx vercel --prod --yes` after changing code or environment variables.
 
 ## Routes
 

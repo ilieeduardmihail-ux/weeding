@@ -8,7 +8,7 @@ const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
 
 // The home page overrides this with the names/date from /admin/settings.
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://weeding-plan.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://wedding-ro.vercel.app"),
   title: "Nunta noastră",
   description: "Site-ul nunții noastre",
 };

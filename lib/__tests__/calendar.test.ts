@@ -8,7 +8,7 @@ const settings: EventSettings = {
   partner_2: "Mihai",
   event_date: "2029-07-07",
   city: "București",
-  public_url: "https://weeding.vercel.app",
+  public_url: "https://weeding-plan.vercel.app",
 };
 
 describe("calendar", () => {

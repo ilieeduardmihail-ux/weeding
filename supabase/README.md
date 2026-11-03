@@ -44,11 +44,11 @@ Fără această migrare, butonul **Editează** din `/admin` afișează un mesaj 
    NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...   # sau NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
    RATE_LIMIT_SALT=<șir lung, aleator>
-   NEXT_PUBLIC_SITE_URL=https://weeding.vercel.app
+   NEXT_PUBLIC_SITE_URL=https://weeding-plan.vercel.app
    ```
 5. Authentication → URL Configuration:
-   - Site URL: `https://weeding.vercel.app`
-   - Redirect URLs: `https://weeding.vercel.app/**` și `http://localhost:3000/**`
+   - Site URL: `https://weeding-plan.vercel.app`
+   - Redirect URLs: `https://weeding-plan.vercel.app/**` și `http://localhost:3000/**`
 
 Cheia `publishable`/`anon` e publică prin design. **Nu** folosi niciodată `sb_secret_...` sau `service_role` în site.
 

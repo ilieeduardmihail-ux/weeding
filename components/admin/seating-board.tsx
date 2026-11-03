@@ -5,7 +5,7 @@ import {
   pointerWithin, rectIntersection, useDraggable, useDroppable, useSensor, useSensors,
   type CollisionDetection, type DragEndEvent, type DragStartEvent,
 } from "@dnd-kit/core";
-import { Plus, X } from "lucide-react";
+import { Plus, Undo2, X } from "lucide-react";
 import { addTable, assignTable, deleteGuest, deleteTable, setTableCapacity } from "@/app/admin/seating/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,7 @@ const detect: CollisionDetection = (args) => {
   return hits.length ? hits : rectIntersection(args);
 };
 
-function PersonChip({ p, onDelete }: { p: Person; onDelete?: () => void }) {
+function PersonChip({ p, onDelete, onUnassign }: { p: Person; onDelete?: () => void; onUnassign?: () => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: keyOf(p) });
   return (
     <li className="flex items-center gap-1">
@@ -47,6 +47,13 @@ function PersonChip({ p, onDelete }: { p: Person; onDelete?: () => void }) {
         {p.name}
         {BADGE[p.kind] && <span className="ml-2 text-xs text-ink/60">{BADGE[p.kind]}</span>}
       </div>
+      {onUnassign && (
+        <button type="button" onClick={onUnassign} aria-label={`Mută-l pe ${p.name} în Fără masă`}
+          title="Mută în Fără masă"
+          className="rounded-md p-1.5 text-ink/50 transition-colors hover:bg-ink/10 hover:text-gold">
+          <Undo2 className="size-4" />
+        </button>
+      )}
       {onDelete && (
         <button type="button" onClick={onDelete} aria-label={`Scoate-l pe ${p.name} din listă`}
           className="rounded-md p-1.5 text-ink/60 transition-colors hover:bg-ink/10">
@@ -62,11 +69,13 @@ function TableCard({
   members,
   onDelete,
   onCapacityChange,
+  onUnassign,
 }: {
   table: SeatingTable;
   members: Person[];
   onDelete: () => void;
   onCapacityChange: (capacity: number) => void;
+  onUnassign: (person: Person) => void;
 }) {
   const { number: n, capacity } = table;
   const { setNodeRef, isOver } = useDroppable({ id: `table:${n}` });
@@ -115,7 +124,7 @@ function TableCard({
         </text>
       </svg>
       <ul className="mt-2 space-y-1">
-        {members.map((p) => <PersonChip key={keyOf(p)} p={p} />)}
+        {members.map((p) => <PersonChip key={keyOf(p)} p={p} onUnassign={() => onUnassign(p)} />)}
       </ul>
       <div className="mt-2 flex items-center justify-center gap-1 text-xs text-ink/60">
         <label htmlFor={`capacity-${n}`}>Locuri</label>
@@ -283,6 +292,16 @@ export function SeatingBoard({
     setActive(people.find((p) => keyOf(p) === e.active.id) ?? null);
   };
 
+  const movePerson = (p: Person, target: number | null) => {
+    setMsg(null);
+    const before = people;
+    setPeople((ps) => ps.map((x) => (keyOf(x) === keyOf(p) ? { ...x, table: target } : x)));
+    start(async () => {
+      const r = await assignTable(p.kind, p.id, target);
+      if (!r.ok) { setPeople(before); setMsg(r.error); }
+    });
+  };
+
   const onDragEnd = (e: DragEndEvent) => {
     setActive(null);
     if (!e.over) return;
@@ -299,12 +318,12 @@ export function SeatingBoard({
       setMsg(`Masa ${target} este plină (${targetTable.capacity} din ${targetTable.capacity}).`);
       return;
     }
-    const before = people;
-    setPeople((ps) => ps.map((x) => (keyOf(x) === keyOf(p) ? { ...x, table: target } : x)));
-    start(async () => {
-      const r = await assignTable(p.kind, p.id, target);
-      if (!r.ok) { setPeople(before); setMsg(r.error); }
-    });
+    movePerson(p, target);
+  };
+
+  const unassignPerson = (p: Person) => {
+    if (p.table === null) return;
+    movePerson(p, null);
   };
 
   const removeGuest = (p: Person) => {
@@ -393,7 +412,7 @@ export function SeatingBoard({
           {pool.length === 0 && (
             <p className="mt-3 text-sm text-ink/70">{total - seated === 0 ? "Toți au loc." : "Niciun rezultat."}</p>
           )}
-          <p className="mt-3 text-xs text-ink/60">Trage un nume la o masă. Lasă-l aici ca să-l retragi.</p>
+          <p className="mt-3 text-xs text-ink/60">Trage un nume la o masă sau apasă ↩ ca să-l retragi în „Fără masă”.</p>
         </section>
 
         <div>
@@ -416,6 +435,7 @@ export function SeatingBoard({
                   members={byTable.get(t.number) ?? []}
                   onDelete={() => setDeleting(t)}
                   onCapacityChange={(capacity) => handleCapacity(t.number, capacity)}
+                  onUnassign={unassignPerson}
                 />
               ))}
             </div>

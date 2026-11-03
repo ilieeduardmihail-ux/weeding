@@ -19,7 +19,6 @@ export async function saveSettings(formData: FormData) {
     city: String(formData.get("city") ?? ""),
     timezone: String(formData.get("timezone") ?? ""),
     contact_email: String(formData.get("contact_email") ?? ""),
-    budget_currency: String(formData.get("budget_currency") ?? ""),
     rsvp_cutoff_date: String(formData.get("rsvp_cutoff_date") ?? ""),
     seating_published: formData.get("seating_published") === "on",
     public_url: String(formData.get("public_url") ?? ""),

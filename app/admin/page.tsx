@@ -3,6 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { deleteRsvp, signOut } from "./actions";
+import { AdminRealtime } from "@/components/admin/admin-realtime";
 import { Button } from "@/components/ui/button";
 
 export const instant = false;
@@ -48,14 +49,15 @@ export default async function Dashboard({
         </div>
       </div>
 
-      <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {stats.map(([label, value]) => (
+      <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">        {stats.map(([label, value]) => (
           <div key={label} className="rounded-lg bg-mist/70 p-5">
             <dd className="font-display text-4xl tabular-nums">{value}</dd>
             <dt className="text-sm text-ink/70">{label}</dt>
           </div>
         ))}
       </dl>
+
+      <AdminRealtime />
 
       {edited && (
         <p role="status" className="mt-6 rounded-lg bg-mist p-4 text-ink">

@@ -33,6 +33,7 @@ export type DemoExpense = {
   id: string;
   item_name: string;
   category: string;
+  currency: "RON" | "EUR";
   total_cost: number;
   amount_paid: number;
   notes: string | null;
@@ -131,6 +132,7 @@ const state = {
       id: uuid(301),
       item_name: "Venue deposit",
       category: "Venue",
+      currency: "RON",
       total_cost: 4500,
       amount_paid: 1500,
       notes: "Second instalment due in April",
@@ -140,6 +142,7 @@ const state = {
       id: uuid(302),
       item_name: "Catering (110 guests)",
       category: "Catering",
+      currency: "RON",
       total_cost: 8250,
       amount_paid: 8250,
       notes: null,
@@ -149,6 +152,7 @@ const state = {
       id: uuid(303),
       item_name: "Photographer + album",
       category: "Photo & video",
+      currency: "EUR",
       total_cost: 1800,
       amount_paid: 600,
       notes: null,
@@ -158,6 +162,7 @@ const state = {
       id: uuid(304),
       item_name: "Floral centrepieces",
       category: "Flowers & decor",
+      currency: "EUR",
       total_cost: 950,
       amount_paid: 0,
       notes: "Quote approved, invoice pending",
@@ -167,6 +172,7 @@ const state = {
       id: uuid(305),
       item_name: "Band",
       category: "Music",
+      currency: "RON",
       total_cost: 1200,
       amount_paid: 300,
       notes: null,
@@ -459,7 +465,6 @@ export function assignTable(kind: string, id: string, table: number | null) {
     const taken = people.filter((p) => p.id !== id && p.table_number === table).length;
     if (taken >= target.capacity) return { error: { message: "table full" } };
   }
-
   if (kind === "rsvp") {
     const r = state.rsvps.find((x) => x.id === id);
     if (!r) return { error: { message: "not found" } };
@@ -475,6 +480,11 @@ export function assignTable(kind: string, id: string, table: number | null) {
     g.table_number = table;
   }
   return { error: null };
+}
+
+/** Mirrors migration-v9 `unassign_table`: back to the "Fără masă" pool. */
+export function unassignTable(kind: string, id: string) {
+  return assignTable(kind, id, null);
 }
 
 /* --------------------------------------------------------- event settings */

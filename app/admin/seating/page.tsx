@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { SeatingBoard, type Kind, type Person } from "@/components/admin/seating-board";
+import { AdminRealtime } from "@/components/admin/admin-realtime";
 import type { SeatingTable } from "@/lib/seating";
 
 export const instant = false;
@@ -32,6 +33,7 @@ export default async function SeatingPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
       <h1 className="font-display text-4xl">Așezare la mese</h1>
+      <AdminRealtime />
       <SeatingBoard initial={people} initialTables={tables} />
     </main>
   );

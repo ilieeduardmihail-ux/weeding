@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 import { MotionConfig, motion, useAnimationControls } from "framer-motion";
 import { Countdown } from "./countdown";
-import { OPEN_INVITATION_EVENT, requestOpenInvitation } from "@/lib/invitation";
+import { INVITATION_ZOOM_MS, OPEN_INVITATION_EVENT, requestOpenInvitation } from "@/lib/invitation";
 
 type HeroProps = {
   names: [string, string];
@@ -32,29 +32,21 @@ export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
     return () => cancelAnimationFrame(frame);
   }, [controls]);
 
-  // Zoom the hero in, then glide to the first content section. With reduced
-  // motion, skip the zoom and jump straight to the content.
+  // Zoom the hero in. Revealing and scrolling the content is handled by
+  // InvitationContent, which mounts the sections only after this event.
   useEffect(() => {
     const openInvitation = () => {
-      const target = document.getElementById("locatii");
-      if (!target) return;
-
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (reduced) {
-        target.scrollIntoView({ block: "start" });
-        return;
-      }
-      if (leaving.current) return;
+      if (reduced || leaving.current) return;
 
       leaving.current = true;
       void controls
         .start({
           scale: 1.06,
           opacity: 0,
-          transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+          transition: { duration: INVITATION_ZOOM_MS / 1000, ease: [0.4, 0, 0.2, 1] },
         })
         .then(() => {
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
           controls.set({ scale: 1, opacity: 1 });
           leaving.current = false;
         });

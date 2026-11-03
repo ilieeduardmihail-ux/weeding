@@ -18,16 +18,21 @@ export async function assignTable(kind: string, id: string, table: number | null
   if (!parsed.success) return { ok: false, error: "Cerere invalidă." };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("assign_table", {
-    p_kind: parsed.data.kind,
-    p_id: parsed.data.id,
-    p_table: parsed.data.table,
-  });
+  const { error } = parsed.data.table === null
+    ? await supabase.rpc("unassign_table", {
+        p_kind: parsed.data.kind,
+        p_id: parsed.data.id,
+      })
+    : await supabase.rpc("assign_table", {
+        p_kind: parsed.data.kind,
+        p_id: parsed.data.id,
+        p_table: parsed.data.table,
+      });
   if (error) {
     const message = error.message;
     if (message.includes("table full")) return { ok: false, error: "Masa este plină." };
     if (message.includes("table missing")) return { ok: false, error: "Masa nu mai există." };
-    return { ok: false, error: "Nu am putut salva modificarea." };
+    return { ok: false, error: "Nu am putut salva modificarea. Rulează migrarea v9 în Supabase." };
   }
   return { ok: true };
 }

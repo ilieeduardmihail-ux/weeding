@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CURRENCIES, formatMoney, isCurrency, moneyFormatter } from "../currency";
+import { expenseSchema } from "../expense-schema";
 
 beforeEach(() => {
   vi.resetModules();
@@ -25,6 +26,19 @@ describe("budget currency", () => {
     expect(ron).not.toBe(eur);
     expect(moneyFormatter("RON").formatToParts(1500).find((p) => p.type === "currency")?.value).toBe("RON");
     expect(moneyFormatter("EUR").formatToParts(1500).find((p) => p.type === "currency")?.value).toBe("EUR");
+  });
+
+  it("stores a currency on each expense and rejects unknown ones", () => {
+    const base = {
+      item_name: "Catering",
+      category: "Catering",
+      total_cost: 1000,
+      amount_paid: 0,
+    };
+
+    expect(expenseSchema.safeParse({ ...base, currency: "RON" }).success).toBe(true);
+    expect(expenseSchema.safeParse({ ...base, currency: "EUR" }).success).toBe(true);
+    expect(expenseSchema.safeParse({ ...base, currency: "USD" }).success).toBe(false);
   });
 });
 
@@ -69,6 +83,14 @@ describe("demo seating tables", () => {
     expect(store.listSeating().filter((p) => p.table_number === 2)).toEqual([]);
     expect(store.listSeatingTables().some((t) => t.number === 2)).toBe(false);
     expect(store.publicSeating()?.some((t) => t.table === 2)).toBe(false);
+  });
+
+  it("moves a seated person back to the unassigned pool", async () => {
+    const store = await freshStore();
+    const seated = store.listSeating().find((p) => p.table_number !== null)!;
+
+    expect(store.unassignTable(seated.kind, seated.id).error).toBeNull();
+    expect(store.listSeating().find((p) => p.id === seated.id)?.table_number).toBeNull();
   });
 
   it("never shrinks a table below the people already seated", async () => {

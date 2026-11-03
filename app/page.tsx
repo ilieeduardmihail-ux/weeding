@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Footer } from "@/components/footer";
 import { Hero } from "@/components/hero";
+import { InvitationContent } from "@/components/invitation-content";
 import { MobileRsvp } from "@/components/mobile-rsvp";
 import { Particles } from "@/components/particles";
 import { Schedule } from "@/components/schedule";
@@ -44,10 +45,12 @@ export default async function Home() {
         city={settings.city}
         eventIso={eventStartIso(settings)}
       />
-      <Schedule locations={locations} />
-      {tables && <PublicSeating tables={tables} />}
-      <RsvpSection closed={isRsvpClosed(settings)} cutoffDate={settings.rsvp_cutoff_date} />
-      <Footer names={[settings.partner_1, settings.partner_2]} email={settings.contact_email} />
+      <InvitationContent>
+        <Schedule locations={locations} />
+        {tables && <PublicSeating tables={tables} />}
+        <RsvpSection closed={isRsvpClosed(settings)} cutoffDate={settings.rsvp_cutoff_date} />
+        <Footer names={[settings.partner_1, settings.partner_2]} email={settings.contact_email} />
+      </InvitationContent>
       <MobileRsvp />
     </main>
   );

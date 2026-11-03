@@ -88,6 +88,7 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
           const row = (Array.isArray(this.payload) ? this.payload[0] : this.payload) as {
             item_name: string;
             category: string;
+            currency: "RON" | "EUR";
             total_cost: number;
             amount_paid: number;
             notes: string | null;
@@ -210,6 +211,11 @@ export function createDemoClient() {
             String(args.p_id ?? ""),
             (args.p_table as number | null) ?? null
           );
+          return res.error ? fail(res.error.message) : ok(null);
+        }
+
+        case "unassign_table": {
+          const res = store.unassignTable(String(args.p_kind ?? ""), String(args.p_id ?? ""));
           return res.error ? fail(res.error.message) : ok(null);
         }
 

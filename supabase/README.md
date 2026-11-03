@@ -9,7 +9,8 @@ Rulează fișierele în **ordinea de mai jos**, fiecare o singură dată:
 5. `migration-v5-features.sql` — `event_settings`, blocare RSVP după cutoff, `public_seating`, `venue_report`, `expense_payments`.
 6. `migration-v6-locations-ro.sql` — **opțional**, repară textul demonstrativ din `locations`. Formularul din admin repară oricum textul la salvare.
 7. `migration-v7-admin-edit-contact.sql` — **necesar** pentru editarea RSVP din admin și pentru emailul de contact: adaugă `event_settings.contact_email` și funcția atomică `admin_update_rsvp`.
-8. `migration-v8-tables-currency.sql` — **necesar** pentru moneda bugetului (RON/EUR) și mesele dinamice: adaugă `event_settings.budget_currency`, tabelul `seating_tables`, `add_seating_table`, `delete_seating_table`, `set_table_capacity` și rescrie `assign_table` / `public_seating`.
+8. `migration-v8-tables-currency.sql` — **necesar** pentru mesele dinamice: adaugă tabelul `seating_tables`, `add_seating_table`, `delete_seating_table`, `set_table_capacity` și rescrie `assign_table` / `public_seating`.
+9. `migration-v9-expense-currency-realtime.sql` — **necesar** pentru moneda fiecărei cheltuieli, retragerea unui invitat în „Fără masă” și actualizarea în timp real a listei de invitați: adaugă `expenses.currency`, funcția `unassign_table` și publică `rsvps` / `rsvp_guests` pentru Realtime.
 
 De ce ordinea asta: `migration-v4` folosește `hit_rate_limit()`, care e creată în `migration-v3`, iar `migration-v5` redefinește `submit_rsvp` din `v4`. Dacă sari peste un pas, migrarea următoare pică.
 
@@ -26,7 +27,7 @@ Fără această migrare, butonul **Editează** din `/admin` afișează un mesaj 
 
 ## Ce face `migration-v8`
 
-- Adaugă `event_settings.budget_currency` (`RON` sau `EUR`, implicit `RON`). Schimbarea monedei schimbă doar formatarea, nu converteste sumele.
+- Adaugă `event_settings.budget_currency` (`RON` sau `EUR`, implicit `RON`). Coloana rămâne în schemă, dar din v9 moneda se alege pe fiecare cheltuială.
 - Creează `seating_tables (number, capacity)` și o populează cu mesele 1–10, câte 10 locuri — exact ca înainte.
 - Rescrie `assign_table(p_kind, p_id, p_table)`: capacitatea se citește din `seating_tables`.
 - Adaugă funcțiile de administrare:
@@ -37,6 +38,14 @@ Fără această migrare, butonul **Editează** din `/admin` afișează un mesaj 
 
 Fără această migrare, paginile **Buget** și **Mese** afișează erori la salvarea monedei sau la modificarea meselor.
 
+## Ce face `migration-v9`
+
+- Adaugă `expenses.currency` (`RON`/`EUR`, implicit `RON`). Fiecare cheltuială se salvează și se afișează în moneda aleasă la adăugare; totalurile se calculează separat pe monede.
+- Creează `unassign_table(p_kind, p_id)`, folosită când un invitat este mutat înapoi în „Fără masă”. Separarea evită trimiterea unui `null` către funcția cu parametru `smallint`.
+- Adaugă `rsvps` și `rsvp_guests` la publicația `supabase_realtime`, ca lista din admin să se actualizeze imediat după un RSVP.
+
+Fără această migrare: cheltuielile noi cad pe `RON`, retragerea la „Fără masă” dă eroare, iar lista din admin se actualizează doar prin reîmprospătare (polling-ul de 15 s rămâne activ).
+
 ## Dacă apare o eroare
 
 - `42P07 relation "rsvps" already exists` → `schema.sql` a rulat deja. **Nu** îl rula din nou; treci la `migration-v2.sql`.
@@ -44,7 +53,8 @@ Fără această migrare, paginile **Buget** și **Mese** afișează erori la sal
 - `function hit_rate_limit(...) does not exist` → ai sărit peste `migration-v3-roles.sql`.
 - `function admin_update_rsvp(...) does not exist` → rulează `migration-v7-admin-edit-contact.sql`.
 - `column "budget_currency" does not exist` sau `relation "seating_tables" does not exist` → rulează `migration-v8-tables-currency.sql`.
-- Migrările v2–v8 sunt idempotente: dacă una a picat la mijloc, o poți rula din nou după ce repari cauza.
+- `function unassign_table(...)` sau `column "currency" does not exist` → rulează `migration-v9-expense-currency-realtime.sql`.
+- Migrările v2–v9 sunt idempotente: dacă una a picat la mijloc, o poți rula din nou după ce repari cauza.
 
 ## După migrări
 

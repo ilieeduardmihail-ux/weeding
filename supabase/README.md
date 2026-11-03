@@ -9,6 +9,7 @@ Rulează fișierele în **ordinea de mai jos**, fiecare o singură dată:
 5. `migration-v5-features.sql` — `event_settings`, blocare RSVP după cutoff, `public_seating`, `venue_report`, `expense_payments`.
 6. `migration-v6-locations-ro.sql` — **opțional**, repară textul demonstrativ din `locations`. Formularul din admin repară oricum textul la salvare.
 7. `migration-v7-admin-edit-contact.sql` — **necesar** pentru editarea RSVP din admin și pentru emailul de contact: adaugă `event_settings.contact_email` și funcția atomică `admin_update_rsvp`.
+8. `migration-v8-tables-currency.sql` — **necesar** pentru moneda bugetului (RON/EUR) și mesele dinamice: adaugă `event_settings.budget_currency`, tabelul `seating_tables`, `add_seating_table`, `delete_seating_table`, `set_table_capacity` și rescrie `assign_table` / `public_seating`.
 
 De ce ordinea asta: `migration-v4` folosește `hit_rate_limit()`, care e creată în `migration-v3`, iar `migration-v5` redefinește `submit_rsvp` din `v4`. Dacă sari peste un pas, migrarea următoare pică.
 
@@ -23,13 +24,27 @@ De ce ordinea asta: `migration-v4` folosește `hit_rate_limit()`, care e creată
 
 Fără această migrare, butonul **Editează** din `/admin` afișează un mesaj care cere rularea ei.
 
+## Ce face `migration-v8`
+
+- Adaugă `event_settings.budget_currency` (`RON` sau `EUR`, implicit `RON`). Schimbarea monedei schimbă doar formatarea, nu converteste sumele.
+- Creează `seating_tables (number, capacity)` și o populează cu mesele 1–10, câte 10 locuri — exact ca înainte.
+- Rescrie `assign_table(p_kind, p_id, p_table)`: capacitatea se citește din `seating_tables`.
+- Adaugă funcțiile de administrare:
+  - `add_seating_table(p_number, p_capacity)` — numărul poate fi gol, se alege primul liber;
+  - `delete_seating_table(p_number)` — toți invitații mesei revin la „Fără masă”;
+  - `set_table_capacity(p_number, p_capacity)` — refuză o capacitate mai mică decât numărul deja așezat.
+- Rescrie `public_seating()`: returnează toate mesele cu `capacity` și `names`, doar când `seating_published` este activ.
+
+Fără această migrare, paginile **Buget** și **Mese** afișează erori la salvarea monedei sau la modificarea meselor.
+
 ## Dacă apare o eroare
 
 - `42P07 relation "rsvps" already exists` → `schema.sql` a rulat deja. **Nu** îl rula din nou; treci la `migration-v2.sql`.
 - `function is_admin() does not exist` → lipsește `schema.sql`. Rulează-l o dată, apoi continuă.
 - `function hit_rate_limit(...) does not exist` → ai sărit peste `migration-v3-roles.sql`.
 - `function admin_update_rsvp(...) does not exist` → rulează `migration-v7-admin-edit-contact.sql`.
-- Migrările v2–v7 sunt idempotente: dacă una a picat la mijloc, o poți rula din nou după ce repari cauza.
+- `column "budget_currency" does not exist` sau `relation "seating_tables" does not exist` → rulează `migration-v8-tables-currency.sql`.
+- Migrările v2–v8 sunt idempotente: dacă una a picat la mijloc, o poți rula din nou după ce repari cauza.
 
 ## După migrări
 

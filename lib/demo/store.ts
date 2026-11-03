@@ -176,6 +176,8 @@ const state = {
 
   eventSettings: { ...DEFAULT_EVENT_SETTINGS } as EventSettings,
 
+  seatingTables: Array.from({ length: 10 }, (_, i) => ({ number: i + 1, capacity: 10 })),
+
   locations: [
     {
       key: "church",
@@ -396,11 +398,66 @@ export function deleteImportedGuest(id: string) {
   state.guests = state.guests.filter((g) => g.id !== id);
 }
 
-export function assignTable(kind: string, id: string, table: number | null, capacity: number) {
+/** Mirrors `seating_tables`: add/remove tables and change their capacity. */
+export function listSeatingTables() {
+  return [...state.seatingTables].sort((a, b) => a.number - b.number);
+}
+
+export function addSeatingTable(number: number | null, capacity: number) {
+  if (!Number.isInteger(capacity) || capacity < 1 || capacity > 30) {
+    return { error: { message: "bad capacity" }, number: null };
+  }
+
+  let target = number;
+  if (target === null) {
+    for (let n = 1; n <= 99; n += 1) {
+      if (!state.seatingTables.some((t) => t.number === n)) { target = n; break; }
+    }
+    if (target === null) return { error: { message: "no numbers left" }, number: null };
+  }
+  if (!Number.isInteger(target) || target < 1 || target > 99) {
+    return { error: { message: "bad number" }, number: null };
+  }
+  if (state.seatingTables.some((t) => t.number === target)) {
+    return { error: { message: "table exists" }, number: null };
+  }
+
+  state.seatingTables.push({ number: target, capacity });
+  return { error: null, number: target };
+}
+
+export function deleteSeatingTable(number: number) {
+  if (!state.seatingTables.some((t) => t.number === number)) {
+    return { error: { message: "table missing" } };
+  }
+  state.rsvps.forEach((r) => { if (r.table_number === number) r.table_number = null; });
+  state.rsvps.forEach((r) => {
+    r.rsvp_guests.forEach((g) => { if (g.table_number === number) g.table_number = null; });
+  });
+  state.guests.forEach((g) => { if (g.table_number === number) g.table_number = null; });
+  state.seatingTables = state.seatingTables.filter((t) => t.number !== number);
+  return { error: null };
+}
+
+export function setTableCapacity(number: number, capacity: number) {
+  const table = state.seatingTables.find((t) => t.number === number);
+  if (!table) return { error: { message: "table missing" } };
+  if (!Number.isInteger(capacity) || capacity < 1 || capacity > 30) {
+    return { error: { message: "bad capacity" } };
+  }
+  const used = listSeating().filter((p) => p.table_number === number).length;
+  if (used > capacity) return { error: { message: "table occupied" } };
+  table.capacity = capacity;
+  return { error: null };
+}
+
+export function assignTable(kind: string, id: string, table: number | null) {
   const people = listSeating();
   if (table !== null) {
+    const target = state.seatingTables.find((t) => t.number === table);
+    if (!target) return { error: { message: "table missing" } };
     const taken = people.filter((p) => p.id !== id && p.table_number === table).length;
-    if (taken >= capacity) return { error: { message: "table full" } };
+    if (taken >= target.capacity) return { error: { message: "table full" } };
   }
 
   if (kind === "rsvp") {
@@ -447,7 +504,7 @@ export function upsertLocation(row: DemoLocation): DemoLocation {
 /* --------------------------------------------------- v5 read-only features */
 
 /** Mirrors event_settings.seating_published: null means "not published yet". */
-export function publicSeating(): { table: number; names: string[] }[] | null {
+export function publicSeating(): { table: number; capacity: number; names: string[] }[] | null {
   if (!state.eventSettings.seating_published) return null;
 
   const byTable = new Map<number, string[]>();
@@ -457,12 +514,11 @@ export function publicSeating(): { table: number; names: string[] }[] | null {
     names.push(person.name);
     byTable.set(person.table_number, names);
   }
-  return [...byTable.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([table, names]) => ({
-      table,
-      names: names.sort((a, b) => a.localeCompare(b)),
-    }));
+  return listSeatingTables().map(({ number, capacity }) => ({
+    table: number,
+    capacity,
+    names: (byTable.get(number) ?? []).sort((a, b) => a.localeCompare(b)),
+  }));
 }
 
 export type VenueReportRow = {

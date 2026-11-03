@@ -10,7 +10,7 @@ import { normalizeSettings, type EventSettings } from "./event-settings";
 import { FALLBACK_LOCATIONS, type WeddingLocation } from "./config";
 import { cleanLocation } from "./location-text";
 
-export type SeatingTable = { table: number; names: string[] };
+export type SeatingTable = { table: number; capacity: number; names: string[] };
 
 function anonClient() {
   return createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -58,7 +58,12 @@ export const getPublicSeating = cache(async (): Promise<SeatingTable[] | null> =
   }
   try {
     const { data } = await anonClient().rpc("public_seating");
-    return Array.isArray(data) ? (data as SeatingTable[]) : null;
+    if (!Array.isArray(data)) return null;
+    return (data as Record<string, unknown>[]).map((row) => ({
+      table: Number(row.table),
+      capacity: Number(row.capacity ?? 10),
+      names: Array.isArray(row.names) ? (row.names as string[]) : [],
+    }));
   } catch {
     return null;
   }

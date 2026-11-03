@@ -80,7 +80,7 @@ export function RsvpSection({ closed, cutoffDate }: { closed: boolean; cutoffDat
 
   return (
     <MotionConfig reducedMotion="user">
-      <section id="rsvp" className="mx-auto max-w-xl px-6 py-24">
+      <section id="rsvp" className="mx-auto max-w-xl scroll-mt-24 px-6 py-24">
         <h2 className="font-display text-4xl">Vii la nuntă?</h2>
         <div role="status" className="mt-8 rounded-lg bg-mist p-8">
           <p className="font-display text-3xl">Confirmările sunt închise.</p>
@@ -119,7 +119,7 @@ function RsvpFlow() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <section id="rsvp" className="mx-auto max-w-xl px-6 py-24">
+      <section id="rsvp" className="mx-auto max-w-xl scroll-mt-24 px-6 py-24">
         <h2 className="font-display text-4xl">Vii la nuntă?</h2>
         <p className="mt-3 text-ink/70">
           {view === "lookup" && "Scrie-ți numele ca să răspunzi sau să-ți verifici răspunsul și masa."}

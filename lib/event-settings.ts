@@ -4,6 +4,7 @@
  * Schedule/venues/FAQ stay in lib/config.ts — they are not part of `event_settings`.
  */
 import { z } from "zod";
+import { CURRENCIES, DEFAULT_CURRENCY, isCurrency, type Currency } from "./currency";
 
 export type EventSettings = {
   partner_1: string;
@@ -13,6 +14,7 @@ export type EventSettings = {
   city: string;
   timezone: string; // IANA name, e.g. Europe/Bucharest
   contact_email: string;
+  budget_currency: Currency;
   rsvp_cutoff_date: string | null; // YYYY-MM-DD; null = RSVP never closes
   seating_published: boolean;
   public_url: string | null;
@@ -26,6 +28,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   city: "Lisbon",
   timezone: "Europe/Lisbon",
   contact_email: "ilieeduardmihail@gmail.com",
+  budget_currency: DEFAULT_CURRENCY,
   rsvp_cutoff_date: null,
   seating_published: false,
   public_url: null,
@@ -58,6 +61,7 @@ export const eventSettingsSchema = z.object({
   city: z.string().trim().min(2).max(80),
   timezone: z.string().trim().min(3).max(64),
   contact_email: z.string().trim().email("Use a valid email address").max(200),
+  budget_currency: z.enum(CURRENCIES),
   rsvp_cutoff_date: optionalDate,
   seating_published: z.boolean(),
   public_url: optionalUrl,
@@ -82,6 +86,7 @@ export function normalizeSettings(row: Record<string, unknown> | null | undefine
     city: text("city", DEFAULT_EVENT_SETTINGS.city),
     timezone: text("timezone", DEFAULT_EVENT_SETTINGS.timezone),
     contact_email: text("contact_email", DEFAULT_EVENT_SETTINGS.contact_email),
+    budget_currency: isCurrency(row.budget_currency) ? row.budget_currency : DEFAULT_CURRENCY,
     rsvp_cutoff_date:
       typeof row.rsvp_cutoff_date === "string" && row.rsvp_cutoff_date !== ""
         ? row.rsvp_cutoff_date

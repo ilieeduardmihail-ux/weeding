@@ -36,6 +36,7 @@ Without `NEXT_PUBLIC_SUPABASE_URL`, the app runs in **demo mode**: everything wo
    - `supabase/migration-v5-features.sql`
    - `supabase/migration-v6-locations-ro.sql` *(optional one-time cleanup of the demo location rows)*
    - `supabase/migration-v7-admin-edit-contact.sql` *(required for admin RSVP editing and the contact email)*
+   - `supabase/migration-v8-tables-currency.sql` *(required for the RON/EUR budget and dynamic tables)*
 
    Details and troubleshooting: [`supabase/README.md`](supabase/README.md).
 3. **Authentication → Users**: create one user per partner and confirm the email manually. Turn off public sign-ups.
@@ -92,18 +93,19 @@ The domain `wedding-ro.vercel.app` is attached to the project, so it follows eve
 | `/confidentialitate` | Privacy note and contact email |
 | `/admin` | Guest list, stats, edit/delete RSVP, CSV export |
 | `/admin/rsvps/[id]/edit` | Edit one RSVP and its plus-ones, preserving assigned seats |
-| `/admin/seating` | Drag guests onto tables (capacity limit) |
+| `/admin/seating` | Drag guests onto tables, add/remove tables, edit each capacity |
 | `/admin/report` | Headcount, adults, children, grouped by table |
-| `/admin/budget` | Expenses, payments, remaining budget |
+| `/admin/budget` | Expenses, payments, remaining budget, RON/EUR display |
 | `/admin/import` | Bulk import guests from CSV/XLSX |
 | `/admin/locations` | Edit the church and reception venue |
 | `/admin/settings` | Names, date, time, city, timezone, contact email, RSVP cutoff, publish seating |
 
 ## Where the content lives
 
-- **Names, date, time, city, timezone, contact email, RSVP cutoff, seating publication** — `event_settings` table, edited from `/admin/settings`.
+- **Names, date, time, city, timezone, contact email, budget currency, RSVP cutoff, seating publication** — `event_settings` table, edited from `/admin/settings`.
 - **Locations** — `locations` table, edited from `/admin/locations`.
-- **Tables, seats per table, currency** — `lib/admin-config.ts` (code).
+- **Tables and seats per table** — `seating_tables` table, edited from `/admin/seating`.
+- **Expense categories** — `lib/admin-config.ts` (code).
 - **Schedule structure and fallback locations** — `lib/config.ts` (code).
 
 ## Verify before deploying
@@ -118,5 +120,6 @@ npm run build
 ## Notes
 
 - `supabase/migration-v7-admin-edit-contact.sql` adds `event_settings.contact_email` and the atomic `admin_update_rsvp` function. Admin editing fails with a clear message until this migration is run.
+- `supabase/migration-v8-tables-currency.sql` adds `event_settings.budget_currency`, the `seating_tables` table and the dynamic table functions. The budget currency only changes formatting; amounts are never converted.
 - The public site reads settings per request, so changes saved in `/admin` appear without a redeploy.
 - RSVP rate limiting hashes the client IP with `RATE_LIMIT_SALT`; it never stores the raw IP.

@@ -8,7 +8,7 @@ export function Schedule({ locations }: { locations: WeddingLocation[] }) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <section id="locatii" className="bg-mist/40 py-24">
+      <section id="locatii" className="scroll-mt-24 bg-mist/40 py-24">
         <div className="mx-auto max-w-3xl px-6">
           <h2 className="font-display text-4xl">Unde ne găsești</h2>
           <p className="mt-3 text-ink/70">
@@ -34,7 +34,7 @@ export function Schedule({ locations }: { locations: WeddingLocation[] }) {
                   href={mapsSearchUrl(location)}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 inline-flex items-center gap-2 text-sm text-gold underline decoration-gold/50 underline-offset-4 hover:decoration-gold"
+                  className="mt-3 inline-flex items-center gap-2 text-sm text-gold underline decoration-gold/50 underline-offset-4 transition-colors duration-200 hover:decoration-gold"
                 >
                   <MapPin className="size-4" aria-hidden />
                   Deschide în Maps

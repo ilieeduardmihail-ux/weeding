@@ -3,7 +3,6 @@
  * Supports only the calls this app makes (from/rpc/auth).
  */
 import { cookies } from "next/headers";
-import { TABLE_CAPACITY } from "@/lib/admin-config";
 import { DEMO_COOKIE, DEMO_EMAIL, DEMO_PASSWORD } from "./mode";
 import type { EventSettings } from "@/lib/event-settings";
 import * as store from "./store";
@@ -104,6 +103,9 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
 
       case "seating_people":
         return ok(store.listSeating());
+
+      case "seating_tables":
+        return ok(store.listSeatingTables());
 
       case "guests": {
         if (this.op === "delete") {
@@ -206,9 +208,25 @@ export function createDemoClient() {
           const res = store.assignTable(
             String(args.p_kind ?? ""),
             String(args.p_id ?? ""),
-            (args.p_table as number | null) ?? null,
-            Number(args.p_cap ?? TABLE_CAPACITY)
+            (args.p_table as number | null) ?? null
           );
+          return res.error ? fail(res.error.message) : ok(null);
+        }
+
+        case "add_seating_table": {
+          const raw = args.p_number;
+          const number = typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+          const res = store.addSeatingTable(number, Number(args.p_capacity ?? 10));
+          return res.error ? fail(res.error.message) : ok(res.number);
+        }
+
+        case "delete_seating_table": {
+          const res = store.deleteSeatingTable(Number(args.p_number ?? 0));
+          return res.error ? fail(res.error.message) : ok(null);
+        }
+
+        case "set_table_capacity": {
+          const res = store.setTableCapacity(Number(args.p_number ?? 0), Number(args.p_capacity ?? 0));
           return res.error ? fail(res.error.message) : ok(null);
         }
 

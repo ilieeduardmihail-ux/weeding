@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeSettings } from "@/lib/event-settings";
+import { CURRENCIES } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,6 +119,18 @@ export default async function SettingsPage({
             <Input type="email" name="contact_email" defaultValue={settings.contact_email} required maxLength={200} />
           </Field>
         </div>
+
+        <Field label="Moneda bugetului" hint="Se folosește doar pentru afișare; sumele nu se convertesc automat.">
+          <select
+            name="budget_currency"
+            defaultValue={settings.budget_currency}
+            className="h-9 w-full rounded-md border border-input bg-sea px-3 text-sm"
+          >
+            {CURRENCIES.map((currency) => (
+              <option key={currency} value={currency}>{currency}</option>
+            ))}
+          </select>
+        </Field>
 
         <Field label="Confirmările se închid pe" hint="Lasă gol ca formularul să rămână deschis fără termen.">
           <Input type="date" name="rsvp_cutoff_date" defaultValue={settings.rsvp_cutoff_date ?? ""} />

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { expenseSchema, paymentSchema, round2, type ExpenseInput, type PaymentInput } from "@/lib/expense-schema";
+import { isCurrency } from "@/lib/currency";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -44,5 +45,21 @@ export async function deleteExpense(id: string): Promise<Result> {
   const { error } = await supabase.from("expenses").delete().eq("id", id);
   if (error) return { ok: false, error: "Nu am putut șterge cheltuiala." };
   revalidatePath("/admin/budget");
+  return { ok: true };
+}
+
+/** The budget currency is a display choice; existing amounts are not converted. */
+export async function setBudgetCurrency(currency: string): Promise<Result> {
+  if (!isCurrency(currency)) return { ok: false, error: "Monedă invalidă." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("event_settings")
+    .update({ budget_currency: currency })
+    .eq("id", 1);
+  if (error) {
+    return { ok: false, error: "Nu am putut salva moneda. Rulează migrarea v8 în Supabase." };
+  }
+  revalidatePath("/admin/budget");
+  revalidatePath("/admin/settings");
   return { ok: true };
 }

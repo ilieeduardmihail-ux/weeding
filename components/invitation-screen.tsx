@@ -58,7 +58,6 @@ export function InvitationScreen({
             exit={{
               opacity: 0,
               scale: 1.025,
-              filter: "blur(2px)",
               transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
             }}
             className="pb-24 sm:pb-0"

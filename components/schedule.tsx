@@ -2,6 +2,7 @@
 import { MotionConfig, motion } from "framer-motion";
 import { MapPin } from "lucide-react";
 import { mapsSearchUrl, type WeddingLocation } from "@/lib/config";
+import { LazyMap } from "@/components/ui/lazy-map";
 import { Reveal } from "@/components/ui/reveal";
 
 export function Schedule({ locations }: { locations: WeddingLocation[] }) {
@@ -51,13 +52,7 @@ export function Schedule({ locations }: { locations: WeddingLocation[] }) {
                     transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
                     className="glass card-hover mt-6 rounded-xl p-1.5"
                   >
-                    <iframe
-                      title={`Hartă: ${location.name}`}
-                      src={location.embed_url}
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      className="h-64 w-full rounded-lg border-0"
-                    />
+                    <LazyMap title={`Hartă: ${location.name}`} src={location.embed_url} />
                   </motion.div>
                 )}
               </motion.li>

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition } from "react";
+import { memo, useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,44 @@ const LABEL: Record<Status, string> = {
   ok: "Fără modificări", diacritics: "Diacritice corectate", auto: "Corectat automat", suggest: "Verifică",
 };
 
+const ImportRow = memo(function ImportRow({
+  row: r,
+  onPatch,
+}: {
+  row: Row;
+  onPatch: (id: number, p: Partial<Row>) => void;
+}) {
+  return (
+    <tr className="border-b border-ink/10 align-top">
+      <td className="py-2 pr-3">
+        <input type="checkbox" checked={r.include} aria-label={`Importă ${r.value}`}
+          onChange={(e) => onPatch(r.id, { include: e.target.checked })} />
+      </td>
+      <td className="py-2 pr-3">
+        <Input value={r.value} onChange={(e) => onPatch(r.id, { value: e.target.value })} aria-label="Nume" />
+        {r.suggestion && r.value !== r.suggestion && (
+          <button type="button" onClick={() => onPatch(r.id, { value: r.suggestion! })}
+            className="mt-1 text-sm underline decoration-gold underline-offset-4">
+            Folosește „{r.suggestion}”
+          </button>
+        )}
+      </td>
+      <td className="py-2 pr-3 text-sm">
+        {r.dup ? "Deja în listă" : LABEL[r.status]}
+      </td>
+      <td className="py-2 text-sm text-ink/70">
+        {r.original !== r.value ? (
+          <>
+            {r.original}{" "}
+            <button type="button" onClick={() => onPatch(r.id, { value: r.original })}
+              className="underline decoration-gold underline-offset-4">Folosește originalul</button>
+          </>
+        ) : "La fel"}
+      </td>
+    </tr>
+  );
+});
+
 export function GuestImport({ existing }: { existing: string[] }) {
   const [text, setText] = useState("");
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -22,9 +60,10 @@ export function GuestImport({ existing }: { existing: string[] }) {
   const [onlyChanges, setOnlyChanges] = useState(false);
   const [pending, start] = useTransition();
 
-  const build = (names: string[]) => {
+  const known = useMemo(() => new Set(existing.map(nameKey)), [existing]);
+
+  const build = useCallback((names: string[]) => {
     if (!names.length) { setError("Nu am găsit niciun nume."); setRows(null); return; }
-    const known = new Set(existing.map(nameKey));
     const seen = new Set<string>();
     setError(null); setDone(null);
     setRows(names.map((n, i) => {
@@ -34,27 +73,49 @@ export function GuestImport({ existing }: { existing: string[] }) {
       seen.add(k);
       return { ...fix, id: i, value: fix.corrected, include: !dup, dup };
     }));
-  };
+  }, [known]);
 
-  const onFile = async (file?: File) => {
+  const onFile = useCallback(async (file?: File) => {
     if (!file) return;
     try { build(await parseFile(file)); } catch (e) { setError(e instanceof Error ? e.message : "Nu am putut citi fișierul."); }
-  };
+  }, [build]);
 
-  const patch = (id: number, p: Partial<Row>) => setRows((rs) => rs && rs.map((r) => (r.id === id ? { ...r, ...p } : r)));
+  const patch = useCallback(
+    (id: number, p: Partial<Row>) =>
+      setRows((rs) => rs && rs.map((r) => (r.id === id ? { ...r, ...p } : r))),
+    [],
+  );
 
-  const chosen = rows?.filter((r) => r.include && r.value.trim().length >= 2) ?? [];
-  const count = (s: Status) => rows?.filter((r) => r.status === s).length ?? 0;
-  const shown = rows?.filter((r) => !onlyChanges || r.status !== "ok" || r.dup) ?? [];
+  const stats = useMemo(() => {
+    if (!rows) return null;
+    let auto = 0, diacritics = 0, suggest = 0, dup = 0;
+    for (const r of rows) {
+      if (r.status === "auto") auto += 1;
+      else if (r.status === "diacritics") diacritics += 1;
+      else if (r.status === "suggest") suggest += 1;
+      if (r.dup) dup += 1;
+    }
+    const chosen = rows.filter((r) => r.include && r.value.trim().length >= 2);
+    return {
+      auto,
+      diacritics,
+      suggest,
+      dup,
+      chosen,
+      shown: rows.filter((r) => !onlyChanges || r.status !== "ok" || r.dup),
+    };
+  }, [rows, onlyChanges]);
 
-  const submit = () =>
+  const submit = useCallback(() => {
+    if (!stats || stats.chosen.length === 0) return;
     start(async () => {
-      const r = await importGuests({ names: chosen.map((x) => x.value.trim()) });
+      const r = await importGuests({ names: stats.chosen.map((x) => x.value.trim()) });
       if (r.ok) {
         setDone(`Am importat ${r.inserted} invitați${r.skipped ? `, am sărit ${r.skipped} deja aflați în listă` : ""}.`);
         setRows(null); setText("");
       } else setError(r.error);
     });
+  }, [stats, start]);
 
   return (
     <div className="mt-6 space-y-6">
@@ -85,7 +146,7 @@ export function GuestImport({ existing }: { existing: string[] }) {
 
       {error && <p role="alert" className="text-red-300">{error}</p>}
 
-      {rows && (
+      {rows && stats && (
         <section aria-label="Verifică numele importate">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-display text-2xl">Verifică {rows.length} nume</h2>
@@ -94,8 +155,8 @@ export function GuestImport({ existing }: { existing: string[] }) {
             </label>
           </div>
           <p className="mt-1 text-sm text-ink/70">
-            {count("auto")} corectate automat, {count("diacritics")} cu diacritice corectate, {count("suggest")} de verificat,{" "}
-            {rows.filter((r) => r.dup).length} deja în listă. Poți modifica orice nume înainte de import.
+            {stats.auto} corectate automat, {stats.diacritics} cu diacritice corectate, {stats.suggest} de verificat,{" "}
+            {stats.dup} deja în listă. Poți modifica orice nume înainte de import.
           </p>
 
           <div className="mt-4 overflow-x-auto">
@@ -104,43 +165,17 @@ export function GuestImport({ existing }: { existing: string[] }) {
                 <tr><th className="py-2">Adaugă</th><th>Nume</th><th>Stare</th><th>Original</th></tr>
               </thead>
               <tbody>
-                {shown.map((r) => (
-                  <tr key={r.id} className="border-b border-ink/10 align-top">
-                    <td className="py-2 pr-3">
-                      <input type="checkbox" checked={r.include} aria-label={`Importă ${r.value}`}
-                        onChange={(e) => patch(r.id, { include: e.target.checked })} />
-                    </td>
-                    <td className="py-2 pr-3">
-                      <Input value={r.value} onChange={(e) => patch(r.id, { value: e.target.value })} aria-label="Nume" />
-                      {r.suggestion && r.value !== r.suggestion && (
-                        <button type="button" onClick={() => patch(r.id, { value: r.suggestion! })}
-                          className="mt-1 text-sm underline decoration-gold underline-offset-4">
-                          Folosește „{r.suggestion}”
-                        </button>
-                      )}
-                    </td>
-                    <td className="py-2 pr-3 text-sm">
-                      {r.dup ? "Deja în listă" : LABEL[r.status]}
-                    </td>
-                    <td className="py-2 text-sm text-ink/70">
-                      {r.original !== r.value ? (
-                        <>
-                          {r.original}{" "}
-                          <button type="button" onClick={() => patch(r.id, { value: r.original })}
-                            className="underline decoration-gold underline-offset-4">Folosește originalul</button>
-                        </>
-                      ) : "La fel"}
-                    </td>
-                  </tr>
+                {stats.shown.map((r) => (
+                  <ImportRow key={r.id} row={r} onPatch={patch} />
                 ))}
               </tbody>
             </table>
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Button type="button" onClick={submit} disabled={pending || chosen.length === 0}
+            <Button type="button" onClick={submit} disabled={pending || stats.chosen.length === 0}
               className="bg-ink text-sea hover:bg-ink/85">
-              {pending ? "Se importă…" : `Importă ${chosen.length} invitați`}
+              {pending ? "Se importă…" : `Importă ${stats.chosen.length} invitați`}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setRows(null)}>Începe din nou</Button>
           </div>

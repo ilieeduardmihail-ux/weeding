@@ -1,17 +1,24 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { expenseSchema, paymentSchema, round2, type ExpenseInput, type PaymentInput } from "@/lib/expense-schema";
 
 type Result = { ok: true } | { ok: false; error: string };
 
-export async function addExpense(input: ExpenseInput): Promise<Result> {
+/**
+ * The client generates the id so its optimistic row can be reconciled with the
+ * server row without waiting for a round trip.
+ */
+export async function addExpense(input: ExpenseInput, id?: string): Promise<Result> {
   const parsed = expenseSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Verifică formularul." };
   const d = parsed.data;
+  const rowId = id && z.string().uuid().safeParse(id).success ? id : undefined;
   const supabase = await createClient();
   const { error } = await supabase.from("expenses").insert({
+    ...(rowId ? { id: rowId } : {}),
     item_name: d.item_name,
     category: d.category,
     currency: d.currency,

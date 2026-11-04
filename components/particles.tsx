@@ -7,19 +7,19 @@ type Particle = {
   y: number;
   radius: number;
   speed: number;
-  drift: number;
   phase: number;
   twinkle: number;
   gold: boolean;
 };
 
+const MAX_PARTICLES = 48;
+
 /**
- * Slow golden and violet dust behind every page. Canvas instead of dozens of
- * DOM nodes, fewer particles on small screens, and the loop pauses while the
- * tab is hidden. It sits above the page background and below the content, and
- * never intercepts clicks.
+ * Slow golden and violet dust behind every page. Canvas instead of DOM nodes,
+ * a hard cap on the particle budget, fewer particles on small screens, and the
+ * loop pauses while the tab is hidden or the canvas is off-screen.
  */
-export function Particles({ count = 70 }: { count?: number }) {
+export function Particles({ count = MAX_PARTICLES }: { count?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -34,13 +34,13 @@ export function Particles({ count = 70 }: { count?: number }) {
     let particles: Particle[] = [];
     let frame = 0;
     let running = false;
+    let inView = true;
 
     const make = (): Particle => ({
       x: Math.random() * width,
       y: Math.random() * height,
       radius: 0.6 + Math.random() * 1.8,
       speed: 4 + Math.random() * 12, // px per second, upwards
-      drift: 3 + Math.random() * 10,
       phase: Math.random() * Math.PI * 2,
       twinkle: 0.4 + Math.random() * 0.9,
       gold: Math.random() < 0.55,
@@ -56,13 +56,9 @@ export function Particles({ count = 70 }: { count?: number }) {
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Phones get a lighter field so the animation stays smooth.
+      // Phones get a much lighter field so scrolling and the admin stay smooth.
       const density =
-        width < 640
-          ? Math.max(14, Math.round(count * 0.36))
-          : width < 1024
-            ? Math.round(count * 0.65)
-            : count;
+        width < 640 ? 12 : width < 1024 ? 24 : Math.min(count, MAX_PARTICLES);
 
       particles = Array.from({ length: density }, make);
       if (reduced) paint(0);
@@ -72,9 +68,8 @@ export function Particles({ count = 70 }: { count?: number }) {
       ctx.clearRect(0, 0, width, height);
       for (const p of particles) {
         if (!reduced) {
-          const seconds = time / 1000;
           p.y -= p.speed * (1 / 60);
-          p.x += Math.sin(seconds * 0.35 + p.phase) * 0.1;
+          p.x += Math.sin((time / 1000) * 0.35 + p.phase) * 0.1;
           if (p.y < -6) {
             p.y = height + 6;
             p.x = Math.random() * width;
@@ -82,23 +77,30 @@ export function Particles({ count = 70 }: { count?: number }) {
           if (p.x < -6) p.x = width + 6;
           if (p.x > width + 6) p.x = -6;
         }
+
         const alpha = reduced
           ? 0.42
           : 0.16 + 0.4 * (0.5 + 0.5 * Math.sin((time / 1600) * p.twinkle + p.phase));
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = p.gold
+        const color = p.gold
           ? `rgba(217, 180, 106, ${alpha})`
           : `rgba(186, 142, 214, ${alpha * 0.85})`;
-        if (p.radius > 1.8) {
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = p.gold ? "rgba(217, 180, 106, 0.55)" : "rgba(186, 142, 214, 0.45)";
-        } else {
-          ctx.shadowBlur = 0;
+
+        // A second, larger low-alpha circle reads as a soft glow and is far
+        // cheaper than canvas shadowBlur on every frame.
+        if (p.radius > 2.05) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * 3, 0, Math.PI * 2);
+          ctx.fillStyle = p.gold
+            ? `rgba(217, 180, 106, ${alpha * 0.14})`
+            : `rgba(186, 142, 214, ${alpha * 0.12})`;
+          ctx.fill();
         }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = color;
         ctx.fill();
       }
-      ctx.shadowBlur = 0;
     };
 
     const loop = (time: number) => {
@@ -108,7 +110,7 @@ export function Particles({ count = 70 }: { count?: number }) {
     };
 
     const start = () => {
-      if (reduced || running || document.hidden) return;
+      if (reduced || running || document.hidden || !inView) return;
       running = true;
       frame = requestAnimationFrame(loop);
     };
@@ -122,6 +124,16 @@ export function Particles({ count = 70 }: { count?: number }) {
       if (document.hidden) stop();
       else start();
     };
+
+    const observer =
+      typeof IntersectionObserver === "undefined"
+        ? null
+        : new IntersectionObserver((entries) => {
+            inView = entries.some((entry) => entry.isIntersecting);
+            if (inView) start();
+            else stop();
+          });
+    observer?.observe(canvas);
 
     resize();
     window.addEventListener("resize", resize);
@@ -138,6 +150,7 @@ export function Particles({ count = 70 }: { count?: number }) {
     return () => {
       stop();
       cancelAnimationFrame(frame);
+      observer?.disconnect();
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisibility);
     };

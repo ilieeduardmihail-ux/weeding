@@ -91,10 +91,10 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
         {attending === "yes" && (
           <motion.div
             key="party"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
           >
             <div className="space-y-4 pb-1">
               <div>

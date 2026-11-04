@@ -370,8 +370,8 @@ export function deleteRsvp(id: string) {
 
 /* ------------------------------------------------------------ admin tables */
 
-export function insertExpense(row: Omit<DemoExpense, "id" | "created_at">) {
-  const expense: DemoExpense = { ...row, id: nextId(), created_at: new Date().toISOString() };
+export function insertExpense(row: Omit<DemoExpense, "id" | "created_at"> & { id?: string }) {
+  const expense: DemoExpense = { ...row, id: row.id ?? nextId(), created_at: new Date().toISOString() };
   state.expenses.push(expense);
   return expense;
 }

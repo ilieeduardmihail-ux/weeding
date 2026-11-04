@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { nameKey } from "@/lib/fuzzy";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { Reveal } from "@/components/ui/reveal";
 
 type Table = { table: number; capacity: number; names: string[] };
@@ -20,6 +21,8 @@ export function PublicSeating({ tables }: { tables: Table[] }) {
   const [highlight, setHighlight] = useState<number | null>(null);
   const cards = useRef(new Map<number, HTMLDivElement>());
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Filtering settles a beat after the last keystroke; typing stays instant.
+  const debouncedQuery = useDebouncedValue(query, 300);
 
   const everyone = useMemo<Match[]>(
     () => tables.flatMap((t) => t.names.map((name) => ({ name, table: t.table }))),
@@ -27,7 +30,7 @@ export function PublicSeating({ tables }: { tables: Table[] }) {
   );
 
   const matches = useMemo<Match[]>(() => {
-    const q = nameKey(query);
+    const q = nameKey(debouncedQuery);
     if (q.length < 2) return [];
     return everyone
       .filter((person) => nameKey(person.name).includes(q))
@@ -36,7 +39,7 @@ export function PublicSeating({ tables }: { tables: Table[] }) {
         const bExact = nameKey(b.name) === q ? 0 : 1;
         return aExact - bExact || a.name.localeCompare(b.name);
       });
-  }, [everyone, query]);
+  }, [everyone, debouncedQuery]);
 
   const focusTable = (table: number) => {
     setHighlight(table);
@@ -45,7 +48,7 @@ export function PublicSeating({ tables }: { tables: Table[] }) {
     timer.current = setTimeout(() => setHighlight(null), 2400);
   };
 
-  const hasQuery = nameKey(query).length >= 2;
+  const hasQuery = nameKey(debouncedQuery).length >= 2;
   const state = !hasQuery ? "idle" : matches.length === 0 ? "none" : matches.length === 1 ? "one" : "many";
 
   return (
@@ -119,7 +122,7 @@ export function PublicSeating({ tables }: { tables: Table[] }) {
 
                 {state === "many" && (
                   <motion.div
-                    key={`many-${nameKey(query)}`}
+                    key={`many-${nameKey(debouncedQuery)}`}
                     initial={fadeUp.initial}
                     animate={fadeUp.animate}
                     exit={fadeUp.exit}
@@ -165,17 +168,21 @@ export function PublicSeating({ tables }: { tables: Table[] }) {
                 <Reveal key={table} delay={Math.min(index * 0.06, 0.3)} amount={0.15}>
                   <motion.div
                     layout
-                    animate={{
-                      scale: isHighlighted ? 1.02 : 1,
-                      borderColor: isHighlighted ? "rgb(217 180 106 / 0.9)" : "rgb(244 236 226 / 0.1)",
-                    }}
+                    animate={{ scale: isHighlighted ? 1.02 : 1 }}
                     transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                     ref={(node) => {
                       if (node) cards.current.set(table, node);
                       else cards.current.delete(table);
                     }}
-                    className="glass-soft card-hover h-full rounded-lg p-5"
+                    className="glass-soft card-hover relative h-full rounded-lg p-5"
                   >
+                    {/* Gold emphasis as an opacity-only overlay: no border animation. */}
+                    <motion.span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-gold"
+                      animate={{ opacity: isHighlighted ? 1 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
                     <div className="flex items-baseline justify-between gap-2">
                       <h3 className="font-display text-2xl">Masa {table}</h3>
                       <span className="text-xs text-ink/55">
@@ -187,7 +194,7 @@ export function PublicSeating({ tables }: { tables: Table[] }) {
                     ) : (
                       <ul className="mt-3 space-y-1 text-ink/80">
                         {names.map((name, nameIndex) => {
-                          const isMatch = hasQuery && nameKey(name).includes(nameKey(query));
+                          const isMatch = hasQuery && nameKey(name).includes(nameKey(debouncedQuery));
                           return (
                             <li key={`${name}-${nameIndex}`} className={isMatch ? "rounded bg-gold/15 px-1 text-gold" : undefined}>
                               {name}

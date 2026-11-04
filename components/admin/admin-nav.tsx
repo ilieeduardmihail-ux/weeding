@@ -7,6 +7,7 @@ const links = [
   ["/admin/seating", "Mese"],
   ["/admin/locations", "Locații"],
   ["/admin/report", "Raport"],
+  ["/admin/restaurant", "Restaurant"],
   ["/admin/budget", "Buget"],
   ["/admin/import", "Import"],
   ["/admin/settings", "Setări"],

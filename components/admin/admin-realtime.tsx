@@ -19,6 +19,9 @@ export function AdminRealtime() {
     let debounce: ReturnType<typeof setTimeout> | undefined;
 
     const refresh = () => {
+      // A hidden tab does not need to re-render; the visibility handler below
+      // refreshes once when the admin comes back.
+      if (document.visibilityState !== "visible") return;
       if (debounce) clearTimeout(debounce);
       debounce = setTimeout(() => router.refresh(), 250);
     };

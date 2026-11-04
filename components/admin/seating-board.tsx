@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor,
   pointerWithin, rectIntersection, useDraggable, useDroppable, useSensor, useSensors,
@@ -11,6 +11,7 @@ import { addTable, assignTable, deleteGuest, deleteTable, setTableCapacity } fro
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import {
   DEFAULT_TABLE_CAPACITY,
   MAX_TABLE_CAPACITY,
@@ -26,13 +27,24 @@ const keyOf = (p: Person) => `${p.kind}:${p.id}`;
 const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
 const BADGE: Record<Kind, string> = { rsvp: "", plus: "însoțitor", guest: "importat" };
 
+/** Shown when the server action itself fails (offline, request aborted). */
+const NETWORK_ERROR = "Conexiunea a eșuat. Încearcă din nou.";
+
 // Pointer position first (mouse/touch), element overlap as the keyboard fallback
 const detect: CollisionDetection = (args) => {
   const hits = pointerWithin(args);
   return hits.length ? hits : rectIntersection(args);
 };
 
-function PersonChip({ p, onDelete, onUnassign }: { p: Person; onDelete?: () => void; onUnassign?: () => void }) {
+const PersonChip = memo(function PersonChip({
+  p,
+  onDelete,
+  onUnassign,
+}: {
+  p: Person;
+  onDelete?: (p: Person) => void;
+  onUnassign?: (p: Person) => void;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: keyOf(p) });
   return (
     <motion.li
@@ -55,23 +67,23 @@ function PersonChip({ p, onDelete, onUnassign }: { p: Person; onDelete?: () => v
         {BADGE[p.kind] && <span className="ml-2 text-xs text-ink/60">{BADGE[p.kind]}</span>}
       </div>
       {onUnassign && (
-        <button type="button" onClick={onUnassign} aria-label={`Mută-l pe ${p.name} în Fără masă`}
+        <button type="button" onClick={() => onUnassign(p)} aria-label={`Mută-l pe ${p.name} în Fără masă`}
           title="Mută în Fără masă"
           className="rounded-md p-1.5 text-ink/50 transition-[background-color,color,transform] duration-200 ease-out hover:-translate-y-px hover:bg-ink/10 hover:text-gold active:translate-y-0">
           <Undo2 className="size-4" />
         </button>
       )}
       {onDelete && (
-        <button type="button" onClick={onDelete} aria-label={`Scoate-l pe ${p.name} din listă`}
+        <button type="button" onClick={() => onDelete(p)} aria-label={`Scoate-l pe ${p.name} din listă`}
           className="rounded-md p-1.5 text-ink/60 transition-[background-color,color,transform] duration-200 ease-out hover:-translate-y-px hover:bg-ink/10 hover:text-ink active:translate-y-0">
           <X className="size-4" />
         </button>
       )}
     </motion.li>
   );
-}
+});
 
-function TableCard({
+const TableCard = memo(function TableCard({
   table,
   members,
   onDelete,
@@ -80,8 +92,8 @@ function TableCard({
 }: {
   table: SeatingTable;
   members: Person[];
-  onDelete: () => void;
-  onCapacityChange: (capacity: number) => void;
+  onDelete: (table: SeatingTable) => void;
+  onCapacityChange: (number: number, capacity: number) => void;
   onUnassign: (person: Person) => void;
 }) {
   const { number: n, capacity } = table;
@@ -94,7 +106,7 @@ function TableCard({
       input.value = String(capacity);
       return;
     }
-    if (value !== capacity) onCapacityChange(value);
+    if (value !== capacity) onCapacityChange(n, value);
   };
 
   return (
@@ -115,7 +127,7 @@ function TableCard({
     >
       <button
         type="button"
-        onClick={onDelete}
+        onClick={() => onDelete(table)}
         aria-label={`Șterge masa ${n}`}
         className="absolute right-2 top-2 rounded-md p-1.5 text-ink/40 opacity-60 transition-opacity duration-200 hover:bg-ink/10 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100"
       >
@@ -136,7 +148,7 @@ function TableCard({
         </text>
       </svg>
       <ul className="mt-2 space-y-1">
-        {members.map((p) => <PersonChip key={keyOf(p)} p={p} onUnassign={() => onUnassign(p)} />)}
+        {members.map((p) => <PersonChip key={keyOf(p)} p={p} onUnassign={onUnassign} />)}
       </ul>
       <div className="mt-2 flex items-center justify-center gap-1 text-xs text-ink/60">        <label htmlFor={`capacity-${n}`}>Locuri</label>
         <input
@@ -155,7 +167,7 @@ function TableCard({
       </div>
     </motion.section>
   );
-}
+});
 
 function AddTableDialog({
   open,
@@ -279,6 +291,17 @@ export function SeatingBoard({
   const [deleting, setDeleting] = useState<SeatingTable | null>(null);
   const [, start] = useTransition();
 
+  // The expensive filtering waits for the typing to settle; the input itself
+  // still updates on every keystroke.
+  const debouncedQ = useDebouncedValue(q, 350);
+
+  // Refs keep the optimistic handlers stable (and therefore keep the memoized
+  // table cards from re-rendering on every unrelated state change).
+  const peopleRef = useRef(people);
+  const tablesRef = useRef(tables);
+  useEffect(() => { peopleRef.current = people; }, [people]);
+  useEffect(() => { tablesRef.current = tables; }, [tables]);
+
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     // a short press-and-hold on touch screens, so normal scrolling still works
@@ -293,104 +316,151 @@ export function SeatingBoard({
   }, [people]);
 
   const { setNodeRef: poolRef, isOver: overPool } = useDroppable({ id: "pool" });
-  const pool = people.filter((p) => p.table === null && p.name.toLowerCase().includes(q.toLowerCase()));
+
+  const pool = useMemo(() => {
+    const needle = debouncedQ.trim().toLowerCase();
+    return people.filter(
+      (p) => p.table === null && (!needle || p.name.toLowerCase().includes(needle)),
+    );
+  }, [people, debouncedQ]);
+
   const total = people.length;
-  const seated = people.filter((p) => p.table !== null).length;
-  const suggestedNumber = nextFreeTableNumber(tables);
+  const seated = useMemo(() => people.filter((p) => p.table !== null).length, [people]);
+  const suggestedNumber = useMemo(() => nextFreeTableNumber(tables), [tables]);
+  const stats = useMemo(
+    () => [["Participanți", total], ["Așezați", seated], ["Nealocați", total - seated]] as const,
+    [total, seated],
+  );
 
-  const onDragStart = (e: DragStartEvent) => {
+  const movePerson = useCallback((p: Person, target: number | null) => {
     setMsg(null);
-    setActive(people.find((p) => keyOf(p) === e.active.id) ?? null);
-  };
-
-  const movePerson = (p: Person, target: number | null) => {
-    setMsg(null);
-    const before = people;
-    setPeople((ps) => ps.map((x) => (keyOf(x) === keyOf(p) ? { ...x, table: target } : x)));
+    const before = peopleRef.current;
+    const next = before.map((x) => (keyOf(x) === keyOf(p) ? { ...x, table: target } : x));
+    peopleRef.current = next;
+    setPeople(next);
     start(async () => {
-      const r = await assignTable(p.kind, p.id, target);
-      if (!r.ok) { setPeople(before); setMsg(r.error); }
+      const r = await assignTable(p.kind, p.id, target).catch(() => ({
+        ok: false as const,
+        error: NETWORK_ERROR,
+      }));
+      if (!r.ok) {
+        peopleRef.current = before;
+        setPeople(before);
+        setMsg(r.error);
+      }
     });
-  };
+  }, []);
 
-  const onDragEnd = (e: DragEndEvent) => {
+  const onDragStart = useCallback((e: DragStartEvent) => {
+    setMsg(null);
+    setActive(peopleRef.current.find((p) => keyOf(p) === e.active.id) ?? null);
+  }, []);
+
+  const onDragEnd = useCallback((e: DragEndEvent) => {
     setActive(null);
     if (!e.over) return;
-    const p = people.find((x) => keyOf(x) === e.active.id);
+    const p = peopleRef.current.find((x) => keyOf(x) === e.active.id);
     if (!p) return;
     const target = e.over.id === "pool" ? null : Number(String(e.over.id).split(":")[1]);
     if (target === p.table) return;
-    const targetTable = target === null ? null : tables.find((t) => t.number === target) ?? null;
-    if (target !== null && !targetTable) {
-      setMsg(`Masa ${target} nu mai există.`);
-      return;
-    }
-    if (targetTable && (byTable.get(targetTable.number)?.length ?? 0) >= targetTable.capacity) {
-      setMsg(`Masa ${target} este plină (${targetTable.capacity} din ${targetTable.capacity}).`);
-      return;
+
+    if (target !== null) {
+      const targetTable = tablesRef.current.find((t) => t.number === target);
+      if (!targetTable) {
+        setMsg(`Masa ${target} nu mai există.`);
+        return;
+      }
+      const occupied = peopleRef.current.filter((x) => x.table === target).length;
+      if (occupied >= targetTable.capacity) {
+        setMsg(`Masa ${target} este plină (${targetTable.capacity} din ${targetTable.capacity}).`);
+        return;
+      }
     }
     movePerson(p, target);
-  };
+  }, [movePerson]);
 
-  const unassignPerson = (p: Person) => {
-    if (p.table === null) return;
-    movePerson(p, null);
-  };
+  const unassignPerson = useCallback((p: Person) => {
+    if (p.table !== null) movePerson(p, null);
+  }, [movePerson]);
 
-  const removeGuest = (p: Person) => {
-    const before = people;
-    setPeople((ps) => ps.filter((x) => keyOf(x) !== keyOf(p)));
+  const deletePerson = useCallback((p: Person) => {
+    setMsg(null);
+    const before = peopleRef.current;
+    const next = before.filter((x) => keyOf(x) !== keyOf(p));
+    peopleRef.current = next;
+    setPeople(next);
     start(async () => {
-      const r = await deleteGuest(p.id);
-      if (!r.ok) { setPeople(before); setMsg(r.error); }
+      const r = await deleteGuest(p.id).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
+      if (!r.ok) {
+        peopleRef.current = before;
+        setPeople(before);
+        setMsg(r.error);
+      }
     });
-  };
+  }, []);
 
-  const handleAdd = (number: number | null, capacity: number) => {
+  const handleAdd = useCallback((number: number | null, capacity: number) => {
     setMsg(null);
     setAdding(false);
     start(async () => {
-      const r = await addTable(number, capacity);
+      const r = await addTable(number, capacity).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
       if (!r.ok) { setMsg(r.error); return; }
       if (typeof r.number === "number") {
-        setTables((ts) => [...ts, { number: r.number as number, capacity }].sort((a, b) => a.number - b.number));
+        const next = [...tablesRef.current, { number: r.number, capacity }]
+          .sort((a, b) => a.number - b.number);
+        tablesRef.current = next;
+        setTables(next);
       }
     });
-  };
+  }, []);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     const table = deleting;
     if (!table) return;
     setDeleting(null);
     setMsg(null);
-    const beforeTables = tables;
-    const beforePeople = people;
-    setTables((ts) => ts.filter((t) => t.number !== table.number));
-    setPeople((ps) => ps.map((p) => (p.table === table.number ? { ...p, table: null } : p)));
+
+    const beforeTables = tablesRef.current;
+    const beforePeople = peopleRef.current;
+    const nextTables = beforeTables.filter((t) => t.number !== table.number);
+    const nextPeople = beforePeople.map((p) => (p.table === table.number ? { ...p, table: null } : p));
+    tablesRef.current = nextTables;
+    peopleRef.current = nextPeople;
+    setTables(nextTables);
+    setPeople(nextPeople);
+
     start(async () => {
-      const r = await deleteTable(table.number);
+      const r = await deleteTable(table.number).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
       if (!r.ok) {
+        tablesRef.current = beforeTables;
+        peopleRef.current = beforePeople;
         setTables(beforeTables);
         setPeople(beforePeople);
         setMsg(r.error);
       }
     });
-  };
+  }, [deleting]);
 
-  const handleCapacity = (number: number, capacity: number) => {
+  const handleCapacity = useCallback((number: number, capacity: number) => {
     setMsg(null);
-    const before = tables;
-    setTables((ts) => ts.map((t) => (t.number === number ? { ...t, capacity } : t)));
+    const before = tablesRef.current;
+    const next = before.map((t) => (t.number === number ? { ...t, capacity } : t));
+    tablesRef.current = next;
+    setTables(next);
     start(async () => {
-      const r = await setTableCapacity(number, capacity);
-      if (!r.ok) { setTables(before); setMsg(r.error); }
+      const r = await setTableCapacity(number, capacity).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
+      if (!r.ok) {
+        tablesRef.current = before;
+        setTables(before);
+        setMsg(r.error);
+      }
     });
-  };
-
-  const stats = [["Participanți", total], ["Așezați", seated], ["Nealocați", total - seated]] as const;
+  }, []);
 
   return (
-    <DndContext sensors={sensors} collisionDetection={detect} onDragStart={onDragStart}
+    // A fixed id keeps @dnd-kit's generated aria-describedby stable between the
+    // server HTML and the client hydration (otherwise it uses a module counter).
+    <DndContext id="seating-board" sensors={sensors} collisionDetection={detect} onDragStart={onDragStart}
       onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
       <dl className="mt-6 grid grid-cols-3 gap-3">
         {stats.map(([l, v]) => (
@@ -400,9 +470,12 @@ export function SeatingBoard({
           </div>
         ))}
       </dl>
-      <div className="mt-3 h-2 rounded bg-ink/15" role="progressbar" aria-label="Invitați repartizați la mese"
+      <div className="mt-3 h-2 overflow-hidden rounded bg-ink/15" role="progressbar" aria-label="Invitați repartizați la mese"
         aria-valuenow={seated} aria-valuemin={0} aria-valuemax={total}>
-        <div className="h-full rounded bg-gold transition-all duration-500 ease-in-out" style={{ width: `${total ? (seated / total) * 100 : 0}%` }} />
+        <div
+          className="h-full w-full origin-left rounded bg-gold transition-transform duration-500 ease-out"
+          style={{ transform: `scaleX(${total ? seated / total : 0})` }}
+        />
       </div>
       <p role="status" className="mt-3 min-h-6 text-sm text-red-300">{msg}</p>
 
@@ -417,7 +490,12 @@ export function SeatingBoard({
             aria-label="Caută în lista fără masă" className="mt-2 w-full rounded-md border border-ink/30 bg-transparent px-3 py-2 text-sm transition-[border-color,box-shadow] duration-200 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25" />
           <ul className="mt-3 max-h-80 space-y-1 overflow-y-auto lg:max-h-none">
             {pool.map((p) => (
-              <PersonChip key={keyOf(p)} p={p} onDelete={p.kind === "guest" ? () => removeGuest(p) : undefined} />
+              <PersonChip
+                key={keyOf(p)}
+                p={p}
+                onDelete={p.kind === "guest" ? deletePerson : undefined}
+                onUnassign={unassignPerson}
+              />
             ))}
           </ul>
           {pool.length === 0 && (
@@ -445,8 +523,8 @@ export function SeatingBoard({
                     key={t.number}
                     table={t}
                     members={byTable.get(t.number) ?? []}
-                    onDelete={() => setDeleting(t)}
-                    onCapacityChange={(capacity) => handleCapacity(t.number, capacity)}
+                    onDelete={setDeleting}
+                    onCapacityChange={handleCapacity}
                     onUnassign={unassignPerson}
                   />
                 ))}

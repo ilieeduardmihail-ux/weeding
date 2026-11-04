@@ -1,5 +1,13 @@
 "use client";
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { addExpense, addPayment, deleteExpense } from "@/app/admin/budget/actions";
 import { CATEGORIES } from "@/lib/admin-config";
 import { CURRENCIES, moneyFormatter, type Currency } from "@/lib/currency";
-import { expenseSchema, parseMoney, round2 } from "@/lib/expense-schema";
+import { expenseSchema, parseMoney, round2, type ExpenseInput } from "@/lib/expense-schema";
 
 export type Expense = {
   id: string;
@@ -20,6 +28,11 @@ export type Expense = {
   notes: string | null;
 };
 
+/** An optimistic row that has not been confirmed by the server yet. */
+type LocalExpense = Expense & { pending?: boolean };
+
+type Result = { ok: true } | { ok: false; error: string };
+
 const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
 
 const CURRENCY_LABEL: Record<Currency, string> = {
@@ -27,12 +40,271 @@ const CURRENCY_LABEL: Record<Currency, string> = {
   EUR: "EURO (EUR)",
 };
 
+const newId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+/** Shown when the server action itself fails (offline, request aborted). */
+const NETWORK_ERROR = "Conexiunea a eșuat. Încearcă din nou.";
+
 // Top-level component: creating it inside the form would reset it on every render.
 function Err({ errs, k }: { errs: Record<string, string>; k: string }) {
   return errs[k] ? <p className="text-sm text-red-300">{errs[k]}</p> : null;
 }
 
-function PaymentDialog({ expense, onClose }: { expense: Expense | null; onClose: () => void }) {
+/** A GPU-friendly progress bar: scaleX instead of animating width. */
+function Progress({ ratio, label, now, max }: { ratio: number; label: string; now: number; max: number }) {
+  const scale = Math.max(0, Math.min(1, ratio));
+  return (
+    <div className="mt-3 h-2 overflow-hidden rounded bg-ink/15" role="progressbar"
+      aria-label={label} aria-valuenow={now} aria-valuemin={0} aria-valuemax={max}>
+      <div
+        className="h-full w-full origin-left rounded bg-gold transition-transform duration-500 ease-out"
+        style={{ transform: `scaleX(${scale})` }}
+      />
+    </div>
+  );
+}
+
+const Totals = memo(function Totals({
+  totals,
+}: {
+  totals: { currency: Currency; count: number; total: number; paid: number; left: number }[];
+}) {
+  return (
+    <>
+      {totals.map(({ currency, count, total, paid, left }) => {
+        const fmt = moneyFormatter(currency);
+        return (
+          <section key={currency} className="mt-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-display text-2xl">{currency}</h2>
+              <span className="text-sm text-ink/55">{count} {count === 1 ? "cheltuială" : "cheltuieli"}</span>
+            </div>
+            <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+              {([["Buget total", total], ["Total plătit", paid], ["Rămas de plătit", left]] as const).map(([l, v]) => (
+                <div key={l} className="glass-soft card-hover rounded-lg p-4">
+                  <dd className={cx("font-display text-3xl tabular-nums", l === "Rămas de plătit" && v > 0 && "text-gold")}>{fmt.format(v)}</dd>
+                  <dt className="text-sm text-ink/70">{l}</dt>
+                </div>
+              ))}
+            </dl>
+            <Progress
+              ratio={total ? paid / total : 0}
+              label={`Procentul din bugetul în ${currency} plătit`}
+              now={Math.round(total ? (paid / total) * 100 : 0)}
+              max={100}
+            />
+          </section>
+        );
+      })}
+    </>
+  );
+});
+
+const ExpenseRow = memo(function ExpenseRow({
+  x,
+  onDelete,
+  onPay,
+}: {
+  x: LocalExpense;
+  onDelete: (id: string) => void;
+  onPay: (expense: Expense) => void;
+}) {
+  const fmt = moneyFormatter(x.currency);
+  const rest = round2(x.total_cost - x.amount_paid);
+  return (
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: 14, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      className={cx("glass-soft card-hover rounded-lg p-4", x.pending && "opacity-80")}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium">{x.item_name}</p>
+          <p className="text-xs text-ink/60">
+            {x.category} · <span className="rounded bg-ink/10 px-1.5 py-0.5 font-medium text-ink/80">{x.currency}</span>
+            {x.pending && <span className="ml-2 text-ink/40">se salvează…</span>}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <span className={cx("text-sm tabular-nums", rest > 0 ? "text-gold" : "text-ink/70")}>
+            {rest > 0 ? `${fmt.format(rest)} rămași` : "Plătit integral"}
+          </span>
+          <button type="button" aria-label={`Șterge ${x.item_name}`}
+            onClick={() => onDelete(x.id)}
+            className="rounded-md p-2 transition-[background-color,transform] duration-200 ease-out hover:-translate-y-px hover:bg-ink/10 active:translate-y-0"><X className="size-4" /></button>
+        </div>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded bg-ink/15">
+        <div
+          className="h-full w-full origin-left rounded bg-gold transition-transform duration-500 ease-out"
+          style={{ transform: `scaleX(${x.total_cost ? Math.min(1, x.amount_paid / x.total_cost) : 0})` }}
+        />
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-ink/70">
+          Plătit <span className="tabular-nums">{fmt.format(x.amount_paid)}</span> din{" "}
+          <span className="tabular-nums">{fmt.format(x.total_cost)}</span>
+        </p>
+        <Button type="button" variant="outline" size="sm" disabled={rest <= 0} onClick={() => onPay(x)}>
+          <Plus className="size-4" /> Adaugă plată
+        </Button>
+      </div>
+      {x.notes && <p className="mt-1 text-sm text-ink/60">{x.notes}</p>}
+    </motion.li>
+  );
+});
+
+const ExpenseList = memo(function ExpenseList({
+  items,
+  onDelete,
+  onPay,
+}: {
+  items: LocalExpense[];
+  onDelete: (id: string) => void;
+  onPay: (expense: Expense) => void;
+}) {
+  if (items.length === 0) {
+    return <p className="mt-8 text-ink/70">Nu există cheltuieli încă. Adaugă prima mai sus.</p>;
+  }
+
+  return (
+    <motion.ul layout className="mt-8 space-y-3">
+      <AnimatePresence initial={false}>
+        {items.map((x) => (
+          <ExpenseRow key={x.id} x={x} onDelete={onDelete} onPay={onPay} />
+        ))}
+      </AnimatePresence>
+    </motion.ul>
+  );
+});
+
+const blankForm = {
+  item: "",
+  cat: CATEGORIES[0] as string,
+  currency: "RON" as Currency,
+  total: "",
+  paid: "",
+  notes: "",
+};
+
+type FormState = typeof blankForm;
+
+const ExpenseForm = memo(function ExpenseForm({
+  onBeginAdd,
+  onFinishAdd,
+}: {
+  onBeginAdd: (data: ExpenseInput, id: string) => void;
+  onFinishAdd: (data: ExpenseInput, id: string) => Promise<Result>;
+}) {
+  const [f, setF] = useState<FormState>(blankForm);
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const [serverErr, setServerErr] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  const set = useCallback(
+    (k: keyof FormState, v: string) => setF((s) => ({ ...s, [k]: v })),
+    [],
+  );
+
+  const onAddSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const t = parseMoney(f.total);
+      const p = f.paid === "" ? 0 : parseMoney(f.paid);
+      const er: Record<string, string> = {};
+      if (!Number.isFinite(t)) er.total_cost = "Introdu costul total";
+      if (!Number.isFinite(p)) er.amount_paid = "Introdu o sumă validă";
+      const parsed = expenseSchema.safeParse({
+        item_name: f.item,
+        category: f.cat,
+        currency: f.currency,
+        total_cost: t,
+        amount_paid: p,
+        notes: f.notes || undefined,
+      });
+      if (!parsed.success) parsed.error.issues.forEach((i) => { er[String(i.path[0])] ??= i.message; });
+      setErrs(er);
+      if (Object.keys(er).length || !parsed.success) return;
+
+      setServerErr(null);
+      const id = newId();
+      // Paint the row before the network round trip; only the confirmation is
+      // a transition, so the optimistic update is never deferred.
+      onBeginAdd(parsed.data, id);
+      start(async () => {
+        const r = await onFinishAdd(parsed.data, id);
+        if (r.ok) {
+          // Keep the chosen category and currency: adding several similar
+          // expenses is faster than retyping everything.
+          setF((prev) => ({ ...blankForm, cat: prev.cat, currency: prev.currency }));
+        } else {
+          setServerErr(r.error);
+        }
+      });
+    },
+    [f, onBeginAdd, onFinishAdd],
+  );
+
+  return (
+    <form onSubmit={onAddSubmit} noValidate className="glass mt-8 grid gap-4 rounded-xl p-4 sm:grid-cols-2">
+      <h2 className="font-display text-2xl sm:col-span-2">Adaugă o cheltuială</h2>
+      <div className="space-y-1 sm:col-span-2">
+        <Label htmlFor="item">Numele cheltuielii</Label>
+        <Input id="item" value={f.item} onChange={(e) => set("item", e.target.value)} /><Err errs={errs} k="item_name" />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="cat">Categorie</Label>
+        <select id="cat" value={f.cat} onChange={(e) => set("cat", e.target.value)}
+          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm transition-[border-color,box-shadow] duration-200 ease-out hover:border-ink/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25">
+          {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="currency">Monedă</Label>
+        <select id="currency" value={f.currency} onChange={(e) => set("currency", e.target.value as Currency)}
+          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm transition-[border-color,box-shadow] duration-200 ease-out hover:border-ink/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25">
+          {CURRENCIES.map((currency) => (
+            <option key={currency} value={currency}>{CURRENCY_LABEL[currency]}</option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="total">Cost total ({f.currency})</Label>
+        <Input id="total" inputMode="decimal" value={f.total} onChange={(e) => set("total", e.target.value)} /><Err errs={errs} k="total_cost" />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="paid">Sumă plătită ({f.currency})</Label>
+        <Input id="paid" inputMode="decimal" placeholder="0" value={f.paid} onChange={(e) => set("paid", e.target.value)} /><Err errs={errs} k="amount_paid" />
+      </div>
+      <div className="space-y-1 sm:col-span-2">
+        <Label htmlFor="notes">Note (opțional)</Label>
+        <Input id="notes" value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+      </div>
+      {serverErr && <p role="alert" className="text-red-300 sm:col-span-2">{serverErr}</p>}
+      <Button type="submit" disabled={pending} className="bg-ink text-sea hover:bg-ink/85 sm:col-span-2">
+        <Plus className="size-4" /> Adaugă cheltuiala
+      </Button>
+    </form>
+  );
+});
+
+function PaymentDialog({
+  expense,
+  onClose,
+  onBeginPay,
+  onFinishPay,
+}: {
+  expense: Expense | null;
+  onClose: () => void;
+  onBeginPay: (expense: Expense, amount: number) => void;
+  onFinishPay: (expense: Expense, amount: number) => Promise<Result>;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   const [amount, setAmount] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -54,8 +326,10 @@ function PaymentDialog({ expense, onClose }: { expense: Expense | null; onClose:
     e.preventDefault();
     if (!expense) return;
     if (!valid) { setErr(`Introdu o sumă între 0 și ${fmt.format(remaining)}.`); return; }
+    const amount = round2(value);
+    onBeginPay(expense, amount);
     start(async () => {
-      const r = await addPayment({ id: expense.id, amount: round2(value) });
+      const r = await onFinishPay(expense, amount);
       if (r.ok) onClose(); else setErr(r.error);
     });
   };
@@ -91,168 +365,125 @@ function PaymentDialog({ expense, onClose }: { expense: Expense | null; onClose:
   );
 }
 
+type ItemsState = { source: Expense[]; items: LocalExpense[] };
+
 export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
-  const blank = { item: "", cat: CATEGORIES[0] as string, currency: "RON" as Currency, total: "", paid: "", notes: "" };
-  const [f, setF] = useState(blank);
-  const [errs, setErrs] = useState<Record<string, string>>({});
-  const [serverErr, setServerErr] = useState<string | null>(null);
+  const [store, setStore] = useState<ItemsState>(() => ({ source: expenses, items: expenses }));
   const [paying, setPaying] = useState<Expense | null>(null);
-  const [pending, start] = useTransition();
+  const [serverErr, setServerErr] = useState<string | null>(null);
 
-  const set = (k: keyof typeof blank, v: string) => setF((s) => ({ ...s, [k]: v }));
-
-  const totals = CURRENCIES.map((currency) => {
-    const list = expenses.filter((e) => e.currency === currency);
-    const total = list.reduce((s, e) => s + e.total_cost, 0);
-    const paid = list.reduce((s, e) => s + e.amount_paid, 0);
-    return { currency, count: list.length, total, paid, left: round2(total - paid) };
-  }).filter((t) => t.count > 0);
-
-  const onAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    const t = parseMoney(f.total);
-    const p = f.paid === "" ? 0 : parseMoney(f.paid);
-    const er: Record<string, string> = {};
-    if (!Number.isFinite(t)) er.total_cost = "Introdu costul total";
-    if (!Number.isFinite(p)) er.amount_paid = "Introdu o sumă validă";
-    const parsed = expenseSchema.safeParse({
-      item_name: f.item,
-      category: f.cat,
-      currency: f.currency,
-      total_cost: t,
-      amount_paid: p,
-      notes: f.notes || undefined,
+  // Adjust state during render (the React-endorsed pattern) rather than in an
+  // effect: after a server action the fresh rows replace the list, while
+  // optimistic rows still in flight stay on screen.
+  if (store.source !== expenses) {
+    setStore((prev) => {
+      const serverIds = new Set(expenses.map((e) => e.id));
+      const inFlight = prev.items.filter((e) => e.pending && !serverIds.has(e.id));
+      return { source: expenses, items: inFlight.length ? [...inFlight, ...expenses] : expenses };
     });
-    if (!parsed.success) parsed.error.issues.forEach((i) => { er[String(i.path[0])] ??= i.message; });
-    setErrs(er);
-    if (Object.keys(er).length || !parsed.success) return;
+  }
+
+  const items = store.items;
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  const setItems = useCallback((updater: (prev: LocalExpense[]) => LocalExpense[]) => {
+    setStore((prev) => ({ ...prev, items: updater(prev.items) }));
+  }, []);
+
+  const totals = useMemo(
+    () =>
+      CURRENCIES.map((currency) => {
+        const list = items.filter((e) => e.currency === currency);
+        const total = list.reduce((s, e) => s + e.total_cost, 0);
+        const paid = list.reduce((s, e) => s + e.amount_paid, 0);
+        return { currency, count: list.length, total, paid, left: round2(total - paid) };
+      }).filter((t) => t.count > 0),
+    [items],
+  );
+
+  const beginAdd = useCallback((data: ExpenseInput, id: string) => {
     setServerErr(null);
-    start(async () => {
-      const r = await addExpense(parsed.data);
-      if (r.ok) setF({ ...blank, currency: f.currency }); else setServerErr(r.error);
-    });
-  };
+    const optimistic: LocalExpense = {
+      id,
+      item_name: data.item_name,
+      category: data.category,
+      currency: data.currency,
+      total_cost: round2(data.total_cost),
+      amount_paid: round2(data.amount_paid),
+      notes: data.notes || null,
+      pending: true,
+    };
+    setItems((prev) => [optimistic, ...prev]);
+  }, [setItems]);
+
+  const finishAdd = useCallback(async (data: ExpenseInput, id: string): Promise<Result> => {
+    let r: Result;
+    try {
+      r = await addExpense(data, id);
+    } catch {
+      r = { ok: false, error: NETWORK_ERROR };
+    }
+    if (r.ok) {
+      setItems((prev) => prev.map((x) => (x.id === id ? { ...x, pending: false } : x)));
+    } else {
+      setItems((prev) => prev.filter((x) => x.id !== id));
+    }
+    return r;
+  }, [setItems]);
+
+  const remove = useCallback(async (id: string) => {
+    const list = itemsRef.current;
+    const index = list.findIndex((x) => x.id === id);
+    if (index < 0) return;
+    const removed = list[index]!;
+    setServerErr(null);
+    setItems((prev) => prev.filter((x) => x.id !== id));
+
+    const r = await deleteExpense(id).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
+    if (!r.ok) {
+      setItems((prev) => {
+        if (prev.some((x) => x.id === id)) return prev;
+        const next = [...prev];
+        next.splice(Math.min(index, next.length), 0, removed);
+        return next;
+      });
+      setServerErr(r.error);
+    }
+  }, [setItems]);
+
+  const beginPay = useCallback((expense: Expense, amount: number) => {
+    const id = expense.id;
+    setItems((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, amount_paid: round2(x.amount_paid + amount) } : x)),
+    );
+  }, [setItems]);
+
+  const finishPay = useCallback(async (expense: Expense, amount: number): Promise<Result> => {
+    const r = await addPayment({ id: expense.id, amount }).catch(() => ({
+      ok: false as const,
+      error: NETWORK_ERROR,
+    }));
+    if (!r.ok) {
+      setItems((prev) =>
+        prev.map((x) => (x.id === expense.id ? { ...x, amount_paid: round2(x.amount_paid - amount) } : x)),
+      );
+    }
+    return r;
+  }, [setItems]);
+
+  const openPay = useCallback((expense: Expense) => setPaying(expense), []);
+  const closePay = useCallback(() => setPaying(null), []);
 
   return (
     <>
-      {totals.map(({ currency, count, total, paid, left }) => {
-        const fmt = moneyFormatter(currency);
-        return (
-          <section key={currency} className="mt-6">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-display text-2xl">{currency}</h2>
-              <span className="text-sm text-ink/55">{count} {count === 1 ? "cheltuială" : "cheltuieli"}</span>
-            </div>
-            <dl className="mt-3 grid gap-3 sm:grid-cols-3">
-              {([["Buget total", total], ["Total plătit", paid], ["Rămas de plătit", left]] as const).map(([l, v]) => (
-                <div key={l} className="glass-soft card-hover rounded-lg p-4">
-                  <dd className={cx("font-display text-3xl tabular-nums", l === "Rămas de plătit" && v > 0 && "text-gold")}>{fmt.format(v)}</dd>
-                  <dt className="text-sm text-ink/70">{l}</dt>
-                </div>
-              ))}
-            </dl>
-            <div className="mt-3 h-2 rounded bg-ink/15" role="progressbar" aria-label={`Procentul din bugetul în ${currency} plătit`}
-              aria-valuenow={Math.round(total ? (paid / total) * 100 : 0)} aria-valuemin={0} aria-valuemax={100}>
-              <div className="h-full rounded bg-gold transition-all duration-500 ease-in-out" style={{ width: `${total ? (paid / total) * 100 : 0}%` }} />
-            </div>
-          </section>
-        );
-      })}
-
-      <form onSubmit={onAdd} noValidate className="glass mt-8 grid gap-4 rounded-xl p-4 sm:grid-cols-2">
-        <h2 className="font-display text-2xl sm:col-span-2">Adaugă o cheltuială</h2>
-        <div className="space-y-1 sm:col-span-2">
-          <Label htmlFor="item">Numele cheltuielii</Label>
-          <Input id="item" value={f.item} onChange={(e) => set("item", e.target.value)} /><Err errs={errs} k="item_name" />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="cat">Categorie</Label>
-          <select id="cat" value={f.cat} onChange={(e) => set("cat", e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm transition-[border-color,box-shadow] duration-200 ease-out hover:border-ink/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25">
-            {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="currency">Monedă</Label>
-          <select id="currency" value={f.currency} onChange={(e) => set("currency", e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm transition-[border-color,box-shadow] duration-200 ease-out hover:border-ink/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25">
-            {CURRENCIES.map((currency) => (
-              <option key={currency} value={currency}>{CURRENCY_LABEL[currency]}</option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="total">Cost total ({f.currency})</Label>
-          <Input id="total" inputMode="decimal" value={f.total} onChange={(e) => set("total", e.target.value)} /><Err errs={errs} k="total_cost" />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="paid">Sumă plătită ({f.currency})</Label>
-          <Input id="paid" inputMode="decimal" placeholder="0" value={f.paid} onChange={(e) => set("paid", e.target.value)} /><Err errs={errs} k="amount_paid" />
-        </div>
-        <div className="space-y-1 sm:col-span-2">
-          <Label htmlFor="notes">Note (opțional)</Label>
-          <Input id="notes" value={f.notes} onChange={(e) => set("notes", e.target.value)} />
-        </div>
-        {serverErr && <p role="alert" className="text-red-300 sm:col-span-2">{serverErr}</p>}
-        <Button type="submit" disabled={pending} className="bg-ink text-sea hover:bg-ink/85 sm:col-span-2">
-          <Plus className="size-4" /> Adaugă cheltuiala
-        </Button>
-      </form>
-
-      {expenses.length === 0 ? (
-        <p className="mt-8 text-ink/70">Nu există cheltuieli încă. Adaugă prima mai sus.</p>
-      ) : (
-        <motion.ul layout className="mt-8 space-y-3">
-          <AnimatePresence initial={false}>
-            {expenses.map((x) => {
-              const fmt = moneyFormatter(x.currency);
-              const rest = round2(x.total_cost - x.amount_paid);
-              return (
-                <motion.li
-                  key={x.id}
-                  layout
-                  initial={{ opacity: 0, y: 14, scale: 0.985 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                  className="glass-soft card-hover rounded-lg p-4"
-                >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium">{x.item_name}</p>
-                    <p className="text-xs text-ink/60">
-                      {x.category} · <span className="rounded bg-ink/10 px-1.5 py-0.5 font-medium text-ink/80">{x.currency}</span>
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <span className={cx("text-sm tabular-nums", rest > 0 ? "text-gold" : "text-ink/70")}>
-                      {rest > 0 ? `${fmt.format(rest)} rămași` : "Plătit integral"}
-                    </span>
-                    <button type="button" aria-label={`Șterge ${x.item_name}`}
-                      onClick={() => start(async () => { await deleteExpense(x.id); })}
-                      className="rounded-md p-2 transition-[background-color,transform] duration-200 ease-out hover:-translate-y-px hover:bg-ink/10 active:translate-y-0"><X className="size-4" /></button>
-                  </div>
-                </div>
-                <div className="mt-2 h-1.5 rounded bg-ink/15">
-                  <div className="h-full rounded bg-gold transition-all duration-500 ease-in-out" style={{ width: `${x.total_cost ? (x.amount_paid / x.total_cost) * 100 : 0}%` }} />
-                </div>
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm text-ink/70">
-                    Plătit <span className="tabular-nums">{fmt.format(x.amount_paid)}</span> din{" "}
-                    <span className="tabular-nums">{fmt.format(x.total_cost)}</span>
-                  </p>
-                  <Button type="button" variant="outline" size="sm" disabled={rest <= 0} onClick={() => setPaying(x)}>
-                    <Plus className="size-4" /> Adaugă plată
-                  </Button>
-                </div>
-                {x.notes && <p className="mt-1 text-sm text-ink/60">{x.notes}</p>}
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </motion.ul>
-      )}
-      <PaymentDialog expense={paying} onClose={() => setPaying(null)} />
+      <Totals totals={totals} />
+      <ExpenseForm onBeginAdd={beginAdd} onFinishAdd={finishAdd} />
+      {serverErr && <p role="alert" className="mt-4 text-red-300">{serverErr}</p>}
+      <ExpenseList items={items} onDelete={remove} onPay={openPay} />
+      <PaymentDialog expense={paying} onClose={closePay} onBeginPay={beginPay} onFinishPay={finishPay} />
     </>
   );
 }

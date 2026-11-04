@@ -6,6 +6,7 @@ import {
   type CollisionDetection, type DragEndEvent, type DragStartEvent,
 } from "@dnd-kit/core";
 import { Plus, Undo2, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { addTable, assignTable, deleteGuest, deleteTable, setTableCapacity } from "@/app/admin/seating/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,13 +35,19 @@ const detect: CollisionDetection = (args) => {
 function PersonChip({ p, onDelete, onUnassign }: { p: Person; onDelete?: () => void; onUnassign?: () => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: keyOf(p) });
   return (
-    <li className="flex items-center gap-1">
+    <motion.li
+      layout={!isDragging}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="flex items-center gap-1"
+    >
       <div
         ref={setNodeRef}
         {...listeners}
         {...attributes}
         className={cx(
-          "flex-1 cursor-grab select-none rounded-md border border-ink/20 bg-sea px-2 py-1.5 text-sm transition-colors duration-200 active:cursor-grabbing",
+          "flex-1 cursor-grab select-none rounded-md border border-ink/20 bg-sea/80 px-2 py-1.5 text-sm transition-[background-color,border-color,box-shadow] duration-200 ease-out hover:border-gold/40 hover:bg-mist/60 active:cursor-grabbing",
           isDragging && "opacity-40"
         )}
       >
@@ -50,17 +57,17 @@ function PersonChip({ p, onDelete, onUnassign }: { p: Person; onDelete?: () => v
       {onUnassign && (
         <button type="button" onClick={onUnassign} aria-label={`Mută-l pe ${p.name} în Fără masă`}
           title="Mută în Fără masă"
-          className="rounded-md p-1.5 text-ink/50 transition-colors hover:bg-ink/10 hover:text-gold">
+          className="rounded-md p-1.5 text-ink/50 transition-[background-color,color,transform] duration-200 ease-out hover:-translate-y-px hover:bg-ink/10 hover:text-gold active:translate-y-0">
           <Undo2 className="size-4" />
         </button>
       )}
       {onDelete && (
         <button type="button" onClick={onDelete} aria-label={`Scoate-l pe ${p.name} din listă`}
-          className="rounded-md p-1.5 text-ink/60 transition-colors hover:bg-ink/10">
+          className="rounded-md p-1.5 text-ink/60 transition-[background-color,color,transform] duration-200 ease-out hover:-translate-y-px hover:bg-ink/10 hover:text-ink active:translate-y-0">
           <X className="size-4" />
         </button>
       )}
-    </li>
+    </motion.li>
   );
 }
 
@@ -91,14 +98,19 @@ function TableCard({
   };
 
   return (
-    <section
+    <motion.section
       ref={setNodeRef}
+      layout
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       aria-label={`Masa ${n}, ${members.length} din ${capacity} locuri ocupate`}
       className={cx(
-        "group relative rounded-2xl border p-3 transition-all duration-200 ease-out",
+        "glass-soft card-hover group relative rounded-2xl border p-3",
         isOver
-          ? (full ? "border-red-600 bg-red-600/10" : "border-gold bg-gold/10")
-          : "border-ink/15 hover:border-gold/40 hover:shadow-lg hover:shadow-black/10"
+          ? (full ? "border-red-500 bg-red-600/10" : "border-gold bg-gold/10")
+          : "border-ink/15"
       )}
     >
       <button
@@ -126,8 +138,7 @@ function TableCard({
       <ul className="mt-2 space-y-1">
         {members.map((p) => <PersonChip key={keyOf(p)} p={p} onUnassign={() => onUnassign(p)} />)}
       </ul>
-      <div className="mt-2 flex items-center justify-center gap-1 text-xs text-ink/60">
-        <label htmlFor={`capacity-${n}`}>Locuri</label>
+      <div className="mt-2 flex items-center justify-center gap-1 text-xs text-ink/60">        <label htmlFor={`capacity-${n}`}>Locuri</label>
         <input
           id={`capacity-${n}`}
           key={capacity}
@@ -142,7 +153,7 @@ function TableCard({
           className="w-12 rounded border border-ink/20 bg-transparent px-1 py-0.5 text-center text-xs tabular-nums focus:border-gold focus:outline-none"
         />
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -181,7 +192,7 @@ function AddTableDialog({
 
   return (
     <dialog ref={ref} onClose={onClose}
-      className="m-auto w-[min(92vw,26rem)] rounded-xl bg-sea p-6 text-ink backdrop:bg-black/50">
+      className="glass-bar m-auto w-[min(92vw,26rem)] rounded-xl p-6 text-ink backdrop:bg-black/50">
       {open && (
         <form onSubmit={submit} className="space-y-4">
           <h2 className="font-display text-2xl">Adaugă o masă</h2>
@@ -231,7 +242,7 @@ function DeleteTableDialog({
 
   return (
     <dialog ref={ref} onClose={onClose}
-      className="m-auto w-[min(92vw,26rem)] rounded-xl bg-sea p-6 text-ink backdrop:bg-black/50">
+      className="glass-bar m-auto w-[min(92vw,26rem)] rounded-xl p-6 text-ink backdrop:bg-black/50">
       {table && (
         <div className="space-y-4">
           <h2 className="font-display text-2xl">Ștergi masa {table.number}?</h2>
@@ -383,7 +394,7 @@ export function SeatingBoard({
       onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
       <dl className="mt-6 grid grid-cols-3 gap-3">
         {stats.map(([l, v]) => (
-          <div key={l} className="rounded-lg bg-mist/70 p-4">
+          <div key={l} className="glass-soft card-hover rounded-lg p-4">
             <dd className={cx("font-display text-3xl tabular-nums", l === "Nealocați" && v > 0 && "text-gold")}>{v}</dd>
             <dt className="text-sm text-ink/70">{l}</dt>
           </div>
@@ -398,12 +409,12 @@ export function SeatingBoard({
       <div className="mt-2 grid gap-6 lg:grid-cols-[18rem_1fr]">
         <section ref={poolRef} aria-label="Invitați fără masă"
           className={cx(
-            "rounded-2xl border p-3 lg:sticky lg:top-4 lg:max-h-[calc(100svh-2rem)] lg:self-start lg:overflow-y-auto",
+            "glass-soft rounded-2xl border p-3 lg:sticky lg:top-4 lg:max-h-[calc(100svh-2rem)] lg:self-start lg:overflow-y-auto",
             overPool ? "border-gold bg-gold/10" : "border-ink/15"
           )}>
           <h2 className="font-display text-xl">Fără masă <span className="text-base text-ink/60">({total - seated})</span></h2>
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Caută după nume"
-            aria-label="Caută în lista fără masă" className="mt-2 w-full rounded-md border border-ink/30 bg-transparent px-3 py-2 text-sm" />
+            aria-label="Caută în lista fără masă" className="mt-2 w-full rounded-md border border-ink/30 bg-transparent px-3 py-2 text-sm transition-[border-color,box-shadow] duration-200 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25" />
           <ul className="mt-3 max-h-80 space-y-1 overflow-y-auto lg:max-h-none">
             {pool.map((p) => (
               <PersonChip key={keyOf(p)} p={p} onDelete={p.kind === "guest" ? () => removeGuest(p) : undefined} />
@@ -428,16 +439,18 @@ export function SeatingBoard({
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              {tables.map((t) => (
-                <TableCard
-                  key={t.number}
-                  table={t}
-                  members={byTable.get(t.number) ?? []}
-                  onDelete={() => setDeleting(t)}
-                  onCapacityChange={(capacity) => handleCapacity(t.number, capacity)}
-                  onUnassign={unassignPerson}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {tables.map((t) => (
+                  <TableCard
+                    key={t.number}
+                    table={t}
+                    members={byTable.get(t.number) ?? []}
+                    onDelete={() => setDeleting(t)}
+                    onCapacityChange={(capacity) => handleCapacity(t.number, capacity)}
+                    onUnassign={unassignPerson}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>

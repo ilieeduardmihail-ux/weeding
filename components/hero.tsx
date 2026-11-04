@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { MotionConfig, motion, useAnimationControls } from "framer-motion";
 import { Countdown } from "./countdown";
-import { INVITATION_ZOOM_MS, OPEN_INVITATION_EVENT, requestOpenInvitation } from "@/lib/invitation";
+import { requestOpenInvitation } from "@/lib/invitation";
 
 type HeroProps = {
   names: [string, string];
@@ -20,7 +20,6 @@ const rise = {
 export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
   const [a, b] = names;
   const controls = useAnimationControls();
-  const leaving = useRef(false);
 
   // Start only once the browser is actually painting. If the page opens in a
   // background or occluded window, frames are paused; starting on mount would
@@ -30,30 +29,6 @@ export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
       void controls.start("show");
     });
     return () => cancelAnimationFrame(frame);
-  }, [controls]);
-
-  // Zoom the hero in. Revealing and scrolling the content is handled by
-  // InvitationContent, which mounts the sections only after this event.
-  useEffect(() => {
-    const openInvitation = () => {
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (reduced || leaving.current) return;
-
-      leaving.current = true;
-      void controls
-        .start({
-          scale: 1.06,
-          opacity: 0,
-          transition: { duration: INVITATION_ZOOM_MS / 1000, ease: [0.4, 0, 0.2, 1] },
-        })
-        .then(() => {
-          controls.set({ scale: 1, opacity: 1 });
-          leaving.current = false;
-        });
-    };
-
-    window.addEventListener(OPEN_INVITATION_EVENT, openInvitation);
-    return () => window.removeEventListener(OPEN_INVITATION_EVENT, openInvitation);
   }, [controls]);
 
   return (
@@ -79,23 +54,23 @@ export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
           variants={rise}
           className="mt-12 flex w-full max-w-sm flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center"
         >
-          <motion.a
-            href="#locatii"
-            onClick={(event) => {
-              event.preventDefault();
-              requestOpenInvitation();
-            }}
+          <motion.button
+            type="button"
+            onClick={requestOpenInvitation}
+            whileHover={{ y: -1 }}
             whileTap={{ scale: 0.97 }}
-            className="rounded-full bg-ink px-8 py-3 text-center text-sea transition-colors duration-200 ease-out hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
+            className="rounded-full bg-ink px-8 py-3 text-center text-sea shadow-lg shadow-black/20 transition-colors duration-200 ease-out hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
           >
             Deschide Invitația
-          </motion.a>
-          <a
+          </motion.button>
+          <motion.a
             href="/calendar"
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.97 }}
             className="rounded-full border border-ink/30 px-8 py-3 text-center transition-colors duration-200 ease-out hover:border-ink hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
           >
             Adaugă în calendar
-          </a>
+          </motion.a>
         </motion.div>
       </motion.header>
     </MotionConfig>

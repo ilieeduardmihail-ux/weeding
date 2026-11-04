@@ -49,8 +49,9 @@ export default async function Dashboard({
         </div>
       </div>
 
-      <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">        {stats.map(([label, value]) => (
-          <div key={label} className="rounded-lg bg-mist/70 p-5">
+      <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {stats.map(([label, value]) => (
+          <div key={label} className="glass-soft card-hover rounded-lg p-5">
             <dd className="font-display text-4xl tabular-nums">{value}</dd>
             <dt className="text-sm text-ink/70">{label}</dt>
           </div>
@@ -73,14 +74,14 @@ export default async function Dashboard({
       {rows.length === 0 ? (
         <p className="mt-12 text-ink/70">Nu există încă răspunsuri. Trimite linkul site-ului ca să începi să primești confirmări.</p>
       ) : (
-        <div className="mt-10 overflow-x-auto">
+        <div className="glass-soft mt-10 overflow-x-auto rounded-xl px-4">
           <table className="w-full min-w-[640px] text-left">
             <thead className="border-b border-ink/25 text-sm text-ink/70">
               <tr><th className="py-2">Nume</th><th>Status</th><th>Însoțitori</th><th>Mesaj</th><th /></tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-b border-ink/10 align-top">
+                <tr key={r.id} className="border-b border-ink/10 align-top transition-colors duration-200 ease-out last:border-0 hover:bg-ink/5">
                   <td className="py-3 pr-4">
                     <p>{r.name}</p>
                     <p className="text-sm text-ink/60">

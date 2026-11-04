@@ -76,7 +76,7 @@ export default async function SettingsPage({
         </p>
       )}
 
-      <form action={saveSettings} className="mt-8 grid gap-5 sm:grid-cols-2">
+      <form action={saveSettings} className="glass mt-8 grid gap-5 rounded-xl p-5 transition-colors duration-300 focus-within:border-gold/30 sm:grid-cols-2">
         <Field label="Primul nume">
           <Input name="partner_1" defaultValue={settings.partner_1} required minLength={2} maxLength={80} />
         </Field>

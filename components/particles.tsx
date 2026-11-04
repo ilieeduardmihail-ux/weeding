@@ -14,8 +14,10 @@ type Particle = {
 };
 
 /**
- * Slow golden and violet particles behind the page. Canvas instead of dozens of
- * DOM nodes, and it starts only when the browser is actually painting frames.
+ * Slow golden and violet dust behind every page. Canvas instead of dozens of
+ * DOM nodes, fewer particles on small screens, and the loop pauses while the
+ * tab is hidden. It sits above the page background and below the content, and
+ * never intercepts clicks.
  */
 export function Particles({ count = 70 }: { count?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -31,14 +33,14 @@ export function Particles({ count = 70 }: { count?: number }) {
     let height = 0;
     let particles: Particle[] = [];
     let frame = 0;
-    let cancelled = false;
+    let running = false;
 
     const make = (): Particle => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      radius: 0.6 + Math.random() * 1.9,
-      speed: 6 + Math.random() * 18, // px per second, upwards
-      drift: 4 + Math.random() * 14,
+      radius: 0.6 + Math.random() * 1.8,
+      speed: 4 + Math.random() * 12, // px per second, upwards
+      drift: 3 + Math.random() * 10,
       phase: Math.random() * Math.PI * 2,
       twinkle: 0.4 + Math.random() * 0.9,
       gold: Math.random() < 0.55,
@@ -53,7 +55,17 @@ export function Particles({ count = 70 }: { count?: number }) {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      particles = Array.from({ length: count }, make);
+
+      // Phones get a lighter field so the animation stays smooth.
+      const density =
+        width < 640
+          ? Math.max(14, Math.round(count * 0.36))
+          : width < 1024
+            ? Math.round(count * 0.65)
+            : count;
+
+      particles = Array.from({ length: density }, make);
+      if (reduced) paint(0);
     };
 
     const paint = (time: number) => {
@@ -62,7 +74,7 @@ export function Particles({ count = 70 }: { count?: number }) {
         if (!reduced) {
           const seconds = time / 1000;
           p.y -= p.speed * (1 / 60);
-          p.x += Math.sin(seconds * 0.4 + p.phase) * 0.12;
+          p.x += Math.sin(seconds * 0.35 + p.phase) * 0.1;
           if (p.y < -6) {
             p.y = height + 6;
             p.x = Math.random() * width;
@@ -70,13 +82,15 @@ export function Particles({ count = 70 }: { count?: number }) {
           if (p.x < -6) p.x = width + 6;
           if (p.x > width + 6) p.x = -6;
         }
-        const alpha = reduced ? 0.45 : 0.18 + 0.42 * (0.5 + 0.5 * Math.sin(time / 1400 * p.twinkle + p.phase));
+        const alpha = reduced
+          ? 0.42
+          : 0.16 + 0.4 * (0.5 + 0.5 * Math.sin((time / 1600) * p.twinkle + p.phase));
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fillStyle = p.gold
           ? `rgba(217, 180, 106, ${alpha})`
           : `rgba(186, 142, 214, ${alpha * 0.85})`;
-        if (p.radius > 1.9) {
+        if (p.radius > 1.8) {
           ctx.shadowBlur = 10;
           ctx.shadowColor = p.gold ? "rgba(217, 180, 106, 0.55)" : "rgba(186, 142, 214, 0.45)";
         } else {
@@ -88,26 +102,44 @@ export function Particles({ count = 70 }: { count?: number }) {
     };
 
     const loop = (time: number) => {
-      if (cancelled) return;
+      if (!running) return;
       paint(time);
       frame = requestAnimationFrame(loop);
     };
 
+    const start = () => {
+      if (reduced || running || document.hidden) return;
+      running = true;
+      frame = requestAnimationFrame(loop);
+    };
+
+    const stop = () => {
+      running = false;
+      cancelAnimationFrame(frame);
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) stop();
+      else start();
+    };
+
     resize();
     window.addEventListener("resize", resize);
+    document.addEventListener("visibilitychange", onVisibility);
 
     if (reduced) {
       paint(0); // a static starfield, no motion
     } else {
       // Start on the first painted frame: if the tab opens in the background,
       // the motion waits instead of running off-screen.
-      frame = requestAnimationFrame(loop);
+      frame = requestAnimationFrame(start);
     }
 
     return () => {
-      cancelled = true;
+      stop();
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [count]);
 

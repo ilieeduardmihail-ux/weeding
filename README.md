@@ -101,7 +101,7 @@ The domain `wedding-ro.vercel.app` is attached to the project, so it follows eve
 | `/admin/locations` | Edit the church and reception venue |
 | `/admin/settings` | Names, date, time, city, timezone, contact email, RSVP cutoff, publish seating |
 
-The public landing screen shows only the hero. The rest of the site is mounted and unlocked after **Deschide Invitația** is pressed.
+The public landing screen shows only the hero. The rest of the site is mounted and unlocked after **Deschide Invitația** is pressed; the landing is unmounted and replaced by the invitation, with no scrolling in between. Guest sections fade in on scroll, and a subtle particle layer sits under every page.
 
 ## Where the content lives
 

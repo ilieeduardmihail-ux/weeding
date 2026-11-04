@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,7 @@ function PaymentDialog({ expense, onClose }: { expense: Expense | null; onClose:
 
   return (
     <dialog ref={ref} onClose={onClose}
-      className="m-auto w-[min(92vw,26rem)] rounded-xl bg-sea p-6 text-ink backdrop:bg-black/50">
+      className="glass-bar m-auto w-[min(92vw,26rem)] rounded-xl p-6 text-ink backdrop:bg-black/50">
       {expense && (
         <form onSubmit={submit} className="space-y-4" noValidate>
           <h2 className="font-display text-2xl">Adaugă o plată</h2>
@@ -144,7 +145,7 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
             </div>
             <dl className="mt-3 grid gap-3 sm:grid-cols-3">
               {([["Buget total", total], ["Total plătit", paid], ["Rămas de plătit", left]] as const).map(([l, v]) => (
-                <div key={l} className="rounded-lg bg-mist/70 p-4 transition-colors duration-200 hover:bg-mist">
+                <div key={l} className="glass-soft card-hover rounded-lg p-4">
                   <dd className={cx("font-display text-3xl tabular-nums", l === "Rămas de plătit" && v > 0 && "text-gold")}>{fmt.format(v)}</dd>
                   <dt className="text-sm text-ink/70">{l}</dt>
                 </div>
@@ -158,7 +159,7 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
         );
       })}
 
-      <form onSubmit={onAdd} noValidate className="mt-8 grid gap-4 rounded-lg border border-ink/15 p-4 sm:grid-cols-2">
+      <form onSubmit={onAdd} noValidate className="glass mt-8 grid gap-4 rounded-xl p-4 sm:grid-cols-2">
         <h2 className="font-display text-2xl sm:col-span-2">Adaugă o cheltuială</h2>
         <div className="space-y-1 sm:col-span-2">
           <Label htmlFor="item">Numele cheltuielii</Label>
@@ -167,14 +168,14 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
         <div className="space-y-1">
           <Label htmlFor="cat">Categorie</Label>
           <select id="cat" value={f.cat} onChange={(e) => set("cat", e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
+            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm transition-[border-color,box-shadow] duration-200 ease-out hover:border-ink/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25">
             {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
         </div>
         <div className="space-y-1">
           <Label htmlFor="currency">Monedă</Label>
           <select id="currency" value={f.currency} onChange={(e) => set("currency", e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
+            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm transition-[border-color,box-shadow] duration-200 ease-out hover:border-ink/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25">
             {CURRENCIES.map((currency) => (
               <option key={currency} value={currency}>{CURRENCY_LABEL[currency]}</option>
             ))}
@@ -201,12 +202,21 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
       {expenses.length === 0 ? (
         <p className="mt-8 text-ink/70">Nu există cheltuieli încă. Adaugă prima mai sus.</p>
       ) : (
-        <ul className="mt-8 space-y-3">
-          {expenses.map((x) => {
-            const fmt = moneyFormatter(x.currency);
-            const rest = round2(x.total_cost - x.amount_paid);
-            return (
-              <li key={x.id} className="rounded-lg border border-ink/15 p-4 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-lg hover:shadow-black/10">
+        <motion.ul layout className="mt-8 space-y-3">
+          <AnimatePresence initial={false}>
+            {expenses.map((x) => {
+              const fmt = moneyFormatter(x.currency);
+              const rest = round2(x.total_cost - x.amount_paid);
+              return (
+                <motion.li
+                  key={x.id}
+                  layout
+                  initial={{ opacity: 0, y: 14, scale: 0.985 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                  className="glass-soft card-hover rounded-lg p-4"
+                >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium">{x.item_name}</p>
@@ -220,7 +230,7 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
                     </span>
                     <button type="button" aria-label={`Șterge ${x.item_name}`}
                       onClick={() => start(async () => { await deleteExpense(x.id); })}
-                      className="rounded-md p-2 transition-colors hover:bg-ink/10"><X className="size-4" /></button>
+                      className="rounded-md p-2 transition-[background-color,transform] duration-200 ease-out hover:-translate-y-px hover:bg-ink/10 active:translate-y-0"><X className="size-4" /></button>
                   </div>
                 </div>
                 <div className="mt-2 h-1.5 rounded bg-ink/15">
@@ -236,10 +246,11 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
                   </Button>
                 </div>
                 {x.notes && <p className="mt-1 text-sm text-ink/60">{x.notes}</p>}
-              </li>
-            );
-          })}
-        </ul>
+                </motion.li>
+              );
+            })}
+          </AnimatePresence>
+        </motion.ul>
       )}
       <PaymentDialog expense={paying} onClose={() => setPaying(null)} />
     </>

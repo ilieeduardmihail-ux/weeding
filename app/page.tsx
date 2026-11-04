@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Footer } from "@/components/footer";
 import { Hero } from "@/components/hero";
-import { InvitationContent } from "@/components/invitation-content";
+import { InvitationScreen } from "@/components/invitation-screen";
 import { MobileRsvp } from "@/components/mobile-rsvp";
-import { Particles } from "@/components/particles";
 import { Schedule } from "@/components/schedule";
 import { PublicSeating } from "@/components/public-seating";
 import { RsvpSection } from "@/components/rsvp-section";
@@ -37,21 +36,25 @@ export default async function Home() {
   ]);
 
   return (
-    <main className="pb-20 sm:pb-0">
-      <Particles />
-      <Hero
-        names={[settings.partner_1, settings.partner_2]}
-        displayDate={formatEventDate(settings)}
-        city={settings.city}
-        eventIso={eventStartIso(settings)}
-      />
-      <InvitationContent>
+    <main>
+      <InvitationScreen
+        landing={
+          <>
+            <Hero
+              names={[settings.partner_1, settings.partner_2]}
+              displayDate={formatEventDate(settings)}
+              city={settings.city}
+              eventIso={eventStartIso(settings)}
+            />
+            <MobileRsvp />
+          </>
+        }
+      >
         <Schedule locations={locations} />
         {tables && <PublicSeating tables={tables} />}
         <RsvpSection closed={isRsvpClosed(settings)} cutoffDate={settings.rsvp_cutoff_date} />
         <Footer names={[settings.partner_1, settings.partner_2]} email={settings.contact_email} />
-      </InvitationContent>
-      <MobileRsvp />
+      </InvitationScreen>
     </main>
   );
 }

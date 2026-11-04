@@ -31,7 +31,7 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="glass mt-8 space-y-6 rounded-xl p-5" noValidate>
       {/* Honeypot: off-screen, skipped by keyboards and screen readers, still visible to bots */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
         <label>Website <input type="text" tabIndex={-1} autoComplete="off" {...register("website")} /></label>
@@ -53,8 +53,8 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
               type="button"
               aria-pressed={attending === v}
               onClick={() => setValue("attending", v)}
-              className={`rounded-md border px-4 py-3 transition focus-visible:outline-2 focus-visible:outline-gold ${
-                attending === v ? "border-ink bg-ink text-sea" : "border-ink/30 hover:border-ink"
+              className={`rounded-md border px-4 py-3 transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
+                attending === v ? "border-ink bg-ink text-sea shadow-lg shadow-black/20" : "border-ink/30 hover:border-ink hover:bg-ink/5"
               }`}
             >
               {v === "yes" ? "Da, vin cu drag" : "Din păcate, nu pot"}
@@ -92,7 +92,7 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
       <div className="space-y-2">
         <Label htmlFor="message">Mesaj pentru mir(i) (opțional)</Label>
         <textarea id="message" rows={3} {...register("message")}
-          className="w-full rounded-md border border-input bg-transparent px-3 py-2 focus-visible:outline-2 focus-visible:outline-gold" />
+          className="w-full rounded-md border border-input bg-transparent px-3 py-2 transition-[border-color,box-shadow] duration-200 focus-visible:border-gold focus-visible:outline-2 focus-visible:outline-gold" />
         {errors.message && <p className="text-sm text-red-300">{errors.message.message}</p>}
       </div>
 

@@ -11,7 +11,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   return (
     <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 px-6">
       <h1 className="font-display text-3xl">Autentificare admin</h1>
-      <form action={signIn} className="space-y-4">
+      <form action={signIn} className="glass space-y-4 rounded-xl p-6">
         <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" required /></div>
         <div className="space-y-2"><Label htmlFor="password">Parolă</Label><Input id="password" name="password" type="password" required /></div>
         {error && <p role="alert" className="text-red-300">Email sau parolă greșită.</p>}

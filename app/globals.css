@@ -154,6 +154,64 @@ body {
 }
 
 
+/* ---------------------------------------------------------------------------
+   Glass surfaces: semi-transparent plum with a soft blur, so the existing
+   background and particles stay visible through cards and panels.
+   --------------------------------------------------------------------------- */
+@layer components {
+  .glass {
+    background-color: rgb(21 12 30 / 0.48);
+    border: 1px solid rgb(244 236 226 / 0.12);
+    -webkit-backdrop-filter: blur(14px) saturate(135%);
+    backdrop-filter: blur(14px) saturate(135%);
+  }
+
+  .glass-soft {
+    background-color: rgb(43 24 57 / 0.34);
+    border: 1px solid rgb(244 236 226 / 0.1);
+    -webkit-backdrop-filter: blur(10px) saturate(125%);
+    backdrop-filter: blur(10px) saturate(125%);
+  }
+
+  .glass-bar {
+    background-color: rgb(21 12 30 / 0.74);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+  }
+
+  /* Shared hover/press feedback for cards, chips and tiles. */
+  .card-hover {
+    transition-property: transform, box-shadow, border-color, background-color;
+    transition-duration: 250ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @media (hover: hover) {
+    .card-hover:hover {
+      transform: translateY(-2px);
+      border-color: rgb(217 180 106 / 0.4);
+      box-shadow: 0 16px 36px -18px rgb(0 0 0 / 0.65);
+    }
+  }
+  .card-hover:active {
+    transform: translateY(0) scale(0.995);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover,
+    .card-hover:hover,
+    .card-hover:active {
+      transform: none;
+      transition-duration: 0ms;
+    }
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background-color: rgb(31 17 43 / 0.94); }
+  .glass-soft { background-color: rgb(43 24 57 / 0.9); }
+  .glass-bar { background-color: rgb(21 12 30 / 0.96); }
+}
+
 /* accordion (radix) */
 @keyframes accordion-down { from { height: 0; } to { height: var(--radix-accordion-content-height); } }
 @keyframes accordion-up { from { height: var(--radix-accordion-content-height); } to { height: 0; } }

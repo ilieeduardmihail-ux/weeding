@@ -7,6 +7,7 @@ import type { RsvpStatus } from "@/lib/rsvp-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Reveal } from "@/components/ui/reveal";
 import { RsvpForm } from "./rsvp-form";
 
 type View = "lookup" | "form" | "card" | "thanks";
@@ -16,7 +17,7 @@ function StatusCard({ s, onChange, onOther }: { s: RsvpStatus; onChange: () => v
   const seated = s.attending && s.table_number !== null;
 
   return (
-    <div role="status" className="mt-8 rounded-lg bg-mist p-8">
+    <div role="status" className="glass mt-8 rounded-lg p-8">
       {!s.attending ? (
         <>
           <p className="font-display text-3xl">Mulțumim, {first}.</p>
@@ -81,14 +82,16 @@ export function RsvpSection({ closed, cutoffDate }: { closed: boolean; cutoffDat
   return (
     <MotionConfig reducedMotion="user">
       <section id="rsvp" className="mx-auto max-w-xl scroll-mt-24 px-6 py-24">
-        <h2 className="font-display text-4xl">Vii la nuntă?</h2>
-        <div role="status" className="mt-8 rounded-lg bg-mist p-8">
-          <p className="font-display text-3xl">Confirmările sunt închise.</p>
-          <p className="mt-2 text-ink/75">
-            {cutoffDate ? `Formularul s-a închis pe ${formatDate(cutoffDate)}. ` : ""}
-            Dacă mai vrei să modifici ceva, scrie-ne direct.
-          </p>
-        </div>
+        <Reveal>
+          <h2 className="font-display text-4xl">Vii la nuntă?</h2>
+          <div role="status" className="glass mt-8 rounded-lg p-8">
+            <p className="font-display text-3xl">Confirmările sunt închise.</p>
+            <p className="mt-2 text-ink/75">
+              {cutoffDate ? `Formularul s-a închis pe ${formatDate(cutoffDate)}. ` : ""}
+              Dacă mai vrei să modifici ceva, scrie-ne direct.
+            </p>
+          </div>
+        </Reveal>
       </section>
     </MotionConfig>
   );
@@ -120,17 +123,19 @@ function RsvpFlow() {
   return (
     <MotionConfig reducedMotion="user">
       <section id="rsvp" className="mx-auto max-w-xl scroll-mt-24 px-6 py-24">
-        <h2 className="font-display text-4xl">Vii la nuntă?</h2>
-        <p className="mt-3 text-ink/70">
-          {view === "lookup" && "Scrie-ți numele ca să răspunzi sau să-ți verifici răspunsul și masa."}
-          {view === "form" && (notFound ? "Nu avem încă un răspuns pe acest nume. Verifică ortografia sau adaugă răspunsul mai jos." : "Actualizează-ți răspunsul mai jos.")}
-          {view === "card" && "Iată situația."}
-        </p>
+        <Reveal>
+          <h2 className="font-display text-4xl">Vii la nuntă?</h2>
+          <p className="mt-3 text-ink/70">
+            {view === "lookup" && "Scrie-ți numele ca să răspunzi sau să-ți verifici răspunsul și masa."}
+            {view === "form" && (notFound ? "Nu avem încă un răspuns pe acest nume. Verifică ortografia sau adaugă răspunsul mai jos." : "Actualizează-ți răspunsul mai jos.")}
+            {view === "card" && "Iată situația."}
+          </p>
+        </Reveal>
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={view} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
             {view === "lookup" && (
-              <form onSubmit={(e) => { e.preventDefault(); lookup(clean, false); }} className="mt-8 space-y-4" noValidate>
+              <form onSubmit={(e) => { e.preventDefault(); lookup(clean, false); }} className="glass mt-8 space-y-4 rounded-xl p-5" noValidate>
                 <div className="space-y-2">
                   <Label htmlFor="lookup-name">Numele complet</Label>
                   <Input id="lookup-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -154,7 +159,7 @@ function RsvpFlow() {
             )}
 
             {view === "thanks" && (
-              <div role="status" className="mt-8 rounded-lg bg-mist p-8">
+              <div role="status" className="glass mt-8 rounded-lg p-8">
                 <p className="font-display text-3xl">Mulțumim!</p>
                 <p className="mt-2 text-ink/75">Răspunsul tău a fost înregistrat. Revino oricând cu numele tău ca să vezi masa.</p>
                 <Button type="button" variant="ghost" className="mt-6" onClick={reset}>Verifică alt nume</Button>

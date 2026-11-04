@@ -103,7 +103,7 @@ export default async function LocationsPage({
           <form
             key={location.key}
             action={saveLocation}
-            className="grid gap-5 rounded-xl border border-ink/15 p-5 sm:grid-cols-2"
+            className="glass grid gap-5 rounded-xl p-5 transition-colors duration-300 focus-within:border-gold/30 sm:grid-cols-2"
           >
             <input type="hidden" name="key" value={location.key} />
             <h2 className="font-display text-2xl sm:col-span-2">

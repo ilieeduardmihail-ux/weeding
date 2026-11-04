@@ -20,7 +20,7 @@ export default async function PrivacyPage() {
   return (
     <main className="min-h-svh">
       <article className="mx-auto max-w-2xl px-6 py-16">
-        <Link href="/" className="text-sm text-ink/60 underline-offset-4 hover:underline">
+        <Link href="/" className="text-sm text-ink/60 underline-offset-4 transition-colors duration-200 ease-out hover:text-ink hover:underline">
           ← Înapoi la invitație
         </Link>
 
@@ -77,7 +77,7 @@ export default async function PrivacyPage() {
             <p className="mt-2">
               Poți cere oricând să afli ce date avem despre tine, să le corectezi sau să le ștergem.
               Scrie-ne la{" "}
-              <a href={`mailto:${settings.contact_email}`} className="text-ink underline underline-offset-4">
+              <a href={`mailto:${settings.contact_email}`} className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink">
                 {settings.contact_email}
               </a>
               .

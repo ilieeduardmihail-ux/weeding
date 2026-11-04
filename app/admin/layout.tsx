@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <>
       <AdminNav />
-      {children}
+      <div className="animate-in fade-in duration-500">{children}</div>
     </>
   );
 }

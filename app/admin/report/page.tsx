@@ -63,7 +63,7 @@ export default async function ReportPage() {
 
       <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map(([label, value, hint]) => (
-          <div key={label} className="rounded-lg bg-mist/70 p-5">
+          <div key={label} className="glass-soft card-hover rounded-lg p-5">
             <dd className="font-display text-4xl tabular-nums">{value}</dd>
             <dt className="text-sm text-ink/70">{label}</dt>
             <p className="mt-1 text-xs text-ink/50">{hint}</p>
@@ -91,7 +91,7 @@ export default async function ReportPage() {
                 </thead>
                 <tbody>
                   {people.map((row, index) => (
-                    <tr key={`${row.kind}-${row.name}-${index}`} className="border-b border-ink/10">
+                    <tr key={`${row.kind}-${row.name}-${index}`} className="border-b border-ink/10 transition-colors duration-200 hover:bg-ink/5">
                       <td className="py-2 pr-4">{row.name}</td>
                       <td className="py-2 pr-4 text-ink/60">{kindLabel[row.kind]}</td>
                       <td className="py-2 text-ink/60">{row.is_child ? "Da" : "—"}</td>

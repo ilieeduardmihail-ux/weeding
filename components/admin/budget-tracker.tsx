@@ -1,22 +1,16 @@
 "use client";
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Toast, useToast } from "@/components/ui/toast";
 import { addExpense, addPayment, deleteExpense } from "@/app/admin/budget/actions";
 import { CATEGORIES } from "@/lib/admin-config";
 import { CURRENCIES, moneyFormatter, type Currency } from "@/lib/currency";
 import { expenseSchema, parseMoney, round2, type ExpenseInput } from "@/lib/expense-schema";
+import { mergeById } from "@/lib/merge-by-id";
 
 export type Expense = {
   id: string;
@@ -47,6 +41,15 @@ const newId = () =>
 
 /** Shown when the server action itself fails (offline, request aborted). */
 const NETWORK_ERROR = "Conexiunea a eșuat. Încearcă din nou.";
+
+/** Content comparison used to keep unchanged rows when the server refreshes. */
+const sameExpense = (a: Expense, b: Expense) =>
+  a.item_name === b.item_name &&
+  a.category === b.category &&
+  a.currency === b.currency &&
+  a.total_cost === b.total_cost &&
+  a.amount_paid === b.amount_paid &&
+  a.notes === b.notes;
 
 // Top-level component: creating it inside the form would reset it on every render.
 function Err({ errs, k }: { errs: Record<string, string>; k: string }) {
@@ -116,11 +119,9 @@ const ExpenseRow = memo(function ExpenseRow({
   const rest = round2(x.total_cost - x.amount_paid);
   return (
     <motion.li
-      layout
       initial={{ opacity: 0, y: 14, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       className={cx("glass-soft card-hover rounded-lg p-4", x.pending && "opacity-80")}
     >
       <div className="flex items-start justify-between gap-3">
@@ -174,13 +175,11 @@ const ExpenseList = memo(function ExpenseList({
   }
 
   return (
-    <motion.ul layout className="mt-8 space-y-3">
-      <AnimatePresence initial={false}>
-        {items.map((x) => (
-          <ExpenseRow key={x.id} x={x} onDelete={onDelete} onPay={onPay} />
-        ))}
-      </AnimatePresence>
-    </motion.ul>
+    <ul className="mt-8 space-y-3">
+      {items.map((x) => (
+        <ExpenseRow key={x.id} x={x} onDelete={onDelete} onPay={onPay} />
+      ))}
+    </ul>
   );
 });
 
@@ -198,14 +197,16 @@ type FormState = typeof blankForm;
 const ExpenseForm = memo(function ExpenseForm({
   onBeginAdd,
   onFinishAdd,
+  onError,
 }: {
   onBeginAdd: (data: ExpenseInput, id: string) => void;
   onFinishAdd: (data: ExpenseInput, id: string) => Promise<Result>;
+  onError: (message: string) => void;
 }) {
   const [f, setF] = useState<FormState>(blankForm);
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [serverErr, setServerErr] = useState<string | null>(null);
-  const [pending, start] = useTransition();
+  const [saving, setSaving] = useState(false);
 
   const set = useCallback(
     (k: keyof FormState, v: string) => setF((s) => ({ ...s, [k]: v })),
@@ -234,21 +235,24 @@ const ExpenseForm = memo(function ExpenseForm({
 
       setServerErr(null);
       const id = newId();
-      // Paint the row before the network round trip; only the confirmation is
-      // a transition, so the optimistic update is never deferred.
+      // Paint the row before the network round trip; the request runs in the
+      // background and never blocks the rest of the page.
       onBeginAdd(parsed.data, id);
-      start(async () => {
+      setSaving(true);
+      void (async () => {
         const r = await onFinishAdd(parsed.data, id);
+        setSaving(false);
         if (r.ok) {
           // Keep the chosen category and currency: adding several similar
           // expenses is faster than retyping everything.
           setF((prev) => ({ ...blankForm, cat: prev.cat, currency: prev.currency }));
         } else {
           setServerErr(r.error);
+          onError(r.error);
         }
-      });
+      })();
     },
-    [f, onBeginAdd, onFinishAdd],
+    [f, onBeginAdd, onFinishAdd, onError],
   );
 
   return (
@@ -287,7 +291,7 @@ const ExpenseForm = memo(function ExpenseForm({
         <Input id="notes" value={f.notes} onChange={(e) => set("notes", e.target.value)} />
       </div>
       {serverErr && <p role="alert" className="text-red-300 sm:col-span-2">{serverErr}</p>}
-      <Button type="submit" disabled={pending} className="bg-ink text-sea hover:bg-ink/85 sm:col-span-2">
+      <Button type="submit" disabled={saving} className="bg-ink text-sea hover:bg-ink/85 sm:col-span-2">
         <Plus className="size-4" /> Adaugă cheltuiala
       </Button>
     </form>
@@ -308,7 +312,7 @@ function PaymentDialog({
   const ref = useRef<HTMLDialogElement>(null);
   const [amount, setAmount] = useState("");
   const [err, setErr] = useState<string | null>(null);
-  const [pending, start] = useTransition();
+  const [saving, setSaving] = useState(false);
   const fmt = moneyFormatter(expense?.currency ?? "RON");
 
   useEffect(() => {
@@ -328,10 +332,13 @@ function PaymentDialog({
     if (!valid) { setErr(`Introdu o sumă între 0 și ${fmt.format(remaining)}.`); return; }
     const amount = round2(value);
     onBeginPay(expense, amount);
-    start(async () => {
+    setSaving(true);
+    void (async () => {
       const r = await onFinishPay(expense, amount);
-      if (r.ok) onClose(); else setErr(r.error);
-    });
+      setSaving(false);
+      if (r.ok) onClose();
+      else setErr(r.error);
+    })();
   };
 
   return (
@@ -355,8 +362,8 @@ function PaymentDialog({
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Anulează</Button>
-            <Button type="submit" disabled={pending} className="bg-ink text-sea hover:bg-ink/85">
-              {pending ? "Se salvează…" : "Adaugă plata"}
+            <Button type="submit" disabled={saving} className="bg-ink text-sea hover:bg-ink/85">
+              {saving ? "Se salvează…" : "Adaugă plata"}
             </Button>
           </div>
         </form>
@@ -370,16 +377,18 @@ type ItemsState = { source: Expense[]; items: LocalExpense[] };
 export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
   const [store, setStore] = useState<ItemsState>(() => ({ source: expenses, items: expenses }));
   const [paying, setPaying] = useState<Expense | null>(null);
-  const [serverErr, setServerErr] = useState<string | null>(null);
+  const { toast, show, dismiss } = useToast();
 
   // Adjust state during render (the React-endorsed pattern) rather than in an
-  // effect: after a server action the fresh rows replace the list, while
+  // effect: after a background refresh the fresh rows replace the list, while
+  // unchanged rows keep their identity (memoized rows do not re-render) and
   // optimistic rows still in flight stay on screen.
   if (store.source !== expenses) {
     setStore((prev) => {
       const serverIds = new Set(expenses.map((e) => e.id));
       const inFlight = prev.items.filter((e) => e.pending && !serverIds.has(e.id));
-      return { source: expenses, items: inFlight.length ? [...inFlight, ...expenses] : expenses };
+      const merged = mergeById(prev.items, expenses, sameExpense);
+      return { source: expenses, items: inFlight.length ? [...inFlight, ...merged] : merged };
     });
   }
 
@@ -405,7 +414,6 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
   );
 
   const beginAdd = useCallback((data: ExpenseInput, id: string) => {
-    setServerErr(null);
     const optimistic: LocalExpense = {
       id,
       item_name: data.item_name,
@@ -439,7 +447,6 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
     const index = list.findIndex((x) => x.id === id);
     if (index < 0) return;
     const removed = list[index]!;
-    setServerErr(null);
     setItems((prev) => prev.filter((x) => x.id !== id));
 
     const r = await deleteExpense(id).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
@@ -450,40 +457,50 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
         next.splice(Math.min(index, next.length), 0, removed);
         return next;
       });
-      setServerErr(r.error);
+      show(r.error, "error");
     }
-  }, [setItems]);
+  }, [setItems, show]);
 
   const beginPay = useCallback((expense: Expense, amount: number) => {
     const id = expense.id;
     setItems((prev) =>
       prev.map((x) => (x.id === id ? { ...x, amount_paid: round2(x.amount_paid + amount) } : x)),
     );
+    // Keep the open dialog in sync with the optimistic row.
+    setPaying((prev) =>
+      prev && prev.id === id ? { ...prev, amount_paid: round2(prev.amount_paid + amount) } : prev,
+    );
   }, [setItems]);
 
   const finishPay = useCallback(async (expense: Expense, amount: number): Promise<Result> => {
-    const r = await addPayment({ id: expense.id, amount }).catch(() => ({
+    const id = expense.id;
+    const r = await addPayment({ id, amount }).catch(() => ({
       ok: false as const,
       error: NETWORK_ERROR,
     }));
     if (!r.ok) {
       setItems((prev) =>
-        prev.map((x) => (x.id === expense.id ? { ...x, amount_paid: round2(x.amount_paid - amount) } : x)),
+        prev.map((x) => (x.id === id ? { ...x, amount_paid: round2(x.amount_paid - amount) } : x)),
       );
+      setPaying((prev) =>
+        prev && prev.id === id ? { ...prev, amount_paid: round2(prev.amount_paid - amount) } : prev,
+      );
+      show(r.error, "error");
     }
     return r;
-  }, [setItems]);
+  }, [setItems, show]);
 
   const openPay = useCallback((expense: Expense) => setPaying(expense), []);
   const closePay = useCallback(() => setPaying(null), []);
+  const showError = useCallback((message: string) => show(message, "error"), [show]);
 
   return (
     <>
       <Totals totals={totals} />
-      <ExpenseForm onBeginAdd={beginAdd} onFinishAdd={finishAdd} />
-      {serverErr && <p role="alert" className="mt-4 text-red-300">{serverErr}</p>}
+      <ExpenseForm onBeginAdd={beginAdd} onFinishAdd={finishAdd} onError={showError} />
       <ExpenseList items={items} onDelete={remove} onPay={openPay} />
       <PaymentDialog expense={paying} onClose={closePay} onBeginPay={beginPay} onFinishPay={finishPay} />
+      <Toast toast={toast} onDismiss={dismiss} />
     </>
   );
 }

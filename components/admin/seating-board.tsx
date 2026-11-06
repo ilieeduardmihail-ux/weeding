@@ -1,16 +1,18 @@
 "use client";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor,
   pointerWithin, rectIntersection, useDraggable, useDroppable, useSensor, useSensors,
   type CollisionDetection, type DragEndEvent, type DragStartEvent,
+  type MouseSensorOptions, type TouchSensorOptions,
 } from "@dnd-kit/core";
 import { Plus, Undo2, X } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { addTable, assignTable, deleteGuest, deleteTable, setTableCapacity } from "@/app/admin/seating/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Toast, useToast } from "@/components/ui/toast";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import {
   DEFAULT_TABLE_CAPACITY,
@@ -36,6 +38,37 @@ const detect: CollisionDetection = (args) => {
   return hits.length ? hits : rectIntersection(args);
 };
 
+// Module-level options keep the sensor descriptors stable across renders, so
+// drag state changes do not rebuild the DndContext sensors.
+const MOUSE_SENSOR_OPTIONS: MouseSensorOptions = { activationConstraint: { distance: 6 } };
+const TOUCH_SENSOR_OPTIONS: TouchSensorOptions = { activationConstraint: { delay: 200, tolerance: 8 } };
+
+// Shared empty list so tables without members keep a stable `members` prop.
+const EMPTY_MEMBERS: Person[] = [];
+
+/**
+ * Groups people by table. Tables whose members are the same objects in the
+ * same order reuse the previous array from `previous`, so their memoized card
+ * does not receive a new prop after an unrelated move.
+ */
+function buildMembers(list: Person[], previous: Map<number, Person[]>) {
+  const next = new Map<number, Person[]>();
+  list.forEach((p) => {
+    if (p.table === null) return;
+    const members = next.get(p.table);
+    if (members) members.push(p);
+    else next.set(p.table, [p]);
+  });
+
+  next.forEach((members, number) => {
+    const old = previous.get(number);
+    if (old && old.length === members.length && old.every((p, i) => p === members[i])) {
+      next.set(number, old);
+    }
+  });
+  return next;
+}
+
 const PersonChip = memo(function PersonChip({
   p,
   onDelete,
@@ -48,7 +81,6 @@ const PersonChip = memo(function PersonChip({
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: keyOf(p) });
   return (
     <motion.li
-      layout={!isDragging}
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
@@ -112,10 +144,8 @@ const TableCard = memo(function TableCard({
   return (
     <motion.section
       ref={setNodeRef}
-      layout
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       aria-label={`Masa ${n}, ${members.length} din ${capacity} locuri ocupate`}
       className={cx(
@@ -289,7 +319,7 @@ export function SeatingBoard({
   const [q, setQ] = useState("");
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<SeatingTable | null>(null);
-  const [, start] = useTransition();
+  const { toast, show, dismiss } = useToast();
 
   // The expensive filtering waits for the typing to settle; the input itself
   // still updates on every keystroke.
@@ -303,17 +333,22 @@ export function SeatingBoard({
   useEffect(() => { tablesRef.current = tables; }, [tables]);
 
   const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, MOUSE_SENSOR_OPTIONS),
     // a short press-and-hold on touch screens, so normal scrolling still works
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(TouchSensor, TOUCH_SENSOR_OPTIONS),
     useSensor(KeyboardSensor)
   );
 
-  const byTable = useMemo(() => {
-    const m = new Map<number, Person[]>();
-    people.forEach((p) => { if (p.table) m.set(p.table, [...(m.get(p.table) ?? []), p]); });
-    return m;
-  }, [people]);
+  // Rebuild the member lists, but keep the array identity for every table whose
+  // members did not change, so React.memo skips those cards entirely.
+  const [membersIndex, setMembersIndex] = useState(() => ({
+    source: people,
+    byTable: buildMembers(people, new Map()),
+  }));
+  if (membersIndex.source !== people) {
+    setMembersIndex((prev) => ({ source: people, byTable: buildMembers(people, prev.byTable) }));
+  }
+  const byTable = membersIndex.byTable;
 
   const { setNodeRef: poolRef, isOver: overPool } = useDroppable({ id: "pool" });
 
@@ -332,24 +367,38 @@ export function SeatingBoard({
     [total, seated],
   );
 
-  const movePerson = useCallback((p: Person, target: number | null) => {
-    setMsg(null);
-    const before = peopleRef.current;
-    const next = before.map((x) => (keyOf(x) === keyOf(p) ? { ...x, table: target } : x));
+  // Optimistic writes update the ref and the state in the same tick, before
+  // the request leaves the browser. Passing an updater keeps concurrent
+  // actions against different rows from overwriting each other.
+  const commitPeople = useCallback((updater: (list: Person[]) => Person[]) => {
+    const next = updater(peopleRef.current);
     peopleRef.current = next;
     setPeople(next);
-    start(async () => {
+  }, []);
+  const commitTables = useCallback((updater: (list: SeatingTable[]) => SeatingTable[]) => {
+    const next = updater(tablesRef.current);
+    tablesRef.current = next;
+    setTables(next);
+  }, []);
+
+  const movePerson = useCallback((p: Person, target: number | null) => {
+    setMsg(null);
+    const key = keyOf(p);
+    const original = peopleRef.current.find((x) => keyOf(x) === key)?.table ?? p.table;
+
+    commitPeople((list) => list.map((x) => (keyOf(x) === key ? { ...x, table: target } : x)));
+    void (async () => {
       const r = await assignTable(p.kind, p.id, target).catch(() => ({
         ok: false as const,
         error: NETWORK_ERROR,
       }));
       if (!r.ok) {
-        peopleRef.current = before;
-        setPeople(before);
-        setMsg(r.error);
+        // Roll back only this person, so a concurrent move stays intact.
+        commitPeople((list) => list.map((x) => (keyOf(x) === key ? { ...x, table: original } : x)));
+        show(r.error, "error");
       }
-    });
-  }, []);
+    })();
+  }, [commitPeople, show]);
 
   const onDragStart = useCallback((e: DragStartEvent) => {
     setMsg(null);
@@ -379,40 +428,47 @@ export function SeatingBoard({
     movePerson(p, target);
   }, [movePerson]);
 
+  const onDragCancel = useCallback(() => setActive(null), []);
+
   const unassignPerson = useCallback((p: Person) => {
     if (p.table !== null) movePerson(p, null);
   }, [movePerson]);
 
   const deletePerson = useCallback((p: Person) => {
     setMsg(null);
-    const before = peopleRef.current;
-    const next = before.filter((x) => keyOf(x) !== keyOf(p));
-    peopleRef.current = next;
-    setPeople(next);
-    start(async () => {
+    const key = keyOf(p);
+    const list = peopleRef.current;
+    const index = list.findIndex((x) => keyOf(x) === key);
+    if (index < 0) return;
+    const removed = list[index]!;
+
+    commitPeople((prev) => prev.filter((x) => keyOf(x) !== key));
+    void (async () => {
       const r = await deleteGuest(p.id).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
       if (!r.ok) {
-        peopleRef.current = before;
-        setPeople(before);
-        setMsg(r.error);
+        commitPeople((prev) => {
+          if (prev.some((x) => keyOf(x) === key)) return prev;
+          const next = [...prev];
+          next.splice(Math.min(index, next.length), 0, removed);
+          return next;
+        });
+        show(r.error, "error");
       }
-    });
-  }, []);
+    })();
+  }, [commitPeople, show]);
 
   const handleAdd = useCallback((number: number | null, capacity: number) => {
     setMsg(null);
     setAdding(false);
-    start(async () => {
+    void (async () => {
       const r = await addTable(number, capacity).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
-      if (!r.ok) { setMsg(r.error); return; }
+      if (!r.ok) { show(r.error, "error"); return; }
       if (typeof r.number === "number") {
-        const next = [...tablesRef.current, { number: r.number, capacity }]
-          .sort((a, b) => a.number - b.number);
-        tablesRef.current = next;
-        setTables(next);
+        const added = { number: r.number, capacity };
+        commitTables((prev) => [...prev, added].sort((a, b) => a.number - b.number));
       }
-    });
-  }, []);
+    })();
+  }, [commitTables, show]);
 
   const handleDelete = useCallback(() => {
     const table = deleting;
@@ -420,48 +476,52 @@ export function SeatingBoard({
     setDeleting(null);
     setMsg(null);
 
-    const beforeTables = tablesRef.current;
-    const beforePeople = peopleRef.current;
-    const nextTables = beforeTables.filter((t) => t.number !== table.number);
-    const nextPeople = beforePeople.map((p) => (p.table === table.number ? { ...p, table: null } : p));
-    tablesRef.current = nextTables;
-    peopleRef.current = nextPeople;
-    setTables(nextTables);
-    setPeople(nextPeople);
+    // Remember exactly who this delete unseats, so the rollback does not move
+    // people who were dragged elsewhere while the request was in flight.
+    const movedKeys = new Set(
+      peopleRef.current.filter((p) => p.table === table.number).map(keyOf),
+    );
+    commitTables((prev) => prev.filter((t) => t.number !== table.number));
+    commitPeople((prev) => prev.map((p) => (p.table === table.number ? { ...p, table: null } : p)));
 
-    start(async () => {
+    void (async () => {
       const r = await deleteTable(table.number).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
       if (!r.ok) {
-        tablesRef.current = beforeTables;
-        peopleRef.current = beforePeople;
-        setTables(beforeTables);
-        setPeople(beforePeople);
-        setMsg(r.error);
+        commitTables((prev) =>
+          prev.some((t) => t.number === table.number)
+            ? prev
+            : [...prev, table].sort((a, b) => a.number - b.number),
+        );
+        commitPeople((prev) =>
+          prev.map((p) => (p.table === null && movedKeys.has(keyOf(p)) ? { ...p, table: table.number } : p)),
+        );
+        show(r.error, "error");
       }
-    });
-  }, [deleting]);
+    })();
+  }, [deleting, commitPeople, commitTables, show]);
 
   const handleCapacity = useCallback((number: number, capacity: number) => {
     setMsg(null);
-    const before = tablesRef.current;
-    const next = before.map((t) => (t.number === number ? { ...t, capacity } : t));
-    tablesRef.current = next;
-    setTables(next);
-    start(async () => {
+    const previous = tablesRef.current.find((t) => t.number === number)?.capacity ?? capacity;
+    commitTables((prev) => prev.map((t) => (t.number === number ? { ...t, capacity } : t)));
+    void (async () => {
       const r = await setTableCapacity(number, capacity).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
       if (!r.ok) {
-        tablesRef.current = before;
-        setTables(before);
-        setMsg(r.error);
+        commitTables((prev) =>
+          prev.map((t) =>
+            t.number === number && t.capacity === capacity ? { ...t, capacity: previous } : t,
+          ),
+        );
+        show(r.error, "error");
       }
-    });
-  }, []);
+    })();
+  }, [commitTables, show]);
 
   return (
     // A fixed id keeps @dnd-kit's generated aria-describedby stable between the
     // server HTML and the client hydration (otherwise it uses a module counter).
     <DndContext id="seating-board" sensors={sensors} collisionDetection={detect} onDragStart={onDragStart}
-      onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
+      onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
       <dl className="mt-6 grid grid-cols-3 gap-3">
         {stats.map(([l, v]) => (
           <div key={l} className="glass-soft card-hover rounded-lg p-4">
@@ -517,18 +577,16 @@ export function SeatingBoard({
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              <AnimatePresence initial={false}>
-                {tables.map((t) => (
-                  <TableCard
-                    key={t.number}
-                    table={t}
-                    members={byTable.get(t.number) ?? []}
-                    onDelete={setDeleting}
-                    onCapacityChange={handleCapacity}
-                    onUnassign={unassignPerson}
-                  />
-                ))}
-              </AnimatePresence>
+              {tables.map((t) => (
+                <TableCard
+                  key={t.number}
+                  table={t}
+                  members={byTable.get(t.number) ?? EMPTY_MEMBERS}
+                  onDelete={setDeleting}
+                  onCapacityChange={handleCapacity}
+                  onUnassign={unassignPerson}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -545,6 +603,8 @@ export function SeatingBoard({
       <DragOverlay>
         {active && <div className="rounded-md bg-ink px-3 py-1.5 text-sm text-sea shadow-lg">{active.name}</div>}
       </DragOverlay>
+
+      <Toast toast={toast} onDismiss={dismiss} />
     </DndContext>
   );
 }

@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 export async function signIn(formData: FormData) {
@@ -27,8 +27,17 @@ export async function signOut() {
   redirect("/admin/login");
 }
 
-export async function deleteRsvp(formData: FormData) {
+export type DeleteRsvpResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Deletes a response without revalidating the page: the list removes the row
+ * optimistically and the live subscription refreshes it in the background.
+ */
+export async function deleteRsvp(id: string): Promise<DeleteRsvpResult> {
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Cerere invalidă." };
+
   const supabase = await createClient();
-  await supabase.from("rsvps").delete().eq("id", String(formData.get("id"))); // RLS: admins only
-  revalidatePath("/admin");
+  const { error } = await supabase.from("rsvps").delete().eq("id", id); // RLS: admins only
+  if (error) return { ok: false, error: "Nu am putut șterge răspunsul. Încearcă din nou." };
+  return { ok: true };
 }

@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_TABLE_NUMBER, MAX_TABLE_CAPACITY, MIN_TABLE_CAPACITY } from "@/lib/seating";
 
@@ -69,7 +68,6 @@ export async function addTable(
     if (message.includes("no numbers left")) return { ok: false, error: "Nu mai există numere libere." };
     return { ok: false, error: "Nu am putut adăuga masa. Rulează migrarea v8 în Supabase." };
   }
-  revalidatePath("/admin/seating");
   return { ok: true, number: typeof data === "number" ? data : (number ?? undefined) };
 }
 
@@ -81,7 +79,6 @@ export async function deleteTable(number: number): Promise<Result> {
   if (error) {
     return { ok: false, error: "Nu am putut șterge masa. Rulează migrarea v8 în Supabase." };
   }
-  revalidatePath("/admin/seating");
   return { ok: true };
 }
 
@@ -103,6 +100,5 @@ export async function setTableCapacity(number: number, capacity: number): Promis
     }
     return { ok: false, error: "Nu am putut salva capacitatea." };
   }
-  revalidatePath("/admin/seating");
   return { ok: true };
 }

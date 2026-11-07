@@ -2,7 +2,14 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { expenseSchema, paymentSchema, round2, type ExpenseInput, type PaymentInput } from "@/lib/expense-schema";
+import {
+  categorySchema,
+  expenseSchema,
+  paymentSchema,
+  round2,
+  type ExpenseInput,
+  type PaymentInput,
+} from "@/lib/expense-schema";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -49,5 +56,20 @@ export async function deleteExpense(id: string): Promise<Result> {
   const supabase = await createClient();
   const { error } = await supabase.from("expenses").delete().eq("id", id);
   if (error) return { ok: false, error: "Nu am putut șterge cheltuiala." };
+  return { ok: true };
+}
+
+/**
+ * Changes only the category. Called after the row has already been updated
+ * optimistically, so the request never blocks the UI.
+ */
+export async function updateExpenseCategory(id: string, category: string): Promise<Result> {
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Cerere invalidă." };
+  const parsed = categorySchema.safeParse(category);
+  if (!parsed.success) return { ok: false, error: "Categorie invalidă." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("expenses").update({ category: parsed.data }).eq("id", id);
+  if (error) return { ok: false, error: "Nu am putut salva categoria." };
   return { ok: true };
 }

@@ -1,14 +1,12 @@
 "use client";
 import { useEffect } from "react";
 import { MotionConfig, motion, useAnimationControls } from "framer-motion";
-import { Countdown } from "./countdown";
 import { requestOpenInvitation } from "@/lib/invitation";
 
 type HeroProps = {
   names: [string, string];
   displayDate: string;
-  city: string;
-  eventIso: string;
+  displayTime: string;
 };
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.22 } } };
@@ -17,7 +15,7 @@ const rise = {
   show: { opacity: 1, y: 0, transition: { duration: 1, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
+export function Hero({ names, displayDate, displayTime }: HeroProps) {
   const [a, b] = names;
   const controls = useAnimationControls();
 
@@ -45,11 +43,8 @@ export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
           {b}
         </motion.h1>
         <motion.p variants={rise} className="mt-8 text-lg">
-          {displayDate}, {city}
+          {displayDate} · ora {displayTime}
         </motion.p>
-        <motion.div variants={rise} className="mt-10">
-          <Countdown target={eventIso} />
-        </motion.div>
         <motion.div
           variants={rise}
           className="mt-12 flex w-full max-w-sm flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center"
@@ -63,14 +58,6 @@ export function Hero({ names, displayDate, city, eventIso }: HeroProps) {
           >
             Deschide Invitația
           </motion.button>
-          <motion.a
-            href="/calendar"
-            whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.97 }}
-            className="rounded-full border border-ink/30 px-8 py-3 text-center transition-colors duration-200 ease-out hover:border-ink hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
-          >
-            Adaugă în calendar
-          </motion.a>
         </motion.div>
       </motion.header>
     </MotionConfig>

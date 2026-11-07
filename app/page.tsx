@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Footer } from "@/components/footer";
 import { Hero } from "@/components/hero";
 import { InvitationScreen } from "@/components/invitation-screen";
-import { MobileRsvp } from "@/components/mobile-rsvp";
 import { Schedule } from "@/components/schedule";
-import { PublicSeating } from "@/components/public-seating";
 import { RsvpSection } from "@/components/rsvp-section";
-import { getEventSettings, getLocations, getPublicSeating } from "@/lib/public-data";
-import { eventStartIso, formatEventDate, isRsvpClosed } from "@/lib/event-settings";
+import { getEventSettings, getLocations } from "@/lib/public-data";
+import { formatEventDate, isRsvpClosed } from "@/lib/event-settings";
 
 // Settings are read per request, so changes saved in /admin/settings show up immediately.
 export const instant = false;
@@ -29,31 +26,21 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Home() {
   // The RSVP cutoff depends on "today", so the page must render per request.
   await connection();
-  const [settings, tables, locations] = await Promise.all([
-    getEventSettings(),
-    getPublicSeating(),
-    getLocations(),
-  ]);
+  const [settings, locations] = await Promise.all([getEventSettings(), getLocations()]);
 
   return (
     <main>
       <InvitationScreen
         landing={
-          <>
-            <Hero
-              names={[settings.partner_1, settings.partner_2]}
-              displayDate={formatEventDate(settings)}
-              city={settings.city}
-              eventIso={eventStartIso(settings)}
-            />
-            <MobileRsvp />
-          </>
+          <Hero
+            names={[settings.partner_1, settings.partner_2]}
+            displayDate={formatEventDate(settings)}
+            displayTime={settings.event_time}
+          />
         }
       >
         <Schedule locations={locations} />
-        {tables && <PublicSeating tables={tables} />}
         <RsvpSection closed={isRsvpClosed(settings)} cutoffDate={settings.rsvp_cutoff_date} />
-        <Footer names={[settings.partner_1, settings.partner_2]} email={settings.contact_email} />
       </InvitationScreen>
     </main>
   );

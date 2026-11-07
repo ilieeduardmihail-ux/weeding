@@ -5,6 +5,9 @@ import { CURRENCIES } from "./currency";
 export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 export const parseMoney = (s: string) => Number(s.trim().replace(",", "."));
 
+export const categorySchema = z.enum(CATEGORIES);
+export type Category = z.infer<typeof categorySchema>;
+
 export const expenseSchema = z
   .object({
     item_name: z.string().trim().min(1, "Introdu numele cheltuielii").max(120),

@@ -36,7 +36,7 @@ export default async function PrivacyPage() {
             <p className="mt-2">
               Când confirmi prezența, salvăm numele tău, dacă poți participa, mesajul opțional și
               numele însoțitorilor pe care îi adaugi. Dacă îți verifici răspunsul, folosim numele
-              pentru a-ți găsi confirmarea și masa.
+              pentru a-ți găsi confirmarea.
             </p>
           </section>
 

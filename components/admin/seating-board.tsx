@@ -323,7 +323,7 @@ export function SeatingBoard({
 
   // The expensive filtering waits for the typing to settle; the input itself
   // still updates on every keystroke.
-  const debouncedQ = useDebouncedValue(q, 350);
+  const debouncedQ = useDebouncedValue(q, 300);
 
   // Refs keep the optimistic handlers stable (and therefore keep the memoized
   // table cards from re-rendering on every unrelated state change).

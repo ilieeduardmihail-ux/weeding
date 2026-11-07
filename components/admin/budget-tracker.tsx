@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toast, useToast } from "@/components/ui/toast";
-import { addExpense, addPayment, deleteExpense } from "@/app/admin/budget/actions";
+import { addExpense, addPayment, deleteExpense, updateExpenseCategory } from "@/app/admin/budget/actions";
 import { CATEGORIES } from "@/lib/admin-config";
 import { CURRENCIES, moneyFormatter, type Currency } from "@/lib/currency";
-import { expenseSchema, parseMoney, round2, type ExpenseInput } from "@/lib/expense-schema";
+import { expenseSchema, parseMoney, round2, type Category, type ExpenseInput } from "@/lib/expense-schema";
 import { mergeById } from "@/lib/merge-by-id";
 
 export type Expense = {
@@ -110,13 +110,18 @@ const ExpenseRow = memo(function ExpenseRow({
   x,
   onDelete,
   onPay,
+  onCategoryChange,
 }: {
   x: LocalExpense;
   onDelete: (id: string) => void;
   onPay: (expense: Expense) => void;
+  onCategoryChange: (expense: Expense, category: Category) => void;
 }) {
   const fmt = moneyFormatter(x.currency);
   const rest = round2(x.total_cost - x.amount_paid);
+  // Keep legacy rows that used an old category label readable instead of
+  // silently showing the first option of the new list.
+  const knownCategory = (CATEGORIES as readonly string[]).includes(x.category);
   return (
     <motion.li
       initial={{ opacity: 0, y: 14, scale: 0.985 }}
@@ -127,8 +132,26 @@ const ExpenseRow = memo(function ExpenseRow({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium">{x.item_name}</p>
-          <p className="text-xs text-ink/60">
-            {x.category} · <span className="rounded bg-ink/10 px-1.5 py-0.5 font-medium text-ink/80">{x.currency}</span>
+          <p className="flex items-center gap-1 text-xs text-ink/60">
+            <select
+              aria-label={`Categoria pentru ${x.item_name}`}
+              title="Schimbă categoria"
+              value={x.category}
+              onChange={(e) => onCategoryChange(x, e.target.value as Category)}
+              className="cursor-pointer appearance-none rounded bg-transparent py-0.5 text-xs text-ink/60 transition-colors duration-150 hover:text-ink focus:text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-gold/50"
+            >
+              {!knownCategory && (
+                <option value={x.category} className="bg-sea text-ink">
+                  {x.category}
+                </option>
+              )}
+              {CATEGORIES.map((category) => (
+                <option key={category} value={category} className="bg-sea text-ink">
+                  {category}
+                </option>
+              ))}
+            </select>
+            · <span className="rounded bg-ink/10 px-1.5 py-0.5 font-medium text-ink/80">{x.currency}</span>
             {x.pending && <span className="ml-2 text-ink/40">se salvează…</span>}
           </p>
         </div>
@@ -163,23 +186,86 @@ const ExpenseRow = memo(function ExpenseRow({
 
 const ExpenseList = memo(function ExpenseList({
   items,
+  empty,
   onDelete,
   onPay,
+  onCategoryChange,
 }: {
   items: LocalExpense[];
+  empty?: string;
   onDelete: (id: string) => void;
   onPay: (expense: Expense) => void;
+  onCategoryChange: (expense: Expense, category: Category) => void;
 }) {
   if (items.length === 0) {
-    return <p className="mt-8 text-ink/70">Nu există cheltuieli încă. Adaugă prima mai sus.</p>;
+    return <p className="mt-8 text-ink/70">{empty ?? "Nu există cheltuieli încă. Adaugă prima mai sus."}</p>;
   }
 
   return (
     <ul className="mt-8 space-y-3">
       {items.map((x) => (
-        <ExpenseRow key={x.id} x={x} onDelete={onDelete} onPay={onPay} />
+        <ExpenseRow
+          key={x.id}
+          x={x}
+          onDelete={onDelete}
+          onPay={onPay}
+          onCategoryChange={onCategoryChange}
+        />
       ))}
     </ul>
+  );
+});
+
+type CategoryTab = { value: string; label: string; count: number };
+
+/** Purely local category filter: clicking a tab never touches the server. */
+const CategoryTabs = memo(function CategoryTabs({
+  tabs,
+  total,
+  active,
+  onSelect,
+}: {
+  tabs: CategoryTab[];
+  total: number;
+  active: string | null;
+  onSelect: (value: string | null) => void;
+}) {
+  return (
+    <div
+      className="mt-8 flex flex-wrap items-center gap-1"
+      role="group"
+      aria-label="Filtrează cheltuielile după categorie"
+    >
+      <button
+        type="button"
+        aria-pressed={active === null}
+        onClick={() => onSelect(null)}
+        className={cx(
+          "rounded-md px-3 py-1.5 text-sm transition-colors duration-150 ease-out",
+          active === null
+            ? "bg-ink text-sea shadow-md shadow-black/20"
+            : "text-ink/70 hover:bg-ink/10 hover:text-ink",
+        )}
+      >
+        Toate <span className="ml-1 text-xs tabular-nums opacity-60">{total}</span>
+      </button>
+      {tabs.map((tab) => (
+        <button
+          key={tab.value}
+          type="button"
+          aria-pressed={active === tab.value}
+          onClick={() => onSelect(tab.value)}
+          className={cx(
+            "rounded-md px-3 py-1.5 text-sm transition-colors duration-150 ease-out",
+            active === tab.value
+              ? "bg-ink text-sea shadow-md shadow-black/20"
+              : "text-ink/70 hover:bg-ink/10 hover:text-ink",
+          )}
+        >
+          {tab.label} <span className="ml-1 text-xs tabular-nums opacity-60">{tab.count}</span>
+        </button>
+      ))}
+    </div>
   );
 });
 
@@ -377,6 +463,7 @@ type ItemsState = { source: Expense[]; items: LocalExpense[] };
 export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
   const [store, setStore] = useState<ItemsState>(() => ({ source: expenses, items: expenses }));
   const [paying, setPaying] = useState<Expense | null>(null);
+  const [category, setCategory] = useState<string | null>(null);
   const { toast, show, dismiss } = useToast();
 
   // Adjust state during render (the React-endorsed pattern) rather than in an
@@ -411,6 +498,24 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
         return { currency, count: list.length, total, paid, left: round2(total - paid) };
       }).filter((t) => t.count > 0),
     [items],
+  );
+
+  // Category counts and the filtered list are pure client-side derivations.
+  // Clicking a tab only sets state: no server call, no re-fetch.
+  const counts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of items) map.set(item.category, (map.get(item.category) ?? 0) + 1);
+    return map;
+  }, [items]);
+
+  const tabs = useMemo<CategoryTab[]>(
+    () => CATEGORIES.map((value) => ({ value, label: value, count: counts.get(value) ?? 0 })),
+    [counts],
+  );
+
+  const visibleItems = useMemo(
+    () => (category === null ? items : items.filter((item) => item.category === category)),
+    [items, category],
   );
 
   const beginAdd = useCallback((data: ExpenseInput, id: string) => {
@@ -461,6 +566,26 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
     }
   }, [setItems, show]);
 
+  const changeCategory = useCallback(
+    (expense: Expense, next: Category) => {
+      const previous = expense.category;
+      if (previous === next) return;
+      // Instant: the row changes before the request leaves the browser.
+      setItems((prev) => prev.map((x) => (x.id === expense.id ? { ...x, category: next } : x)));
+      void updateExpenseCategory(expense.id, next)
+        .catch(() => ({ ok: false as const, error: NETWORK_ERROR }))
+        .then((r) => {
+          if (r.ok) return;
+          // Silent revert of this row only; the rest of the list is untouched.
+          setItems((prev) =>
+            prev.map((x) => (x.id === expense.id ? { ...x, category: previous } : x))
+          );
+          show(r.error, "error");
+        });
+    },
+    [setItems, show],
+  );
+
   const beginPay = useCallback((expense: Expense, amount: number) => {
     const id = expense.id;
     setItems((prev) =>
@@ -493,12 +618,20 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
   const openPay = useCallback((expense: Expense) => setPaying(expense), []);
   const closePay = useCallback(() => setPaying(null), []);
   const showError = useCallback((message: string) => show(message, "error"), [show]);
+  const selectCategory = useCallback((value: string | null) => setCategory(value), []);
 
   return (
     <>
       <Totals totals={totals} />
       <ExpenseForm onBeginAdd={beginAdd} onFinishAdd={finishAdd} onError={showError} />
-      <ExpenseList items={items} onDelete={remove} onPay={openPay} />
+      <CategoryTabs tabs={tabs} total={items.length} active={category} onSelect={selectCategory} />
+      <ExpenseList
+        items={visibleItems}
+        empty={category === null ? undefined : "Nicio cheltuială în această categorie."}
+        onDelete={remove}
+        onPay={openPay}
+        onCategoryChange={changeCategory}
+      />
       <PaymentDialog expense={paying} onClose={closePay} onBeginPay={beginPay} onFinishPay={finishPay} />
       <Toast toast={toast} onDismiss={dismiss} />
     </>

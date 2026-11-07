@@ -39,8 +39,8 @@ export async function submitRsvp(input: RsvpInput): Promise<SubmitResult> {
 
 /**
  * Guests type their name and get back only their own status. Matching ignores case,
- * extra spaces and diacritics. The tables stay closed to the public: this goes through
- * a SQL function that is rate limited.
+ * extra spaces and diacritics. Table assignments are stripped here, so they can
+ * never reach the guest view even if the SQL function still returns them.
  */
 export async function checkRsvpStatus(
   name: string
@@ -61,5 +61,22 @@ export async function checkRsvpStatus(
         : "Nu am putut verifica acum. Te rugăm să încerci din nou.",
     };
   }
-  return { ok: true, status: (data as RsvpStatus | null) ?? null };
+
+  const raw = data as {
+    name: string;
+    attending: boolean;
+    booked_by?: string | null;
+    party?: { name: string }[] | null;
+  } | null;
+  if (!raw) return { ok: true, status: null };
+
+  return {
+    ok: true,
+    status: {
+      name: raw.name,
+      attending: raw.attending,
+      booked_by: raw.booked_by ?? null,
+      party: (raw.party ?? []).map((p) => ({ name: p.name })),
+    },
+  };
 }

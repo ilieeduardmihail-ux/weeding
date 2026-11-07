@@ -40,7 +40,7 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
       <div className="space-y-2">
         <Label htmlFor="name">Numele complet</Label>
         <Input id="name" autoComplete="name" aria-invalid={!!errors.name} aria-describedby="name-hint" {...register("name")} />
-        <p id="name-hint" className="text-sm text-ink/60">Folosește numele de pe invitație. Îl vei folosi și ca să-ți verifici masa.</p>
+        <p id="name-hint" className="text-sm text-ink/60">Folosește numele de pe invitație. Îl vei folosi și ca să-ți verifici răspunsul.</p>
         {errors.name && <p className="text-sm text-red-300">{errors.name.message}</p>}
       </div>
 

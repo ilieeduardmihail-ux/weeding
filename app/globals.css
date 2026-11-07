@@ -211,9 +211,3 @@ body {
   .glass-soft { background-color: rgb(43 24 57 / 0.9); }
   .glass-bar { background-color: rgb(21 12 30 / 0.96); }
 }
-
-/* accordion (radix) */
-@keyframes accordion-down { from { height: 0; } to { height: var(--radix-accordion-content-height); } }
-@keyframes accordion-up { from { height: var(--radix-accordion-content-height); } to { height: 0; } }
-.animate-accordion-down { animation: accordion-down 0.2s ease-out; }
-.animate-accordion-up { animation: accordion-up 0.2s ease-out; }

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { Armchair, CircleCheck } from "lucide-react";
+import { CircleCheck } from "lucide-react";
 import { checkRsvpStatus } from "@/app/actions";
 import type { RsvpStatus } from "@/lib/rsvp-types";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ type View = "lookup" | "form" | "card" | "thanks";
 
 function StatusCard({ s, onChange, onOther }: { s: RsvpStatus; onChange: () => void; onOther: () => void }) {
   const first = s.name.split(" ")[0];
-  const seated = s.attending && s.table_number !== null;
 
   return (
     <div role="status" className="glass mt-8 rounded-lg p-8">
@@ -27,31 +26,18 @@ function StatusCard({ s, onChange, onOther }: { s: RsvpStatus; onChange: () => v
         <>
           <p className="font-display text-3xl">Bună, {first}!</p>
           {s.booked_by && <p className="mt-2 text-ink/75">{s.booked_by} a răspuns pentru tine.</p>}
-          {seated ? (
-            <>
-              <p className="mt-3 flex items-center gap-2 text-sm font-medium">
-                <CircleCheck className="size-5 text-gold" aria-hidden="true" /> Prezență confirmată
-              </p>
-              <p className="mt-4 flex items-center gap-3 font-display text-3xl">
-                <Armchair className="size-7 shrink-0 text-gold" aria-hidden="true" />
-                Stai la masa {s.table_number}
-              </p>
-            </>
-          ) : (
-            <p className="mt-3 flex items-start gap-2 text-lg">
-              <CircleCheck className="mt-1 size-5 shrink-0 text-gold" aria-hidden="true" />
-              Prezență confirmată. Îți spunem în curând la ce masă stai.
-            </p>
-          )}
+          <p className="mt-3 flex items-start gap-2 text-lg">
+            <CircleCheck className="mt-1 size-5 shrink-0 text-gold" aria-hidden="true" />
+            Prezență confirmată.
+          </p>
 
           {s.party.length > 0 && (
             <div className="mt-6">
               <p className="text-sm font-medium">Însoțitorii tăi</p>
               <ul className="mt-2 space-y-1 text-ink/80">
                 {s.party.map((p) => (
-                  <li key={p.name} className="flex justify-between gap-4">
+                  <li key={p.name}>
                     <span>{p.name}</span>
-                    <span className="text-ink/60">{p.table_number !== null ? `Masa ${p.table_number}` : "Masă nealocată"}</span>
                   </li>
                 ))}
               </ul>
@@ -126,7 +112,7 @@ function RsvpFlow() {
         <Reveal>
           <h2 className="font-display text-4xl">Vii la nuntă?</h2>
           <p className="mt-3 text-ink/70">
-            {view === "lookup" && "Scrie-ți numele ca să răspunzi sau să-ți verifici răspunsul și masa."}
+            {view === "lookup" && "Scrie-ți numele ca să răspunzi sau să-ți verifici răspunsul."}
             {view === "form" && (notFound ? "Nu avem încă un răspuns pe acest nume. Verifică ortografia sau adaugă răspunsul mai jos." : "Actualizează-ți răspunsul mai jos.")}
             {view === "card" && "Iată situația."}
           </p>
@@ -161,7 +147,7 @@ function RsvpFlow() {
             {view === "thanks" && (
               <div role="status" className="glass mt-8 rounded-lg p-8">
                 <p className="font-display text-3xl">Mulțumim!</p>
-                <p className="mt-2 text-ink/75">Răspunsul tău a fost înregistrat. Revino oricând cu numele tău ca să vezi masa.</p>
+                <p className="mt-2 text-ink/75">Răspunsul tău a fost înregistrat. Revino oricând cu numele tău ca să îl verifici.</p>
                 <Button type="button" variant="ghost" className="mt-6" onClick={reset}>Verifică alt nume</Button>
               </div>
             )}

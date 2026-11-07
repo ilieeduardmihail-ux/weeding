@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_TABLE_NUMBER, MAX_TABLE_CAPACITY, MIN_TABLE_CAPACITY } from "@/lib/seating";
 
@@ -33,6 +34,7 @@ export async function assignTable(kind: string, id: string, table: number | null
     if (message.includes("table missing")) return { ok: false, error: "Masa nu mai există." };
     return { ok: false, error: "Nu am putut salva modificarea. Rulează migrarea v9 în Supabase." };
   }
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }
 
@@ -40,7 +42,9 @@ export async function deleteGuest(id: string): Promise<Result> {
   if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Cerere invalidă." };
   const supabase = await createClient();
   const { error } = await supabase.from("guests").delete().eq("id", id);
-  return error ? { ok: false, error: "Nu am putut șterge invitatul." } : { ok: true };
+  if (error) return { ok: false, error: "Nu am putut șterge invitatul." };
+  revalidatePath("/admin", "layout");
+  return { ok: true };
 }
 
 const capacitySchema = z.number().int().min(MIN_TABLE_CAPACITY).max(MAX_TABLE_CAPACITY);
@@ -68,6 +72,7 @@ export async function addTable(
     if (message.includes("no numbers left")) return { ok: false, error: "Nu mai există numere libere." };
     return { ok: false, error: "Nu am putut adăuga masa. Rulează migrarea v8 în Supabase." };
   }
+  revalidatePath("/admin", "layout");
   return { ok: true, number: typeof data === "number" ? data : (number ?? undefined) };
 }
 
@@ -79,6 +84,7 @@ export async function deleteTable(number: number): Promise<Result> {
   if (error) {
     return { ok: false, error: "Nu am putut șterge masa. Rulează migrarea v8 în Supabase." };
   }
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }
 
@@ -100,5 +106,6 @@ export async function setTableCapacity(number: number, capacity: number): Promis
     }
     return { ok: false, error: "Nu am putut salva capacitatea." };
   }
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }

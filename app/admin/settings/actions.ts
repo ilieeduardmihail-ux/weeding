@@ -30,6 +30,7 @@ export async function saveSettings(formData: FormData) {
   if (error) redirect("/admin/settings?error=save");
 
   revalidatePath("/");
+  revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
   redirect("/admin/settings?saved=1");
 }

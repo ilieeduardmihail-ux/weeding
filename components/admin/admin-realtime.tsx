@@ -1,61 +1,14 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createBrowserSupabase, hasSupabaseBrowser } from "@/lib/supabase/browser";
+
+import { useAdminData } from "@/components/admin/admin-data";
+import { hasSupabaseBrowser } from "@/lib/supabase/browser";
 
 /**
- * Keeps the admin screens fresh: a Supabase Realtime subscription refreshes the
- * server component as soon as an RSVP is written, with a light polling fallback
- * for projects where the tables are not part of the realtime publication yet.
+ * Live status indicator. The subscription itself lives in AdminDataProvider, so
+ * it is created once for the whole admin instead of once per open section.
  */
 export function AdminRealtime() {
-  const router = useRouter();
-  const [live, setLive] = useState(false);
-  const liveRef = useRef(false);
-
-  useEffect(() => {
-    if (!hasSupabaseBrowser) return;
-
-    const supabase = createBrowserSupabase();
-    let debounce: ReturnType<typeof setTimeout> | undefined;
-
-    const refresh = () => {
-      // A hidden tab does not need to re-render; the visibility handler below
-      // refreshes once when the admin comes back.
-      if (document.visibilityState !== "visible") return;
-      if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => router.refresh(), 250);
-    };
-
-    const channel = supabase
-      .channel("admin-rsvp-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "rsvps" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "rsvp_guests" }, refresh)
-      .subscribe((status) => {
-        liveRef.current = status === "SUBSCRIBED";
-        setLive(status === "SUBSCRIBED");
-      });
-
-    const onVisible = () => {
-      if (document.visibilityState === "visible") router.refresh();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-
-    // Safety net only while Realtime has not connected yet. Once the
-    // subscription is live, no periodic refresh is needed.
-    const poll = window.setInterval(() => {
-      if (liveRef.current) return;
-      if (document.visibilityState === "visible") router.refresh();
-    }, 60_000);
-
-    return () => {
-      if (debounce) clearTimeout(debounce);
-      window.clearInterval(poll);
-      document.removeEventListener("visibilitychange", onVisible);
-      void supabase.removeChannel(channel);
-    };
-  }, [router]);
-
+  const { live } = useAdminData();
   if (!hasSupabaseBrowser) return null;
 
   return (

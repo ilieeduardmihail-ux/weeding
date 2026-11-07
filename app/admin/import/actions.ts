@@ -19,6 +19,7 @@ export async function importGuests(
   if (error) return { ok: false, error: "Nu am putut importa lista. Te rugăm să încerci din nou." };
 
   const inserted = Number(data ?? 0);
+  revalidatePath("/admin", "layout");
   revalidatePath("/admin/seating");
   return { ok: true, inserted, skipped: parsed.data.names.length - inserted };
 }

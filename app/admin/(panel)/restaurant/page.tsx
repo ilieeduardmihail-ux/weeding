@@ -1,24 +1,17 @@
-import { redirect } from "next/navigation";
-import { connection } from "next/server";
+"use client";
+
 import Link from "next/link";
 import { Download, FileText } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { useAdminData } from "@/components/admin/admin-data";
+import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
 import { Button } from "@/components/ui/button";
-import { buildRestaurantReport, type VenueRow } from "@/lib/restaurant-report";
+import { buildRestaurantReport } from "@/lib/restaurant-report";
 
-export const instant = false;
+export default function RestaurantPage() {
+  const { data } = useAdminData();
+  if (!data) return <AdminSectionSkeleton />;
 
-export default async function RestaurantPage() {
-  await connection();
-  const supabase = await createClient();
-  // Admin check and data start together: one round trip instead of two.
-  const [{ data: isAdmin }, { data }] = await Promise.all([
-    supabase.rpc("is_admin"),
-    supabase.from("venue_report").select("*"),
-  ]);
-  if (isAdmin !== true) redirect("/admin/login");
-
-  const report = buildRestaurantReport((data ?? []) as VenueRow[]);
+  const report = buildRestaurantReport(data.report);
   const standard = report.menuTotals.find((total) => total.menu === "Standard")?.count ?? 0;
   const children = report.menuTotals.find((total) => total.menu === "Copii")?.count ?? 0;
   const unassigned = report.total - report.seated;

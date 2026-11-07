@@ -41,6 +41,7 @@ export async function updateRsvp(input: AdminRsvpInput): Promise<UpdateRsvpResul
   }
 
   revalidatePath("/");
+  revalidatePath("/admin", "layout");
   revalidatePath("/admin");
   revalidatePath(`/admin/rsvps/${d.id}/edit`);
   return { ok: true };

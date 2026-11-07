@@ -1,14 +1,13 @@
-import { redirect } from "next/navigation";
-import { connection } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { normalizeSettings } from "@/lib/event-settings";
+"use client";
+
+import { Suspense, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useAdminData } from "@/components/admin/admin-data";
+import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { saveSettings } from "./actions";
-
-// Reads searchParams (for the success/error banner), which blocks prerendering.
-export const instant = false;
+import { saveSettings } from "@/app/admin/settings/actions";
 
 const TIMEZONES = [
   "Europe/Bucharest",
@@ -42,30 +41,18 @@ function Field({
   );
 }
 
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
-}) {
-  await connection();
-  const supabase = await createClient();
-  // Admin check and data start together: one round trip instead of two.
-  const [{ data: isAdmin }, { data }, { saved, error }] = await Promise.all([
-    supabase.rpc("is_admin"),
-    supabase.from("event_settings").select("*").eq("id", 1).maybeSingle(),
-    searchParams,
-  ]);
-  if (isAdmin !== true) redirect("/admin/login");
+function SettingsFeedback() {
+  const params = useSearchParams();
+  const { refresh } = useAdminData();
+  const saved = params.get("saved");
+  const error = params.get("error");
 
-  const settings = normalizeSettings(data as Record<string, unknown> | null);
+  useEffect(() => {
+    if (saved || error) void refresh();
+  }, [saved, error, refresh]);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="font-display text-4xl">Setările nunții</h1>
-      <p className="mt-2 text-ink/70">
-        Aceste valori apar pe pagina publică, în numărătoare și la termenul de confirmare.
-      </p>
-
+    <>
       {saved && (
         <p role="status" className="mt-6 rounded-lg bg-mist p-4 text-ink">
           Salvat. Pagina publică afișează acum valorile noi.
@@ -78,8 +65,27 @@ export default async function SettingsPage({
             : "Unele câmpuri nu sunt valide. Verifică datele, ora și linkul."}
         </p>
       )}
+    </>
+  );
+}
 
-      <form action={saveSettings} className="glass mt-8 grid gap-5 rounded-xl p-5 transition-colors duration-300 focus-within:border-gold/30 sm:grid-cols-2">
+function Settings() {
+  const { data } = useAdminData();
+  if (!data) return <AdminSectionSkeleton />;
+  const settings = data.settings;
+
+  return (
+    <main className="mx-auto max-w-2xl px-6 py-12">
+      <h1 className="font-display text-4xl">Setările nunții</h1>
+      <p className="mt-2 text-ink/70">
+        Aceste valori apar pe pagina publică, în numărătoare și la termenul de confirmare.
+      </p>
+
+      <Suspense fallback={null}>
+        <SettingsFeedback />
+      </Suspense>
+
+      <form key={JSON.stringify(settings)} action={saveSettings} className="glass mt-8 grid gap-5 rounded-xl p-5 transition-colors duration-300 focus-within:border-gold/30 sm:grid-cols-2">
         <Field label="Primul nume">
           <Input name="partner_1" defaultValue={settings.partner_1} required minLength={2} maxLength={80} />
         </Field>
@@ -153,5 +159,13 @@ export default async function SettingsPage({
         </div>
       </form>
     </main>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<AdminSectionSkeleton />}>
+      <Settings />
+    </Suspense>
   );
 }

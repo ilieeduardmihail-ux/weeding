@@ -1,41 +1,13 @@
-import { redirect } from "next/navigation";
-import { connection } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { Suspense, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useAdminData } from "@/components/admin/admin-data";
+import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { saveLocation } from "./actions";
-import { cleanLocation } from "@/lib/location-text";
-
-export const instant = false;
-
-type LocationRow = {
-  key: "church" | "venue";
-  label: string;
-  name: string;
-  address: string;
-  event_time: string;
-  embed_url: string | null;
-};
-
-const FALLBACK: LocationRow[] = [
-  {
-    key: "church",
-    label: "Biserică",
-    name: "",
-    address: "",
-    event_time: "16:00",
-    embed_url: null,
-  },
-  {
-    key: "venue",
-    label: "Local",
-    name: "",
-    address: "",
-    event_time: "19:30",
-    embed_url: null,
-  },
-];
+import { saveLocation } from "@/app/admin/locations/actions";
 
 function Field({
   label,
@@ -55,37 +27,20 @@ function Field({
   );
 }
 
-export default async function LocationsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
-}) {
-  await connection();
-  const supabase = await createClient();
-  // Admin check and data start together: one round trip instead of two.
-  const [{ data: isAdmin }, { data }, { saved, error }] = await Promise.all([
-    supabase.rpc("is_admin"),
-    supabase
-      .from("locations")
-      .select("key, label, name, address, event_time, embed_url")
-      .order("key", { ascending: true }),
-    searchParams,
-  ]);
-  if (isAdmin !== true) redirect("/admin/login");
+function LocationsFeedback() {
+  const params = useSearchParams();
+  const { refresh } = useAdminData();
+  const saved = params.get("saved");
+  const error = params.get("error");
 
-  const rows = ((data ?? []) as LocationRow[]).map((row) => cleanLocation(row) as LocationRow);
-  const locations = (["church", "venue"] as const).map(
-    (key) => rows.find((row) => row.key === key) ?? FALLBACK.find((row) => row.key === key)!
-  );
+  // The save action redirects back here; the shared dataset is refreshed in the
+  // background while the already rendered form stays on screen.
+  useEffect(() => {
+    if (saved || error) void refresh();
+  }, [saved, error, refresh]);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="font-display text-4xl">Locații</h1>
-      <p className="mt-2 text-ink/70">
-        Aici schimbi numele și adresele care apar pe pagina principală, la secțiunea
-        „Unde ne găsești”. Modificările se văd imediat după salvare.
-      </p>
-
+    <>
       {saved && (
         <p role="status" className="mt-6 rounded-lg bg-mist p-4 text-ink">
           Salvat. Pagina publică afișează acum adresele noi.
@@ -98,11 +53,30 @@ export default async function LocationsPage({
             : "Unele câmpuri nu sunt valide. Completează numele, adresa și ora, iar linkul de hartă trebuie să înceapă cu https://www.google.com/maps."}
         </p>
       )}
+    </>
+  );
+}
+
+function Locations() {
+  const { data } = useAdminData();
+  if (!data) return <AdminSectionSkeleton />;
+
+  return (
+    <main className="mx-auto max-w-3xl px-6 py-12">
+      <h1 className="font-display text-4xl">Locații</h1>
+      <p className="mt-2 text-ink/70">
+        Aici schimbi numele și adresele care apar pe pagina principală, la secțiunea
+        „Unde ne găsești”. Modificările se văd imediat după salvare.
+      </p>
+
+      <Suspense fallback={null}>
+        <LocationsFeedback />
+      </Suspense>
 
       <div className="mt-8 space-y-8">
-        {locations.map((location) => (
+        {data.locations.map((location) => (
           <form
-            key={location.key}
+            key={`${location.key}:${location.label}:${location.name}:${location.address}:${location.event_time}:${location.embed_url ?? ""}`}
             action={saveLocation}
             className="glass grid gap-5 rounded-xl p-5 transition-colors duration-300 focus-within:border-gold/30 sm:grid-cols-2"
           >
@@ -148,5 +122,13 @@ export default async function LocationsPage({
         ))}
       </div>
     </main>
+  );
+}
+
+export default function LocationsPage() {
+  return (
+    <Suspense fallback={<AdminSectionSkeleton />}>
+      <Locations />
+    </Suspense>
   );
 }

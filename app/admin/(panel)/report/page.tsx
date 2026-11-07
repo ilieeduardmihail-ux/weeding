@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation";
-import { connection } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+"use client";
 
-export const instant = false;
+import { Suspense } from "react";
+import { useAdminData } from "@/components/admin/admin-data";
+import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
 
 type ReportRow = {
   kind: "rsvp" | "plus" | "guest";
@@ -25,18 +25,11 @@ function byTable(a: ReportRow, b: ReportRow) {
   return a.table_number - b.table_number;
 }
 
-export default async function ReportPage() {
-  await connection();
-  const supabase = await createClient();
-  // Admin check and data start together: one round trip instead of two.
-  const [{ data: isAdmin }, { data }] = await Promise.all([
-    supabase.rpc("is_admin"),
-    supabase.from("venue_report").select("*"),
-  ]);
-  if (isAdmin !== true) redirect("/admin/login");
+function Report() {
+  const { data } = useAdminData();
+  if (!data) return <AdminSectionSkeleton />;
 
-  const rows = ((data ?? []) as ReportRow[]).sort(byTable);
-
+  const rows = ([...data.report] as ReportRow[]).sort(byTable);
   const counted = rows.filter((row) => row.counted);
   const adults = counted.filter((row) => !row.is_child).length;
   const children = counted.filter((row) => row.is_child).length;
@@ -107,5 +100,13 @@ export default async function ReportPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function ReportPage() {
+  return (
+    <Suspense fallback={<AdminSectionSkeleton />}>
+      <Report />
+    </Suspense>
   );
 }

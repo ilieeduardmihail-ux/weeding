@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { correctName, nameKey, type NameFix, type Status } from "@/lib/fuzzy";
 import { parseFile, parseText } from "@/lib/parse-guests";
 import { importGuests } from "@/app/admin/import/actions";
+import { notifyAdminDataChanged } from "@/lib/admin-data";
 
 type Row = NameFix & { id: number; value: string; include: boolean; dup: boolean };
 
@@ -113,6 +114,7 @@ export function GuestImport({ existing }: { existing: string[] }) {
       if (r.ok) {
         setDone(`Am importat ${r.inserted} invitați${r.skipped ? `, am sărit ${r.skipped} deja aflați în listă` : ""}.`);
         setRows(null); setText("");
+        notifyAdminDataChanged();
       } else setError(r.error);
     });
   }, [stats, start]);

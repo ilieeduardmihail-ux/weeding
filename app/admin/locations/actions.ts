@@ -32,6 +32,7 @@ export async function saveLocation(formData: FormData) {
   if (error) redirect("/admin/locations?error=save");
 
   revalidatePath("/");
+  revalidatePath("/admin", "layout");
   revalidatePath("/admin/locations");
   redirect("/admin/locations?saved=1");
 }

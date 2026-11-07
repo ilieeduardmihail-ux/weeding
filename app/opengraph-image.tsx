@@ -35,7 +35,7 @@ export default async function OpengraphImage() {
           <span style={{ fontSize: 104, lineHeight: 1 }}>{settings.partner_2}</span>
         </div>
         <div style={{ width: 180, height: 2, background: "#d4af37", marginTop: 40 }} />
-        <div style={{ marginTop: 32, fontSize: 40 }}>
+        <div style={{ display: "flex", marginTop: 32, fontSize: 40 }}>
           {formatEventDate(settings)}, {settings.city}
         </div>
       </div>

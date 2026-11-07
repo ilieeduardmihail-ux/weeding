@@ -11,6 +11,7 @@ import { CATEGORIES } from "@/lib/admin-config";
 import { CURRENCIES, moneyFormatter, type Currency } from "@/lib/currency";
 import { expenseSchema, parseMoney, round2, type Category, type ExpenseInput } from "@/lib/expense-schema";
 import { mergeById } from "@/lib/merge-by-id";
+import { notifyAdminDataChanged } from "@/lib/admin-data";
 
 export type Expense = {
   id: string;
@@ -541,6 +542,7 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
     }
     if (r.ok) {
       setItems((prev) => prev.map((x) => (x.id === id ? { ...x, pending: false } : x)));
+      notifyAdminDataChanged();
     } else {
       setItems((prev) => prev.filter((x) => x.id !== id));
     }
@@ -563,6 +565,8 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
         return next;
       });
       show(r.error, "error");
+    } else {
+      notifyAdminDataChanged();
     }
   }, [setItems, show]);
 
@@ -575,7 +579,10 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
       void updateExpenseCategory(expense.id, next)
         .catch(() => ({ ok: false as const, error: NETWORK_ERROR }))
         .then((r) => {
-          if (r.ok) return;
+          if (r.ok) {
+            notifyAdminDataChanged();
+            return;
+          }
           // Silent revert of this row only; the rest of the list is untouched.
           setItems((prev) =>
             prev.map((x) => (x.id === expense.id ? { ...x, category: previous } : x))
@@ -611,6 +618,8 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
         prev && prev.id === id ? { ...prev, amount_paid: round2(prev.amount_paid - amount) } : prev,
       );
       show(r.error, "error");
+    } else {
+      notifyAdminDataChanged();
     }
     return r;
   }, [setItems, show]);

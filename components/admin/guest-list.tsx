@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AdminRealtime } from "@/components/admin/admin-realtime";
 import { Toast, useToast } from "@/components/ui/toast";
 import { mergeById } from "@/lib/merge-by-id";
+import { notifyAdminDataChanged } from "@/lib/admin-data";
 import { deleteRsvp, type DeleteRsvpResult } from "@/app/admin/actions";
 
 export type GuestRow = {
@@ -144,6 +145,10 @@ export function GuestList({
           return { ...prev, items: restored };
         });
         show(result.error, "error");
+      } else {
+        // The row is already gone; refresh the shared dataset in the background
+        // so the other admin sections see the deletion too.
+        notifyAdminDataChanged();
       }
     },
     [show],

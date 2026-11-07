@@ -10,6 +10,7 @@ import { Armchair } from "lucide-react";
 import { adminRsvpSchema, type AdminRsvpInput } from "@/lib/admin-rsvp-schema";
 import { MAX_GUESTS } from "@/lib/config";
 import { updateRsvp } from "@/app/admin/rsvps/actions";
+import { notifyAdminDataChanged } from "@/lib/admin-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,8 +51,8 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
     start(async () => {
       const res = await updateRsvp(data);
       if (res.ok) {
+        notifyAdminDataChanged();
         router.push("/admin?edited=1");
-        router.refresh();
       } else {
         setServerError(res.error);
       }

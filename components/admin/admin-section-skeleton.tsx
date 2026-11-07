@@ -1,12 +1,11 @@
 /**
- * Instant navigation feedback for /admin. The nav stays mounted; only the
- * content area shows a calm skeleton while the next section streams in.
- * Purely opacity-based (no spinner, no layout animation).
+ * Calm, opacity-only placeholder used only for the very first admin load,
+ * before the shared dataset arrives. Section switches never show it again.
  */
-export default function AdminLoading() {
+export function AdminSectionSkeleton() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-12" aria-busy="true">
-      <span className="sr-only">Se încarcă secțiunea…</span>
+      <span className="sr-only">Se încarcă datele…</span>
       <div className="animate-pulse">
         <div className="h-10 w-64 max-w-full rounded-md bg-ink/10" />
         <div className="mt-4 h-4 w-96 max-w-full rounded bg-ink/10" />

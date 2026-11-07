@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,5 +40,6 @@ export async function deleteRsvp(id: string): Promise<DeleteRsvpResult> {
   const supabase = await createClient();
   const { error } = await supabase.from("rsvps").delete().eq("id", id); // RLS: admins only
   if (error) return { ok: false, error: "Nu am putut șterge răspunsul. Încearcă din nou." };
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }

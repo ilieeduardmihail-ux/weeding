@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toast, useToast } from "@/components/ui/toast";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
+import { notifyAdminDataChanged } from "@/lib/admin-data";
 import {
   DEFAULT_TABLE_CAPACITY,
   MAX_TABLE_CAPACITY,
@@ -321,6 +322,25 @@ export function SeatingBoard({
   const [deleting, setDeleting] = useState<SeatingTable | null>(null);
   const { toast, show, dismiss } = useToast();
 
+  // Shared data can arrive from another section (delete, import, another admin).
+  // Apply it only when no optimistic write is in flight, so a background
+  // refresh never undoes a change the couple just made.
+  const appliedPeople = useRef(initial);
+  const appliedTables = useRef(initialTables);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (pendingCount !== 0) return;
+    if (appliedPeople.current !== initial) {
+      appliedPeople.current = initial;
+      setPeople(initial);
+    }
+    if (appliedTables.current !== initialTables) {
+      appliedTables.current = initialTables;
+      setTables(initialTables);
+    }
+  }, [initial, initialTables, pendingCount]);
+
   // The expensive filtering waits for the typing to settle; the input itself
   // still updates on every keystroke.
   const debouncedQ = useDebouncedValue(q, 300);
@@ -387,15 +407,19 @@ export function SeatingBoard({
     const original = peopleRef.current.find((x) => keyOf(x) === key)?.table ?? p.table;
 
     commitPeople((list) => list.map((x) => (keyOf(x) === key ? { ...x, table: target } : x)));
+    setPendingCount((n) => n + 1);
     void (async () => {
       const r = await assignTable(p.kind, p.id, target).catch(() => ({
         ok: false as const,
         error: NETWORK_ERROR,
       }));
+      setPendingCount((n) => n - 1);
       if (!r.ok) {
         // Roll back only this person, so a concurrent move stays intact.
         commitPeople((list) => list.map((x) => (keyOf(x) === key ? { ...x, table: original } : x)));
         show(r.error, "error");
+      } else {
+        notifyAdminDataChanged();
       }
     })();
   }, [commitPeople, show]);
@@ -443,8 +467,10 @@ export function SeatingBoard({
     const removed = list[index]!;
 
     commitPeople((prev) => prev.filter((x) => keyOf(x) !== key));
+    setPendingCount((n) => n + 1);
     void (async () => {
       const r = await deleteGuest(p.id).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
+      setPendingCount((n) => n - 1);
       if (!r.ok) {
         commitPeople((prev) => {
           if (prev.some((x) => keyOf(x) === key)) return prev;
@@ -453,6 +479,8 @@ export function SeatingBoard({
           return next;
         });
         show(r.error, "error");
+      } else {
+        notifyAdminDataChanged();
       }
     })();
   }, [commitPeople, show]);
@@ -460,13 +488,16 @@ export function SeatingBoard({
   const handleAdd = useCallback((number: number | null, capacity: number) => {
     setMsg(null);
     setAdding(false);
+    setPendingCount((n) => n + 1);
     void (async () => {
       const r = await addTable(number, capacity).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
+      setPendingCount((n) => n - 1);
       if (!r.ok) { show(r.error, "error"); return; }
       if (typeof r.number === "number") {
         const added = { number: r.number, capacity };
         commitTables((prev) => [...prev, added].sort((a, b) => a.number - b.number));
       }
+      notifyAdminDataChanged();
     })();
   }, [commitTables, show]);
 
@@ -484,8 +515,10 @@ export function SeatingBoard({
     commitTables((prev) => prev.filter((t) => t.number !== table.number));
     commitPeople((prev) => prev.map((p) => (p.table === table.number ? { ...p, table: null } : p)));
 
+    setPendingCount((n) => n + 1);
     void (async () => {
       const r = await deleteTable(table.number).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
+      setPendingCount((n) => n - 1);
       if (!r.ok) {
         commitTables((prev) =>
           prev.some((t) => t.number === table.number)
@@ -496,6 +529,8 @@ export function SeatingBoard({
           prev.map((p) => (p.table === null && movedKeys.has(keyOf(p)) ? { ...p, table: table.number } : p)),
         );
         show(r.error, "error");
+      } else {
+        notifyAdminDataChanged();
       }
     })();
   }, [deleting, commitPeople, commitTables, show]);
@@ -504,8 +539,10 @@ export function SeatingBoard({
     setMsg(null);
     const previous = tablesRef.current.find((t) => t.number === number)?.capacity ?? capacity;
     commitTables((prev) => prev.map((t) => (t.number === number ? { ...t, capacity } : t)));
+    setPendingCount((n) => n + 1);
     void (async () => {
       const r = await setTableCapacity(number, capacity).catch(() => ({ ok: false as const, error: NETWORK_ERROR }));
+      setPendingCount((n) => n - 1);
       if (!r.ok) {
         commitTables((prev) =>
           prev.map((t) =>
@@ -513,6 +550,8 @@ export function SeatingBoard({
           ),
         );
         show(r.error, "error");
+      } else {
+        notifyAdminDataChanged();
       }
     })();
   }, [commitTables, show]);

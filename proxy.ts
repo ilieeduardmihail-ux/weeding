@@ -61,11 +61,18 @@ export async function proxy(request: NextRequest) {
   // getClaims verifies the JWT signature locally when the cached JWKS is
   // available; it never trusts the cookie blindly and refreshes it if needed.
   const { data: auth } = await supabase.auth.getClaims(undefined, { jwks: await getJwks() });
-  const user = auth?.claims ?? null;
+  let signedIn = Boolean(auth?.claims);
+
+  // Safety net: if local verification could not run (key rotation, symmetric
+  // keys), fall back to the Auth server once instead of logging the admin out.
+  if (!signedIn) {
+    const { data } = await supabase.auth.getUser();
+    signedIn = Boolean(data.user);
+  }
 
   // A signed-in account is not enough: it must be listed in the `admins` table
   let isAdmin = false;
-  if (user) {
+  if (signedIn) {
     const { data } = await supabase.rpc("is_admin");
     isAdmin = data === true;
   }

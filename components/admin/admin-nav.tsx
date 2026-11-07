@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const links = [
   ["/admin", "Invitați"],
@@ -15,6 +15,7 @@ const links = [
 
 export function AdminNav() {
   const path = usePathname();
+  const router = useRouter();
   if (path === "/admin/login") return null;
   return (
     <nav aria-label="Admin" className="glass-bar sticky top-0 z-40 border-b border-ink/15">
@@ -23,6 +24,11 @@ export function AdminNav() {
           <Link
             key={href}
             href={href}
+            // Start the next section on hover/focus, so the click already has
+            // a warm route instead of starting from zero.
+            onMouseEnter={() => router.prefetch(href)}
+            onFocus={() => router.prefetch(href)}
+            onTouchStart={() => router.prefetch(href)}
             aria-current={path === href ? "page" : undefined}
             className={`shrink-0 rounded-md px-3 py-2 text-sm transition-[background-color,color,box-shadow,transform] duration-200 ease-out hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
               path === href ? "bg-ink text-sea shadow-md shadow-black/20" : "hover:bg-ink/10"

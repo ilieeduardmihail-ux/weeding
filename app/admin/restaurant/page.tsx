@@ -11,10 +11,13 @@ export const instant = false;
 export default async function RestaurantPage() {
   await connection();
   const supabase = await createClient();
-  const { data: isAdmin } = await supabase.rpc("is_admin");
+  // Admin check and data start together: one round trip instead of two.
+  const [{ data: isAdmin }, { data }] = await Promise.all([
+    supabase.rpc("is_admin"),
+    supabase.from("venue_report").select("*"),
+  ]);
   if (isAdmin !== true) redirect("/admin/login");
 
-  const { data } = await supabase.from("venue_report").select("*");
   const report = buildRestaurantReport((data ?? []) as VenueRow[]);
   const standard = report.menuTotals.find((total) => total.menu === "Standard")?.count ?? 0;
   const children = report.menuTotals.find((total) => total.menu === "Copii")?.count ?? 0;

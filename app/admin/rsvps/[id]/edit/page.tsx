@@ -19,14 +19,16 @@ export default async function EditRsvpPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: isAdmin } = await supabase.rpc("is_admin");
+  // Admin check and data start together: one round trip instead of two.
+  const [{ data: isAdmin }, { data }] = await Promise.all([
+    supabase.rpc("is_admin"),
+    supabase
+      .from("rsvps")
+      .select("id, name, attending, message, rsvp_guests(id, name, is_child, table_number)")
+      .eq("id", id)
+      .maybeSingle(),
+  ]);
   if (isAdmin !== true) redirect("/admin/login");
-
-  const { data } = await supabase
-    .from("rsvps")
-    .select("id, name, attending, message, rsvp_guests(id, name, is_child, table_number)")
-    .eq("id", id)
-    .maybeSingle();
 
   if (!data) redirect("/admin?error=missing");
 

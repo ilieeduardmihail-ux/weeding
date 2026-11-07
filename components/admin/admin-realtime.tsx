@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase, hasSupabaseBrowser } from "@/lib/supabase/browser";
 
@@ -11,6 +11,7 @@ import { createBrowserSupabase, hasSupabaseBrowser } from "@/lib/supabase/browse
 export function AdminRealtime() {
   const router = useRouter();
   const [live, setLive] = useState(false);
+  const liveRef = useRef(false);
 
   useEffect(() => {
     if (!hasSupabaseBrowser) return;
@@ -30,17 +31,22 @@ export function AdminRealtime() {
       .channel("admin-rsvp-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "rsvps" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "rsvp_guests" }, refresh)
-      .subscribe((status) => setLive(status === "SUBSCRIBED"));
+      .subscribe((status) => {
+        liveRef.current = status === "SUBSCRIBED";
+        setLive(status === "SUBSCRIBED");
+      });
 
     const onVisible = () => {
       if (document.visibilityState === "visible") router.refresh();
     };
     document.addEventListener("visibilitychange", onVisible);
 
-    // Safety net when Realtime is not enabled on the project yet.
+    // Safety net only while Realtime has not connected yet. Once the
+    // subscription is live, no periodic refresh is needed.
     const poll = window.setInterval(() => {
+      if (liveRef.current) return;
       if (document.visibilityState === "visible") router.refresh();
-    }, 15_000);
+    }, 60_000);
 
     return () => {
       if (debounce) clearTimeout(debounce);

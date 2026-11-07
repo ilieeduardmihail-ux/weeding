@@ -6,6 +6,30 @@ import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 const LOGIN = "/admin/login"; // not linked anywhere on the public site
 const HOME = "/";             // where everyone else is sent (use LOGIN here if you prefer)
 
+type JsonWebKeySet = {
+  keys: { kty: string; key_ops: string[]; kid?: string; alg?: string }[];
+};
+
+// The project signs sessions with asymmetric keys (ES256), so the JWT can be
+// verified locally with WebCrypto. The public key set is cached per warm
+// serverless instance: no Auth round trip on every admin navigation.
+let jwksCache: { value: JsonWebKeySet; at: number } | null = null;
+const JWKS_TTL = 10 * 60_000;
+
+async function getJwks(): Promise<JsonWebKeySet | undefined> {
+  if (jwksCache && Date.now() - jwksCache.at < JWKS_TTL) return jwksCache.value;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`, { cache: "no-store" });
+    if (!res.ok) return jwksCache?.value;
+    const value = (await res.json()) as JsonWebKeySet;
+    if (!Array.isArray(value?.keys) || value.keys.length === 0) return jwksCache?.value;
+    jwksCache = { value, at: Date.now() };
+    return value;
+  } catch {
+    return jwksCache?.value;
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const onLogin = request.nextUrl.pathname === LOGIN;
 
@@ -34,8 +58,10 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // getUser() asks Supabase to validate the session; never trust getSession() here
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims verifies the JWT signature locally when the cached JWKS is
+  // available; it never trusts the cookie blindly and refreshes it if needed.
+  const { data: auth } = await supabase.auth.getClaims(undefined, { jwks: await getJwks() });
+  const user = auth?.claims ?? null;
 
   // A signed-in account is not enough: it must be listed in the `admins` table
   let isAdmin = false;

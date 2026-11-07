@@ -62,20 +62,21 @@ export default async function LocationsPage({
 }) {
   await connection();
   const supabase = await createClient();
-  const { data: isAdmin } = await supabase.rpc("is_admin");
+  // Admin check and data start together: one round trip instead of two.
+  const [{ data: isAdmin }, { data }, { saved, error }] = await Promise.all([
+    supabase.rpc("is_admin"),
+    supabase
+      .from("locations")
+      .select("key, label, name, address, event_time, embed_url")
+      .order("key", { ascending: true }),
+    searchParams,
+  ]);
   if (isAdmin !== true) redirect("/admin/login");
-
-  const { data } = await supabase
-    .from("locations")
-    .select("key, label, name, address, event_time, embed_url")
-    .order("key", { ascending: true });
 
   const rows = ((data ?? []) as LocationRow[]).map((row) => cleanLocation(row) as LocationRow);
   const locations = (["church", "venue"] as const).map(
     (key) => rows.find((row) => row.key === key) ?? FALLBACK.find((row) => row.key === key)!
   );
-
-  const { saved, error } = await searchParams;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">

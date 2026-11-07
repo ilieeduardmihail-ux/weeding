@@ -15,12 +15,15 @@ export default async function Dashboard({
   // Admin data is per-request; never prerender a snapshot of the guest list.
   await connection();
   const supabase = await createClient();
-  const { data: isAdmin } = await supabase.rpc("is_admin");
+  // Admin check and data start together: one round trip instead of two.
+  const [{ data: isAdmin }, { data }, { edited, error }] = await Promise.all([
+    supabase.rpc("is_admin"),
+    supabase.from("rsvps").select("*, rsvp_guests(*)").order("created_at", { ascending: false }),
+    searchParams,
+  ]);
   if (!isAdmin) redirect("/admin/login");
 
-  const { data } = await supabase.from("rsvps").select("*, rsvp_guests(*)").order("created_at", { ascending: false });
   const rows = (data ?? []) as GuestRow[];
-  const { edited, error } = await searchParams;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">

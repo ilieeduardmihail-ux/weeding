@@ -49,12 +49,15 @@ export default async function SettingsPage({
 }) {
   await connection();
   const supabase = await createClient();
-  const { data: isAdmin } = await supabase.rpc("is_admin");
+  // Admin check and data start together: one round trip instead of two.
+  const [{ data: isAdmin }, { data }, { saved, error }] = await Promise.all([
+    supabase.rpc("is_admin"),
+    supabase.from("event_settings").select("*").eq("id", 1).maybeSingle(),
+    searchParams,
+  ]);
   if (isAdmin !== true) redirect("/admin/login");
 
-  const { data } = await supabase.from("event_settings").select("*").eq("id", 1).maybeSingle();
   const settings = normalizeSettings(data as Record<string, unknown> | null);
-  const { saved, error } = await searchParams;
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">

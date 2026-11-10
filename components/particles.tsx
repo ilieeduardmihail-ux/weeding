@@ -15,7 +15,8 @@ type Particle = {
 const MAX_PARTICLES = 48;
 
 /**
- * Slow golden and violet dust behind every page. Canvas instead of DOM nodes,
+ * Slow gold and dusty-rose dust behind every page, echoing the foil and the
+ * flowers on the printed invitation. Canvas instead of DOM nodes,
  * a hard cap on the particle budget, fewer particles on small screens, and the
  * loop pauses while the tab is hidden or the canvas is off-screen.
  */
@@ -82,8 +83,8 @@ export function Particles({ count = MAX_PARTICLES }: { count?: number }) {
           ? 0.42
           : 0.16 + 0.4 * (0.5 + 0.5 * Math.sin((time / 1600) * p.twinkle + p.phase));
         const color = p.gold
-          ? `rgba(217, 180, 106, ${alpha})`
-          : `rgba(186, 142, 214, ${alpha * 0.85})`;
+          ? `rgba(169, 133, 63, ${alpha})`
+          : `rgba(176, 121, 132, ${alpha * 0.85})`;
 
         // A second, larger low-alpha circle reads as a soft glow and is far
         // cheaper than canvas shadowBlur on every frame.
@@ -91,8 +92,8 @@ export function Particles({ count = MAX_PARTICLES }: { count?: number }) {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.radius * 3, 0, Math.PI * 2);
           ctx.fillStyle = p.gold
-            ? `rgba(217, 180, 106, ${alpha * 0.14})`
-            : `rgba(186, 142, 214, ${alpha * 0.12})`;
+            ? `rgba(169, 133, 63, ${alpha * 0.14})`
+            : `rgba(176, 121, 132, ${alpha * 0.12})`;
           ctx.fill();
         }
 

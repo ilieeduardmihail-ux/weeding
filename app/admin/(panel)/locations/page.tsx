@@ -47,7 +47,7 @@ function LocationsFeedback() {
         </p>
       )}
       {error && (
-        <p role="alert" className="mt-6 rounded-lg bg-red-500/15 p-4 text-red-200">
+        <p role="alert" className="mt-6 rounded-lg bg-red-600/10 p-4 text-red-800">
           {error === "save"
             ? "Nu am putut salva. Verifică legătura la baza de date și încearcă din nou."
             : "Unele câmpuri nu sunt valide. Completează numele, adresa și ora, iar linkul de hartă trebuie să înceapă cu https://www.google.com/maps."}

@@ -576,7 +576,7 @@ export function SeatingBoard({
           style={{ transform: `scaleX(${total ? seated / total : 0})` }}
         />
       </div>
-      <p role="status" className="mt-3 min-h-6 text-sm text-red-300">{msg}</p>
+      <p role="status" className="mt-3 min-h-6 text-sm text-red-700">{msg}</p>
 
       <div className="mt-2 grid gap-6 lg:grid-cols-[18rem_1fr]">
         <section ref={poolRef} aria-label="Invitați fără masă"

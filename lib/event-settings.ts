@@ -16,7 +16,13 @@ export type EventSettings = {
   rsvp_cutoff_date: string | null; // YYYY-MM-DD; null = RSVP never closes
   seating_published: boolean;
   public_url: string | null;
+  /** Editable WhatsApp message shown in /admin/messages. */
+  invite_message: string;
 };
+
+export const DEFAULT_INVITE_MESSAGE =
+  "Bună, {nume}! Cu mare drag te invităm la nunta noastră, pe {data}. " +
+  "Toate detaliile și confirmarea prezenței sunt aici: {link}";
 
 export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   partner_1: "Ana",
@@ -29,6 +35,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   rsvp_cutoff_date: null,
   seating_published: false,
   public_url: null,
+  invite_message: DEFAULT_INVITE_MESSAGE,
 };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -88,11 +95,12 @@ export function normalizeSettings(row: Record<string, unknown> | null | undefine
         : null,
     seating_published: row.seating_published === true,
     public_url: typeof row.public_url === "string" && row.public_url !== "" ? row.public_url : null,
+    invite_message: text("invite_message", DEFAULT_EVENT_SETTINGS.invite_message),
   };
 }
 
 /** "2027-06-12" -> "12 iunie 2027" (no timezone drift: midday UTC). */
-export function formatEventDate(settings: EventSettings) {
+export function formatEventDate(settings: Pick<EventSettings, "event_date">) {
   const date = new Date(`${settings.event_date}T12:00:00Z`);
   if (Number.isNaN(date.getTime())) return settings.event_date;
   return new Intl.DateTimeFormat("ro-RO", {

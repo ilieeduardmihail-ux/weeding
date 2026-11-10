@@ -46,7 +46,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () =
       role={error ? "alert" : "status"}
       aria-live={error ? "assertive" : "polite"}
       className={`glass-bar fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-3 rounded-lg border px-4 py-3 text-sm shadow-xl ${
-        error ? "border-red-400/45 text-red-200" : "border-gold/45 text-ink"
+        error ? "border-red-700/35 text-red-800" : "border-gold/45 text-ink"
       }`}
     >
       <p className="flex-1">{toast.message}</p>

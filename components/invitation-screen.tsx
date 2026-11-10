@@ -13,11 +13,13 @@ import { OPEN_INVITATION_EVENT } from "@/lib/invitation";
 export function InvitationScreen({
   landing,
   children,
+  autoOpen = false,
 }: {
   landing: ReactNode;
   children: ReactNode;
+  autoOpen?: boolean;
 }) {
-  const [opened, setOpened] = useState(false);
+  const [opened, setOpened] = useState(autoOpen);
 
   useEffect(() => {
     const open = () => setOpened(true);
@@ -26,10 +28,13 @@ export function InvitationScreen({
   }, []);
 
   // The landing fills the viewport: nothing scrolls behind it. Once the
-  // invitation mounts, the page starts again from the top.
+  // invitation mounts, jump to the section from the link (#rsvp) or to the top.
   useEffect(() => {
     if (opened) {
-      window.scrollTo({ top: 0, behavior: "auto" });
+      const hash = window.location.hash;
+      const target = hash.length > 1 ? document.getElementById(decodeURIComponent(hash.slice(1))) : null;
+      if (target) target.scrollIntoView({ behavior: "auto", block: "start" });
+      else window.scrollTo({ top: 0, behavior: "auto" });
       return;
     }
 

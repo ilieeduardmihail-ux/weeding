@@ -23,14 +23,28 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ nume?: string | string[] }>;
+}) {
   // The RSVP cutoff depends on "today", so the page must render per request.
   await connection();
-  const [settings, locations] = await Promise.all([getEventSettings(), getLocations()]);
+  const [settings, locations, params] = await Promise.all([
+    getEventSettings(),
+    getLocations(),
+    searchParams,
+  ]);
+
+  // Links sent from /admin/messages carry the guest's name, so the invitation
+  // opens straight on their RSVP form instead of asking them to type it again.
+  const invited =
+    typeof params.nume === "string" ? params.nume.replace(/\s+/g, " ").trim().slice(0, 120) : "";
 
   return (
     <main>
       <InvitationScreen
+        autoOpen={invited.length >= 2}
         landing={
           <Hero
             names={[settings.partner_1, settings.partner_2]}
@@ -40,7 +54,11 @@ export default async function Home() {
         }
       >
         <Schedule locations={locations} />
-        <RsvpSection closed={isRsvpClosed(settings)} cutoffDate={settings.rsvp_cutoff_date} />
+        <RsvpSection
+          closed={isRsvpClosed(settings)}
+          cutoffDate={settings.rsvp_cutoff_date}
+          initialName={invited}
+        />
       </InvitationScreen>
     </main>
   );

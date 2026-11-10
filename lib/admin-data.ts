@@ -20,6 +20,8 @@ export type AdminData = {
   settings: EventSettings;
   /** Names already in the imported-guests list, used to detect duplicates. */
   guestNames: string[];
+  /** Imported guests with their contact details, used by /admin/messages. */
+  importedGuests: { id: string; name: string; phone: string | null }[];
   /** `venue_report` view: confirmed RSVPs, plus-ones and seated imported guests. */
   report: VenueRow[];
 };

@@ -29,7 +29,7 @@ export async function loadAdminData(supabase: Db): Promise<AdminData> {
       supabase.from("expenses").select("*").order("created_at", { ascending: false }),
       supabase.from("locations").select("key, label, name, address, event_time, embed_url").order("key", { ascending: true }),
       supabase.from("event_settings").select("*").eq("id", 1).maybeSingle(),
-      supabase.from("guests").select("full_name"),
+      supabase.from("guests").select("id, full_name, phone"),
       supabase.from("venue_report").select("*"),
     ]);
 
@@ -81,6 +81,11 @@ export async function loadAdminData(supabase: Db): Promise<AdminData> {
     locations,
     settings: normalizeSettings(settingsResult.data as Record<string, unknown> | null),
     guestNames: (guestsResult.data ?? []).map((guest: Record<string, unknown>) => String(guest.full_name)),
+    importedGuests: (guestsResult.data ?? []).map((guest: Record<string, unknown>) => ({
+      id: String(guest.id),
+      name: String(guest.full_name),
+      phone: typeof guest.phone === "string" && guest.phone.trim() !== "" ? guest.phone : null,
+    })),
     report,
   };
 }

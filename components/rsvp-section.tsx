@@ -62,8 +62,16 @@ const formatDate = (iso: string) =>
     timeZone: "UTC",
   }).format(new Date(`${iso}T12:00:00Z`));
 
-export function RsvpSection({ closed, cutoffDate }: { closed: boolean; cutoffDate: string | null }) {
-  if (!closed) return <RsvpFlow />;
+export function RsvpSection({
+  closed,
+  cutoffDate,
+  initialName = "",
+}: {
+  closed: boolean;
+  cutoffDate: string | null;
+  initialName?: string;
+}) {
+  if (!closed) return <RsvpFlow initialName={initialName} />;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -83,9 +91,9 @@ export function RsvpSection({ closed, cutoffDate }: { closed: boolean; cutoffDat
   );
 }
 
-function RsvpFlow() {
+function RsvpFlow({ initialName }: { initialName: string }) {
   const [view, setView] = useState<View>("lookup");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName);
   const [status, setStatus] = useState<RsvpStatus | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +134,7 @@ function RsvpFlow() {
                   <Label htmlFor="lookup-name">Numele complet</Label>
                   <Input id="lookup-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
                 </div>
-                {error && <p role="alert" className="text-red-300">{error}</p>}
+                {error && <p role="alert" className="text-red-700">{error}</p>}
                 <Button type="submit" size="lg" disabled={pending || clean.length < 3} className="w-full bg-ink text-sea hover:bg-ink/85">
                   {pending ? "Se verifică…" : "Continuă"}
                 </Button>

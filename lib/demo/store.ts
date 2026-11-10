@@ -15,6 +15,7 @@ export type DemoGuest = {
 export type DemoRsvp = {
   id: string;
   name: string;
+  phone?: string | null;
   attending: boolean;
   message: string | null;
   created_at: string;
@@ -25,6 +26,7 @@ export type DemoRsvp = {
 export type DemoImportedGuest = {
   id: string;
   full_name: string;
+  phone?: string | null;
   is_child: boolean;
   table_number: number | null;
 };
@@ -238,7 +240,7 @@ export function listSeating() {
 }
 
 export function listGuestNames() {
-  return state.guests.map((g) => ({ full_name: g.full_name }));
+  return state.guests.map((g) => ({ ...g }));
 }
 
 /* ----------------------------------------------------------------- rsvp API */
@@ -366,6 +368,17 @@ export function adminUpdateRsvp(input: {
 
 export function deleteRsvp(id: string) {
   state.rsvps = state.rsvps.filter((r) => r.id !== id);
+}
+
+/** Contact detail edited from /admin/messages. */
+export function updateRsvpPhone(id: string, phone: string | null) {
+  const row = state.rsvps.find((r) => r.id === id);
+  if (row) row.phone = phone;
+}
+
+export function updateGuestPhone(id: string, phone: string | null) {
+  const row = state.guests.find((g) => g.id === id);
+  if (row) row.phone = phone;
 }
 
 /* ------------------------------------------------------------ admin tables */

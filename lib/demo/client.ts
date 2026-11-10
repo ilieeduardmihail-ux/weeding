@@ -79,6 +79,13 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
           if (typeof idFilter === "string") store.deleteRsvp(idFilter);
           return ok(null);
         }
+        if (this.op === "update") {
+          const payload = (Array.isArray(this.payload) ? this.payload[0] : this.payload) ?? {};
+          if (typeof idFilter === "string") {
+            store.updateRsvpPhone(idFilter, typeof payload.phone === "string" ? payload.phone : null);
+          }
+          return ok(null);
+        }
         const rows = store.listRsvps(this.orderBy.column ? this.orderBy : undefined);
         return ok(typeof idFilter === "string" ? rows.filter((row) => row.id === idFilter) : rows);
       }
@@ -111,6 +118,13 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
       case "guests": {
         if (this.op === "delete") {
           if (typeof idFilter === "string") store.deleteImportedGuest(idFilter);
+          return ok(null);
+        }
+        if (this.op === "update") {
+          const payload = (Array.isArray(this.payload) ? this.payload[0] : this.payload) ?? {};
+          if (typeof idFilter === "string") {
+            store.updateGuestPhone(idFilter, typeof payload.phone === "string" ? payload.phone : null);
+          }
           return ok(null);
         }
         return ok(store.listGuestNames());

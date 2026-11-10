@@ -27,7 +27,7 @@ function Dashboard() {
         <AdminSectionSkeleton />
         {error && (
           <div className="mx-auto max-w-5xl px-6 pb-12">
-            <p role="alert" className="rounded-lg bg-red-600/10 p-4 text-red-800">
+            <p role="alert" className="rounded-lg bg-red-500/15 p-4 text-red-200">
               {error}{" "}
               <button type="button" className="underline" onClick={() => void refresh()}>
                 Reîncearcă

@@ -15,7 +15,7 @@ export function AdminRealtime() {
     <p className="mt-4 inline-flex items-center gap-2 text-xs text-ink/55" role="status">
       <span
         aria-hidden
-        className={`size-2 rounded-full ${live ? "bg-emerald-600" : "bg-ink/30"}`}
+        className={`size-2 rounded-full ${live ? "bg-emerald-400" : "bg-ink/30"}`}
       />
       {live ? "Actualizare în timp real" : "Se conectează la actualizările live…"}
     </p>

@@ -54,7 +54,7 @@ const sameExpense = (a: Expense, b: Expense) =>
 
 // Top-level component: creating it inside the form would reset it on every render.
 function Err({ errs, k }: { errs: Record<string, string>; k: string }) {
-  return errs[k] ? <p className="text-sm text-red-700">{errs[k]}</p> : null;
+  return errs[k] ? <p className="text-sm text-red-200">{errs[k]}</p> : null;
 }
 
 /** A GPU-friendly progress bar: scaleX instead of animating width. */
@@ -377,7 +377,7 @@ const ExpenseForm = memo(function ExpenseForm({
         <Label htmlFor="notes">Note (opțional)</Label>
         <Input id="notes" value={f.notes} onChange={(e) => set("notes", e.target.value)} />
       </div>
-      {serverErr && <p role="alert" className="text-red-700 sm:col-span-2">{serverErr}</p>}
+      {serverErr && <p role="alert" className="text-red-200 sm:col-span-2">{serverErr}</p>}
       <Button type="submit" disabled={saving} className="bg-ink text-sea hover:bg-ink/85 sm:col-span-2">
         <Plus className="size-4" /> Adaugă cheltuiala
       </Button>
@@ -445,7 +445,7 @@ function PaymentDialog({
               <Button type="button" variant="outline" onClick={() => setAmount(String(remaining))}>Plătește restul</Button>
             </div>
             {valid && <p className="text-sm text-ink/70">Noul total plătit: {fmt.format(round2(expense.amount_paid + value))}</p>}
-            {err && <p role="alert" className="text-sm text-red-700">{err}</p>}
+            {err && <p role="alert" className="text-sm text-red-200">{err}</p>}
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Anulează</Button>

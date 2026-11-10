@@ -185,7 +185,7 @@ export function GuestList({
         </p>
       )}
       {error === "missing" && (
-        <p role="alert" className="mt-6 rounded-lg bg-red-600/10 p-4 text-red-800">
+        <p role="alert" className="mt-6 rounded-lg bg-red-500/15 p-4 text-red-200">
           Răspunsul nu mai există. Poate a fost șters între timp.
         </p>
       )}

@@ -41,7 +41,7 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
         <Label htmlFor="name">Numele complet</Label>
         <Input id="name" autoComplete="name" aria-invalid={!!errors.name} aria-describedby="name-hint" {...register("name")} />
         <p id="name-hint" className="text-sm text-ink/60">Folosește numele de pe invitație. Îl vei folosi și ca să-ți verifici răspunsul.</p>
-        {errors.name && <p className="text-sm text-red-200">{errors.name.message}</p>}
+        {errors.name && <p className="text-sm text-red-700">{errors.name.message}</p>}
       </div>
 
       <fieldset className="space-y-2">
@@ -73,7 +73,7 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
                 <div key={f.id} className="flex items-start gap-3">
                   <div className="flex-1 space-y-1">
                     <Input aria-label={`Numele persoanei ${i + 1}`} placeholder="Nume complet" {...register(`guests.${i}.name`)} />
-                    {errors.guests?.[i]?.name && <p className="text-sm text-red-200">{errors.guests[i]!.name!.message}</p>}
+                    {errors.guests?.[i]?.name && <p className="text-sm text-red-700">{errors.guests[i]!.name!.message}</p>}
                     <label className="flex items-center gap-2 text-sm text-ink/75">
                       <input type="checkbox" {...register(`guests.${i}.isChild`)} /> Copil
                     </label>
@@ -93,10 +93,10 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
         <Label htmlFor="message">Mesaj pentru mir(i) (opțional)</Label>
         <textarea id="message" rows={3} {...register("message")}
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 transition-[border-color,box-shadow] duration-200 focus-visible:border-gold focus-visible:outline-2 focus-visible:outline-gold" />
-        {errors.message && <p className="text-sm text-red-200">{errors.message.message}</p>}
+        {errors.message && <p className="text-sm text-red-700">{errors.message.message}</p>}
       </div>
 
-      {serverError && <p role="alert" className="text-red-200">{serverError}</p>}
+      {serverError && <p role="alert" className="text-red-700">{serverError}</p>}
       <Button type="submit" size="lg" disabled={pending} className="w-full bg-ink text-sea hover:bg-ink/85">
         {pending ? "Se trimite…" : "Trimite răspunsul"}
       </Button>

@@ -152,7 +152,7 @@ const TableCard = memo(function TableCard({
       className={cx(
         "glass-soft card-hover group relative rounded-2xl border p-3",
         isOver
-          ? (full ? "border-red-500 bg-red-500/15" : "border-gold bg-gold/10")
+          ? (full ? "border-red-500 bg-red-600/10" : "border-gold bg-gold/10")
           : "border-ink/15"
       )}
     >
@@ -576,7 +576,7 @@ export function SeatingBoard({
           style={{ transform: `scaleX(${total ? seated / total : 0})` }}
         />
       </div>
-      <p role="status" className="mt-3 min-h-6 text-sm text-red-200">{msg}</p>
+      <p role="status" className="mt-3 min-h-6 text-sm text-red-700">{msg}</p>
 
       <div className="mt-2 grid gap-6 lg:grid-cols-[18rem_1fr]">
         <section ref={poolRef} aria-label="Invitați fără masă"

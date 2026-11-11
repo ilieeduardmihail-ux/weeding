@@ -66,7 +66,7 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
       <div className="space-y-2">
         <Label htmlFor="admin-name">Numele complet</Label>
         <Input id="admin-name" autoComplete="name" aria-invalid={!!errors.name} {...register("name")} />
-        {errors.name && <p className="text-sm text-red-200">{errors.name.message}</p>}
+        {errors.name && <p className="text-sm text-red-700">{errors.name.message}</p>}
       </div>
 
       <fieldset className="space-y-2">
@@ -117,7 +117,7 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
                         {...register(`guests.${index}.name`)}
                       />
                       {errors.guests?.[index]?.name && (
-                        <p className="text-sm text-red-200">{errors.guests[index]!.name!.message}</p>
+                        <p className="text-sm text-red-700">{errors.guests[index]!.name!.message}</p>
                       )}
                       <label className="flex items-center gap-2 text-sm text-ink/75">
                         <input type="checkbox" {...register(`guests.${index}.isChild`)} /> Copil
@@ -157,10 +157,10 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
           {...register("message")}
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 focus-visible:outline-2 focus-visible:outline-gold"
         />
-        {errors.message && <p className="text-sm text-red-200">{errors.message.message}</p>}
+        {errors.message && <p className="text-sm text-red-700">{errors.message.message}</p>}
       </div>
 
-      {serverError && <p role="alert" className="text-red-200">{serverError}</p>}
+      {serverError && <p role="alert" className="text-red-700">{serverError}</p>}
 
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={pending} className="bg-ink text-sea hover:bg-ink/85">

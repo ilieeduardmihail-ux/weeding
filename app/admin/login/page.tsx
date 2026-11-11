@@ -14,7 +14,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       <form action={signIn} className="glass space-y-4 rounded-xl p-6">
         <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" required /></div>
         <div className="space-y-2"><Label htmlFor="password">Parolă</Label><Input id="password" name="password" type="password" required /></div>
-        {error && <p role="alert" className="text-red-200">Email sau parolă greșită.</p>}
+        {error && <p role="alert" className="text-red-700">Email sau parolă greșită.</p>}
         <Button type="submit" className="w-full bg-ink text-sea">Intră în cont</Button>
       </form>
     </main>

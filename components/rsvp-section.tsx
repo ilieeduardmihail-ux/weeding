@@ -134,7 +134,7 @@ function RsvpFlow({ initialName }: { initialName: string }) {
                   <Label htmlFor="lookup-name">Numele complet</Label>
                   <Input id="lookup-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
                 </div>
-                {error && <p role="alert" className="text-red-200">{error}</p>}
+                {error && <p role="alert" className="text-red-700">{error}</p>}
                 <Button type="submit" size="lg" disabled={pending || clean.length < 3} className="w-full bg-ink text-sea hover:bg-ink/85">
                   {pending ? "Se verifică…" : "Continuă"}
                 </Button>

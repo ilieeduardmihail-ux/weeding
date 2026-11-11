@@ -19,22 +19,22 @@ export default async function OpengraphImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #718054 0%, #6b7a4e 55%, #5a6840 100%)",
-          color: "#f6efe1",
+          background: "linear-gradient(135deg, #faf5e9 0%, #f0e5d1 55%, #faf5e9 100%)",
+          color: "#2c3325",
           fontFamily: "Georgia, serif",
           textAlign: "center",
           padding: "64px",
         }}
       >
-        <div style={{ display: "flex", fontSize: 26, letterSpacing: 8, textTransform: "uppercase", color: "#e5cd96" }}>
+        <div style={{ display: "flex", fontSize: 26, letterSpacing: 8, textTransform: "uppercase", color: "#a9853f" }}>
           Vă invităm la nuntă
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 28, marginTop: 28 }}>
           <span style={{ fontSize: 104, lineHeight: 1 }}>{settings.partner_1}</span>
-          <span style={{ fontSize: 88, color: "#dfb3ba", fontStyle: "italic" }}>&amp;</span>
+          <span style={{ fontSize: 88, color: "#b07984", fontStyle: "italic" }}>&amp;</span>
           <span style={{ fontSize: 104, lineHeight: 1 }}>{settings.partner_2}</span>
         </div>
-        <div style={{ display: "flex", width: 180, height: 2, background: "#e5cd96", marginTop: 40 }} />
+        <div style={{ display: "flex", width: 180, height: 2, background: "#a9853f", marginTop: 40 }} />
         <div style={{ display: "flex", marginTop: 32, fontSize: 40 }}>
           {formatEventDate(settings)}, {settings.city}
         </div>

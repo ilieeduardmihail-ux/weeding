@@ -83,8 +83,8 @@ export function Particles({ count = MAX_PARTICLES }: { count?: number }) {
           ? 0.42
           : 0.16 + 0.4 * (0.5 + 0.5 * Math.sin((time / 1600) * p.twinkle + p.phase));
         const color = p.gold
-          ? `rgba(229, 205, 150, ${alpha})`
-          : `rgba(223, 179, 186, ${alpha * 0.9})`;
+          ? `rgba(169, 133, 63, ${alpha})`
+          : `rgba(176, 121, 132, ${alpha * 0.85})`;
 
         // A second, larger low-alpha circle reads as a soft glow and is far
         // cheaper than canvas shadowBlur on every frame.
@@ -92,8 +92,8 @@ export function Particles({ count = MAX_PARTICLES }: { count?: number }) {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.radius * 3, 0, Math.PI * 2);
           ctx.fillStyle = p.gold
-            ? `rgba(229, 205, 150, ${alpha * 0.16})`
-            : `rgba(223, 179, 186, ${alpha * 0.14})`;
+            ? `rgba(169, 133, 63, ${alpha * 0.14})`
+            : `rgba(176, 121, 132, ${alpha * 0.12})`;
           ctx.fill();
         }
 

@@ -146,7 +146,7 @@ export function GuestImport({ existing }: { existing: string[] }) {
         </div>
       </section>
 
-      {error && <p role="alert" className="text-red-200">{error}</p>}
+      {error && <p role="alert" className="text-red-700">{error}</p>}
 
       {rows && stats && (
         <section aria-label="Verifică numele importate">

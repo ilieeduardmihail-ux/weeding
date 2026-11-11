@@ -128,59 +128,59 @@
     @apply font-sans;
   }
 }
-/* wedding theme — the invitation palette reversed: olive leaf background with
-   warm ivory type, antique gold foil and dusty rose flowers. */
+/* wedding theme — palette taken from the printed invitation:
+   warm ivory paper, olive leaves, antique gold foil and dusty rose flowers. */
 @theme inline {
-  --color-sea: #6b7a4e;      /* olive page base, also text on cream buttons */
-  --color-mist: #5c6b42;     /* deeper olive, alternate section surface */
-  --color-paper: #4f5d37;    /* raised card surface, darkest olive */
-  --color-ink: #f6efe1;      /* warm ivory text */
-  --color-sage: #8c9a6b;     /* soft sage for muted accents */
-  --color-gold: #e5cd96;     /* light antique gold foil */
-  --color-rose: #dfb3ba;     /* dusty rose */
+  --color-sea: #f4ecdd;      /* page base, also text on dark buttons */
+  --color-mist: #e9dcc5;     /* alternate section surface */
+  --color-paper: #fbf6ec;    /* raised card surface */
+  --color-ink: #2c3325;      /* deep olive text */
+  --color-sage: #6b7a4e;     /* the olive base colour */
+  --color-gold: #a9853f;     /* antique gold foil */
+  --color-rose: #b07984;     /* dusty rose */
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-figtree), system-ui, sans-serif;
 }
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
-/* Olive background lit by an ivory glow, a dusty-rose light and a soft gold
-   corner, in the same order as the invitation's floral frame. */
+/* Warm paper background with an olive glow, a dusty-rose light and a soft
+   gold corner, in the same order as the invitation's floral frame. */
 body {
   background-color: var(--color-sea);
   background-image:
-    radial-gradient(55rem 38rem at 12% -8%, rgb(246 239 225 / 0.16), transparent 62%),
-    radial-gradient(48rem 34rem at 88% 6%, rgb(223 179 186 / 0.22), transparent 66%),
-    radial-gradient(60rem 45rem at 50% 110%, rgb(229 205 150 / 0.18), transparent 70%),
-    linear-gradient(165deg, #718054 0%, #6b7a4e 46%, #5a6840 100%);
+    radial-gradient(55rem 38rem at 12% -8%, rgb(107 122 78 / 0.16), transparent 62%),
+    radial-gradient(48rem 34rem at 88% 6%, rgb(185 138 147 / 0.30), transparent 66%),
+    radial-gradient(60rem 45rem at 50% 110%, rgb(169 133 63 / 0.16), transparent 70%),
+    linear-gradient(165deg, #faf5e9 0%, #f3ead8 46%, #ecdfc8 100%);
   background-attachment: fixed;
   background-repeat: no-repeat;
 }
 
 
 /* ---------------------------------------------------------------------------
-   Glass surfaces: semi-transparent olive with a soft blur, so the background
-   wash and particles stay visible through cards and panels.
+   Glass surfaces: semi-transparent ivory with a soft blur, so the paper
+   background and particles stay visible through cards and panels.
    --------------------------------------------------------------------------- */
 @layer components {
   .glass {
-    background-color: rgb(72 84 50 / 0.55);
-    border: 1px solid rgb(246 239 225 / 0.18);
-    -webkit-backdrop-filter: blur(14px) saturate(125%);
-    backdrop-filter: blur(14px) saturate(125%);
+    background-color: rgb(251 246 236 / 0.62);
+    border: 1px solid rgb(44 51 37 / 0.12);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    backdrop-filter: blur(14px) saturate(120%);
   }
 
   .glass-soft {
-    background-color: rgb(88 100 62 / 0.38);
-    border: 1px solid rgb(246 239 225 / 0.14);
-    -webkit-backdrop-filter: blur(10px) saturate(120%);
-    backdrop-filter: blur(10px) saturate(120%);
+    background-color: rgb(255 252 246 / 0.45);
+    border: 1px solid rgb(44 51 37 / 0.10);
+    -webkit-backdrop-filter: blur(10px) saturate(115%);
+    backdrop-filter: blur(10px) saturate(115%);
   }
 
   .glass-bar {
-    background-color: rgb(63 74 44 / 0.82);
-    -webkit-backdrop-filter: blur(16px) saturate(130%);
-    backdrop-filter: blur(16px) saturate(130%);
+    background-color: rgb(250 245 234 / 0.82);
+    -webkit-backdrop-filter: blur(16px) saturate(125%);
+    backdrop-filter: blur(16px) saturate(125%);
   }
 
   /* Shared hover/press feedback for cards, chips and tiles. */
@@ -192,8 +192,8 @@ body {
   @media (hover: hover) {
     .card-hover:hover {
       transform: translateY(-2px);
-      border-color: rgb(229 205 150 / 0.5);
-      box-shadow: 0 16px 36px -18px rgb(30 36 20 / 0.55);
+      border-color: rgb(169 133 63 / 0.45);
+      box-shadow: 0 16px 36px -18px rgb(44 51 37 / 0.28);
     }
   }
   .card-hover:active {
@@ -211,7 +211,7 @@ body {
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass { background-color: rgb(72 84 50 / 0.96); }
-  .glass-soft { background-color: rgb(88 100 62 / 0.94); }
-  .glass-bar { background-color: rgb(63 74 44 / 0.98); }
+  .glass { background-color: rgb(251 246 236 / 0.96); }
+  .glass-soft { background-color: rgb(253 249 242 / 0.94); }
+  .glass-bar { background-color: rgb(250 245 234 / 0.98); }
 }

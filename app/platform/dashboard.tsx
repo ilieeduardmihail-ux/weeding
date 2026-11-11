@@ -202,6 +202,9 @@ function TenantCard({
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const openKeys = tenant.keys.filter((k) => !k.usedAt && !k.revokedAt).length;
+  // Independent of status: a suspended client can also be past its expiry, and
+  // then „Reactivează" alone would not bring the site back.
+  const isExpired = Boolean(tenant.expiresAt && new Date(tenant.expiresAt).getTime() <= Date.now());
 
   type RunResult = { ok: boolean; error?: string; code?: string };
   const run = (task: () => Promise<RunResult>, after?: (result: RunResult) => void) =>
@@ -301,6 +304,17 @@ function TenantCard({
           {tenant.status === "suspended" ? "Reactivează" : "Suspendă"}
         </Button>
       </div>
+
+      {isExpired && (
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border border-red-700/40 bg-red-700/10 p-3 text-sm text-red-800"
+        >
+          <strong>Expirat.</strong> Site-ul public și panoul clientului afișează „Invitația nu este
+          disponibilă”. Folosește <strong>„Prelungește”</strong> (mai jos) ca să reactivezi accesul.
+          {tenant.status === "suspended" && " „Reactivează” doar schimbă starea, nu prelungește perioada."}
+        </p>
+      )}
 
       {tenant.admins.length > 0 && (
         <ul className="mt-4 flex flex-wrap gap-2 text-xs text-ink/70">

@@ -7,7 +7,7 @@ import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { saveLocation } from "@/app/admin/locations/actions";
+import { saveLocation, saveLocationsIntro } from "@/app/admin/locations/actions";
 
 function Field({
   label,
@@ -43,14 +43,22 @@ function LocationsFeedback() {
     <>
       {saved && (
         <p role="status" className="mt-6 rounded-lg bg-mist p-4 text-ink">
-          Salvat. Pagina publică afișează acum adresele noi.
+          {saved === "intro"
+            ? "Mesajul a fost salvat. Apare deasupra secțiunii doar dacă are text."
+            : "Salvat. Pagina publică afișează acum adresele noi."}
         </p>
       )}
       {error && (
         <p role="alert" className="mt-6 rounded-lg bg-red-600/10 p-4 text-red-800">
-          {error === "save"
-            ? "Nu am putut salva. Verifică legătura la baza de date și încearcă din nou."
-            : "Unele câmpuri nu sunt valide. Completează numele, adresa și ora, iar linkul de hartă trebuie să înceapă cu https://www.google.com/maps."}
+          {error === "intro-length"
+            ? "Mesajul e prea lung. Limita este de 600 de caractere."
+            : error === "intro-migration"
+              ? "Baza de date nu are încă această coloană. Rulează migrarea v12 în Supabase, apoi încearcă din nou."
+              : error === "intro-save"
+              ? "Nu am putut salva mesajul. Încearcă din nou în câteva secunde."
+              : error === "save"
+                ? "Nu am putut salva. Verifică legătura la baza de date și încearcă din nou."
+                : "Unele câmpuri nu sunt valide. Completează numele, adresa și ora, iar linkul de hartă trebuie să înceapă cu https://www.google.com/maps."}
         </p>
       )}
     </>
@@ -74,6 +82,34 @@ function Locations() {
       </Suspense>
 
       <div className="mt-8 space-y-8">
+        <form
+          key={`intro:${data.settings.locations_intro ?? ""}`}
+          action={saveLocationsIntro}
+          className="glass grid gap-4 rounded-xl p-5 transition-colors duration-300 focus-within:border-gold/30"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="locations_intro">Mesaj deasupra secțiunii (opțional)</Label>
+            <textarea
+              id="locations_intro"
+              name="locations_intro"
+              defaultValue={data.settings.locations_intro ?? ""}
+              maxLength={600}
+              rows={4}
+              placeholder="Ex.: Vă rugăm să ajungeți cu 15 minute înainte. Parcarea este în curtea bisericii."
+              className="flex min-h-28 w-full rounded-md border border-ink/20 bg-ink/10 px-3 py-2 text-base text-ink placeholder:text-ink/40 transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-ink/35 focus-visible:border-gold/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/30"
+            />
+            <p className="text-xs text-ink/60">
+              Apare pe pagina principală, deasupra titlului „Unde ne găsești”. Dacă lași câmpul
+              gol, nu se afișează nimic și secțiunea arată exact ca acum.
+            </p>
+          </div>
+          <div>
+            <Button type="submit" className="bg-ink text-sea hover:bg-ink/85">
+              Salvează mesajul
+            </Button>
+          </div>
+        </form>
+
         {data.locations.map((location) => (
           <form
             key={`${location.key}:${location.label}:${location.name}:${location.address}:${location.event_time}:${location.embed_url ?? ""}`}

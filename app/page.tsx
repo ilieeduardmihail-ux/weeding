@@ -68,7 +68,7 @@ export default async function Home({
           />
         }
       >
-        <Schedule locations={locations} />
+        <Schedule locations={locations} intro={settings.locations_intro} />
         <RsvpSection
           closed={isRsvpClosed(settings)}
           cutoffDate={settings.rsvp_cutoff_date}

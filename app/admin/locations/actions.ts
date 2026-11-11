@@ -36,3 +36,36 @@ export async function saveLocation(formData: FormData) {
   revalidatePath("/admin/locations");
   redirect("/admin/locations?saved=1");
 }
+
+/**
+ * The optional note above the "Unde ne găsești" heading. Cleared text is saved as
+ * NULL, so the public section renders exactly as before (no empty gap).
+ */
+export async function saveLocationsIntro(formData: FormData) {
+  const supabase = await createClient();
+
+  const { data: isAdmin } = await supabase.rpc("is_admin");
+  if (isAdmin !== true) redirect("/admin/login");
+
+  const intro = String(formData.get("locations_intro") ?? "")
+    .replace(/\r\n/g, "\n")
+    .trim();
+
+  if (intro.length > 600) redirect("/admin/locations?error=intro-length");
+
+  const { error } = await supabase
+    .from("event_settings")
+    .update({ locations_intro: intro === "" ? null : intro })
+    .eq("id", 1);
+  if (error) {
+    // Before migration v12 is applied PostgREST reports the missing column.
+    const missingColumn =
+      error.code === "PGRST204" || String(error.message).includes("locations_intro");
+    redirect(`/admin/locations?error=${missingColumn ? "intro-migration" : "intro-save"}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/locations");
+  redirect("/admin/locations?saved=intro");
+}

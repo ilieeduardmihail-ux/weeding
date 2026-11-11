@@ -5,7 +5,13 @@ import { mapsSearchUrl, type WeddingLocation } from "@/lib/config";
 import { LazyMap } from "@/components/ui/lazy-map";
 import { Reveal } from "@/components/ui/reveal";
 
-export function Schedule({ locations }: { locations: WeddingLocation[] }) {
+export function Schedule({
+  locations,
+  intro,
+}: {
+  locations: WeddingLocation[];
+  intro?: string | null;
+}) {
   if (locations.length === 0) return null;
 
   return (
@@ -13,6 +19,11 @@ export function Schedule({ locations }: { locations: WeddingLocation[] }) {
       <section id="locatii" className="scroll-mt-24 bg-mist/40 py-24">
         <div className="mx-auto max-w-3xl px-6">
           <Reveal>
+            {intro ? (
+              <p className="mb-5 whitespace-pre-line text-lg leading-relaxed text-ink/80">
+                {intro}
+              </p>
+            ) : null}
             <h2 className="font-display text-4xl">Unde ne găsești</h2>
             <p className="mt-3 text-ink/70">
               Biserica și locul petrecerii, cu adresele la zi. Apasă pe hartă pentru indicații.

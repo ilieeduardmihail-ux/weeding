@@ -48,6 +48,14 @@ describe("event settings", () => {
     expect(normalized.rsvp_cutoff_date).toBeNull();
   });
 
+  it("keeps the locations note only when it has text", () => {
+    expect(normalizeSettings({ locations_intro: "  \n " }).locations_intro).toBeNull();
+    expect(
+      normalizeSettings({ locations_intro: "  Parcarea este în curte.\nMulțumim! " })
+        .locations_intro
+    ).toBe("Parcarea este în curte.\nMulțumim!");
+  });
+
   it("formats the date in Romanian", () => {
     expect(formatEventDate(settings)).toBe("7 iulie 2029");
   });

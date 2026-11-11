@@ -20,6 +20,8 @@ export type EventSettings = {
   invite_message: string;
   /** Public URL of the invitation photo attached to WhatsApp messages. */
   invitation_image_url: string | null;
+  /** Optional note shown above the "Unde ne găsești" heading. Empty = hidden. */
+  locations_intro: string | null;
 };
 
 export const DEFAULT_INVITE_MESSAGE =
@@ -39,6 +41,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   public_url: null,
   invite_message: DEFAULT_INVITE_MESSAGE,
   invitation_image_url: null,
+  locations_intro: null,
 };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -104,6 +107,10 @@ export function normalizeSettings(row: Record<string, unknown> | null | undefine
       (row.invitation_image_url.startsWith("https://") ||
         row.invitation_image_url.startsWith("data:image/"))
         ? row.invitation_image_url
+        : null,
+    locations_intro:
+      typeof row.locations_intro === "string" && row.locations_intro.trim() !== ""
+        ? row.locations_intro.trim()
         : null,
   };
 }

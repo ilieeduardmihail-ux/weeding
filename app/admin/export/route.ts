@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { currentTenantId } from "@/lib/tenant-session";
 
 const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
@@ -10,7 +11,10 @@ export async function GET() {
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (!isAdmin) return new Response("Neautorizat", { status: 401 });
 
-  const { data } = await supabase.from("rsvps").select("*, rsvp_guests(*)").order("name");
+  const tenantId = await currentTenantId();
+  if (!tenantId) return new Response("Neautorizat", { status: 401 });
+
+  const { data } = await supabase.from("rsvps").select("*, rsvp_guests(*)").eq("tenant_id", tenantId).order("name");
   const lines = ["nume,participa,masa,insotitori,mesaj,raspuns_la"];
   for (const r of data ?? []) {
     const party = (r.rsvp_guests as { name: string; table_number: number | null }[])

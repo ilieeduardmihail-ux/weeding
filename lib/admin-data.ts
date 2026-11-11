@@ -12,6 +12,8 @@ import type { VenueRow } from "@/lib/restaurant-report";
 import type { WeddingLocation } from "@/lib/config";
 
 export type AdminData = {
+  /** The tenant slug, used to build the WhatsApp RSVP links. */
+  slug: string;
   rsvps: GuestRow[];
   seatingPeople: Person[];
   seatingTables: SeatingTable[];

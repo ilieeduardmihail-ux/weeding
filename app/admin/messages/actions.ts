@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { isPhoneLike } from "@/lib/message-template";
 import { demoMode } from "@/lib/demo/mode";
+import { currentTenantId } from "@/lib/tenant-session";
 
 type Result = { ok: true } | { ok: false; error: string };
 type UploadResult = { ok: true; url: string } | { ok: false; error: string };
@@ -22,15 +23,15 @@ export async function saveInviteMessage(body: string): Promise<Result> {
   }
 
   const supabase = await createClient();
-  const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (isAdmin !== true) {
+  const tenantId = await currentTenantId();
+  if (!tenantId) {
     return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   }
 
   const { error } = await supabase
     .from("event_settings")
     .update({ invite_message: parsed.data })
-    .eq("id", 1);
+    .eq("tenant_id", tenantId);
   if (error) {
     return { ok: false, error: "Nu am putut salva mesajul. Rulează migrarea v10 în Supabase." };
   }
@@ -61,8 +62,8 @@ export async function savePhones(entries: PhoneEntry[]): Promise<Result> {
   }
 
   const supabase = await createClient();
-  const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (isAdmin !== true) {
+  const tenantId = await currentTenantId();
+  if (!tenantId) {
     return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   }
 
@@ -71,7 +72,8 @@ export async function savePhones(entries: PhoneEntry[]): Promise<Result> {
     const { error } = await supabase
       .from(table)
       .update({ phone: entry.phone === "" ? null : entry.phone })
-      .eq("id", entry.id);
+      .eq("id", entry.id)
+      .eq("tenant_id", tenantId);
     if (error) {
       return { ok: false, error: "Nu am putut salva telefoanele. Rulează migrarea v10 în Supabase." };
     }
@@ -118,8 +120,8 @@ export async function uploadInvitationImage(formData: FormData): Promise<UploadR
   }
 
   const supabase = await createClient();
-  const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (isAdmin !== true) {
+  const tenantId = await currentTenantId();
+  if (!tenantId) {
     return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   }
 
@@ -132,7 +134,7 @@ export async function uploadInvitationImage(formData: FormData): Promise<UploadR
     const { error } = await supabase
       .from("event_settings")
       .update({ invitation_image_url: url })
-      .eq("id", 1);
+      .eq("tenant_id", tenantId);
     if (error) return { ok: false, error: "Nu am putut salva poza în demo." };
     revalidatePath("/");
     revalidatePath("/admin", "layout");
@@ -142,7 +144,7 @@ export async function uploadInvitationImage(formData: FormData): Promise<UploadR
   const { data: current } = await supabase
     .from("event_settings")
     .select("invitation_image_url")
-    .eq("id", 1)
+    .eq("tenant_id", tenantId)
     .maybeSingle();
 
   const path = `invitation-${Date.now()}.${extension}`;
@@ -160,7 +162,7 @@ export async function uploadInvitationImage(formData: FormData): Promise<UploadR
   const { error } = await supabase
     .from("event_settings")
     .update({ invitation_image_url: url })
-    .eq("id", 1);
+    .eq("tenant_id", tenantId);
   if (error) {
     return { ok: false, error: "Poza a urcat, dar nu am putut salva linkul. Rulează migrarea v11." };
   }
@@ -176,21 +178,21 @@ export async function uploadInvitationImage(formData: FormData): Promise<UploadR
 /** Removes the uploaded photo and clears the public link. */
 export async function removeInvitationImage(): Promise<Result> {
   const supabase = await createClient();
-  const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (isAdmin !== true) {
+  const tenantId = await currentTenantId();
+  if (!tenantId) {
     return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   }
 
   const { data: current } = await supabase
     .from("event_settings")
     .select("invitation_image_url")
-    .eq("id", 1)
+    .eq("tenant_id", tenantId)
     .maybeSingle();
 
   const { error } = await supabase
     .from("event_settings")
     .update({ invitation_image_url: null })
-    .eq("id", 1);
+    .eq("tenant_id", tenantId);
   if (error) {
     return { ok: false, error: "Nu am putut șterge poza. Rulează migrarea v11 în Supabase." };
   }

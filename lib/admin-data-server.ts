@@ -1,6 +1,7 @@
 /**
- * Server-side loader for the admin dataset. Every table is read in parallel,
- * so the whole admin panel costs one round trip instead of one per section.
+ * Server-side loader for the admin dataset. Every table is read in parallel and
+ * scoped to one tenant, so the whole admin panel costs one round trip and never
+ * shows another client's data.
  */
 import type { Kind, Person } from "@/components/admin/seating-board";
 import type { GuestRow } from "@/components/admin/guest-list";
@@ -20,17 +21,22 @@ type Db = Awaited<ReturnType<typeof createClient>>;
 const defaultTables = () =>
   Array.from({ length: 10 }, (_, i) => ({ number: i + 1, capacity: DEFAULT_TABLE_CAPACITY }));
 
-export async function loadAdminData(supabase: Db): Promise<AdminData> {
+export async function loadAdminData(
+  supabase: Db,
+  tenant: { id: string; slug: string }
+): Promise<AdminData> {
+  const tenantId = tenant.id;
+
   const [rsvpsResult, peopleResult, tablesResult, expensesResult, locationsResult, settingsResult, guestsResult, reportResult] =
     await Promise.all([
-      supabase.from("rsvps").select("*, rsvp_guests(*)").order("created_at", { ascending: false }),
-      supabase.from("seating_people").select("id, kind, name, table_number").order("name"),
-      supabase.from("seating_tables").select("number, capacity").order("number"),
-      supabase.from("expenses").select("*").order("created_at", { ascending: false }),
-      supabase.from("locations").select("key, label, name, address, event_time, embed_url").order("key", { ascending: true }),
-      supabase.from("event_settings").select("*").eq("id", 1).maybeSingle(),
-      supabase.from("guests").select("id, full_name, phone"),
-      supabase.from("venue_report").select("*"),
+      supabase.from("rsvps").select("*, rsvp_guests(*)").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+      supabase.from("seating_people").select("id, kind, name, table_number").eq("tenant_id", tenantId).order("name"),
+      supabase.from("seating_tables").select("number, capacity").eq("tenant_id", tenantId).order("number"),
+      supabase.from("expenses").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+      supabase.from("locations").select("key, label, name, address, event_time, embed_url").eq("tenant_id", tenantId).order("key", { ascending: true }),
+      supabase.from("event_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+      supabase.from("guests").select("id, full_name, phone").eq("tenant_id", tenantId),
+      supabase.from("venue_report").select("*").eq("tenant_id", tenantId),
     ]);
 
   const people: Person[] = (peopleResult.data ?? []).map((row: Record<string, unknown>) => ({
@@ -74,6 +80,7 @@ export async function loadAdminData(supabase: Db): Promise<AdminData> {
   }));
 
   return {
+    slug: tenant.slug,
     rsvps: (rsvpsResult.data ?? []) as GuestRow[],
     seatingPeople: people,
     seatingTables,

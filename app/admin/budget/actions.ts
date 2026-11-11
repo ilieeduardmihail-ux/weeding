@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { currentTenantId } from "@/lib/tenant-session";
 import {
   categorySchema,
   expenseSchema,
@@ -24,8 +25,11 @@ export async function addExpense(input: ExpenseInput, id?: string): Promise<Resu
   const d = parsed.data;
   const rowId = id && z.string().uuid().safeParse(id).success ? id : undefined;
   const supabase = await createClient();
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   const { error } = await supabase.from("expenses").insert({
     ...(rowId ? { id: rowId } : {}),
+    tenant_id: tenantId,
     item_name: d.item_name,
     category: d.category,
     currency: d.currency,
@@ -43,7 +47,9 @@ export async function addPayment(input: PaymentInput): Promise<Result> {
   const parsed = paymentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Plată invalidă." };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("add_payment", { p_id: parsed.data.id, p_amount: round2(parsed.data.amount) });
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+  const { error } = await supabase.rpc("add_payment", { p_id: parsed.data.id, p_amount: round2(parsed.data.amount), p_tenant: tenantId });
   if (error) {
     return {
       ok: false,
@@ -57,7 +63,9 @@ export async function addPayment(input: PaymentInput): Promise<Result> {
 export async function deleteExpense(id: string): Promise<Result> {
   if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Cerere invalidă." };
   const supabase = await createClient();
-  const { error } = await supabase.from("expenses").delete().eq("id", id);
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+  const { error } = await supabase.from("expenses").delete().eq("id", id).eq("tenant_id", tenantId);
   if (error) return { ok: false, error: "Nu am putut șterge cheltuiala." };
   revalidatePath("/admin", "layout");
   return { ok: true };
@@ -73,7 +81,9 @@ export async function updateExpenseCategory(id: string, category: string): Promi
   if (!parsed.success) return { ok: false, error: "Categorie invalidă." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("expenses").update({ category: parsed.data }).eq("id", id);
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+  const { error } = await supabase.from("expenses").update({ category: parsed.data }).eq("id", id).eq("tenant_id", tenantId);
   if (error) return { ok: false, error: "Nu am putut salva categoria." };
   revalidatePath("/admin", "layout");
   return { ok: true };

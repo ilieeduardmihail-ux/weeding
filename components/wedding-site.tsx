@@ -20,7 +20,7 @@ export async function WeddingSite({
   const loaded = await loadPublicPage(slug);
   if (!loaded) notFound();
 
-  const { settings, locations } = loaded;
+  const { settings, locations, tenant } = loaded;
   const params = await searchParams;
 
   // Links sent from /admin/messages carry the guest's name, so the invitation
@@ -42,6 +42,7 @@ export async function WeddingSite({
       >
         <Schedule locations={locations} intro={settings.locations_intro} />
         <RsvpSection
+          tenantId={tenant.id}
           closed={isRsvpClosed(settings)}
           cutoffDate={settings.rsvp_cutoff_date}
           initialName={invited}

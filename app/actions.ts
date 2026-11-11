@@ -8,12 +8,13 @@ import type { RsvpStatus } from "@/lib/rsvp-types";
 
 type SubmitResult = { ok: true } | { ok: false; error: string };
 
-export async function submitRsvp(input: RsvpInput): Promise<SubmitResult> {
+export async function submitRsvp(input: RsvpInput, tenantId: string): Promise<SubmitResult> {
   const parsed = rsvpSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Verifică câmpurile marcate și încearcă din nou." };
   const d = parsed.data;
 
   if (d.website) return { ok: true }; // honeypot filled: pretend it worked, save nothing
+  if (!tenantId) return { ok: false, error: "Invitația nu este disponibilă." };
 
   const attending = d.attending === "yes";
   const supabase = await createClient();
@@ -23,6 +24,7 @@ export async function submitRsvp(input: RsvpInput): Promise<SubmitResult> {
     p_message: d.message ?? "",
     p_guests: attending ? d.guests : [],
     p_ip_hash: await clientKey(),
+    p_tenant: tenantId,
   });
   if (error) {
     return {
@@ -43,15 +45,18 @@ export async function submitRsvp(input: RsvpInput): Promise<SubmitResult> {
  * never reach the guest view even if the SQL function still returns them.
  */
 export async function checkRsvpStatus(
-  name: string
+  name: string,
+  tenantId: string
 ): Promise<{ ok: true; status: RsvpStatus | null } | { ok: false; error: string }> {
   const parsed = z.string().trim().min(3, "Introdu numele complet.").max(120).safeParse(name);
   if (!parsed.success) return { ok: false, error: "Introdu numele complet." };
+  if (!tenantId) return { ok: false, error: "Invitația nu este disponibilă." };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("check_rsvp_status", {
     p_name: parsed.data,
     p_ip_hash: await clientKey(),
+    p_tenant: tenantId,
   });
   if (error) {
     return {

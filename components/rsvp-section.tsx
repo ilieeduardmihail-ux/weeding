@@ -63,15 +63,17 @@ const formatDate = (iso: string) =>
   }).format(new Date(`${iso}T12:00:00Z`));
 
 export function RsvpSection({
+  tenantId,
   closed,
   cutoffDate,
   initialName = "",
 }: {
+  tenantId: string;
   closed: boolean;
   cutoffDate: string | null;
   initialName?: string;
 }) {
-  if (!closed) return <RsvpFlow initialName={initialName} />;
+  if (!closed) return <RsvpFlow tenantId={tenantId} initialName={initialName} />;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -91,7 +93,7 @@ export function RsvpSection({
   );
 }
 
-function RsvpFlow({ initialName }: { initialName: string }) {
+function RsvpFlow({ tenantId, initialName }: { tenantId: string; initialName: string }) {
   const [view, setView] = useState<View>("lookup");
   const [name, setName] = useState(initialName);
   const [status, setStatus] = useState<RsvpStatus | null>(null);
@@ -104,7 +106,7 @@ function RsvpFlow({ initialName }: { initialName: string }) {
   const lookup = (who: string, afterSubmit: boolean) =>
     start(async () => {
       setError(null);
-      const r = await checkRsvpStatus(who);
+      const r = await checkRsvpStatus(who, tenantId);
       if (!r.ok) { setError(r.error); if (afterSubmit) setView("thanks"); return; }
       if (r.status) { setStatus(r.status); setNotFound(false); setView("card"); return; }
       if (afterSubmit) { setView("thanks"); return; }
@@ -143,7 +145,7 @@ function RsvpFlow({ initialName }: { initialName: string }) {
 
             {view === "form" && (
               <>
-                <RsvpForm initialName={clean} onDone={(n) => { setName(n); lookup(n, true); }} />
+                <RsvpForm tenantId={tenantId} initialName={clean} onDone={(n) => { setName(n); lookup(n, true); }} />
                 <Button type="button" variant="ghost" className="mt-4" onClick={reset}>Folosește alt nume</Button>
               </>
             )}

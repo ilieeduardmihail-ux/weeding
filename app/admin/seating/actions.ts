@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_TABLE_NUMBER, MAX_TABLE_CAPACITY, MIN_TABLE_CAPACITY } from "@/lib/seating";
+import { currentTenantId } from "@/lib/tenant-session";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -18,15 +19,19 @@ export async function assignTable(kind: string, id: string, table: number | null
   if (!parsed.success) return { ok: false, error: "Cerere invalidă." };
 
   const supabase = await createClient();
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   const { error } = parsed.data.table === null
     ? await supabase.rpc("unassign_table", {
         p_kind: parsed.data.kind,
         p_id: parsed.data.id,
+        p_tenant: tenantId,
       })
     : await supabase.rpc("assign_table", {
         p_kind: parsed.data.kind,
         p_id: parsed.data.id,
         p_table: parsed.data.table,
+        p_tenant: tenantId,
       });
   if (error) {
     const message = error.message;
@@ -41,7 +46,9 @@ export async function assignTable(kind: string, id: string, table: number | null
 export async function deleteGuest(id: string): Promise<Result> {
   if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Cerere invalidă." };
   const supabase = await createClient();
-  const { error } = await supabase.from("guests").delete().eq("id", id);
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+  const { error } = await supabase.from("guests").delete().eq("id", id).eq("tenant_id", tenantId);
   if (error) return { ok: false, error: "Nu am putut șterge invitatul." };
   revalidatePath("/admin", "layout");
   return { ok: true };
@@ -62,9 +69,12 @@ export async function addTable(
   }
 
   const supabase = await createClient();
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   const { data, error } = await supabase.rpc("add_seating_table", {
     p_number: number,
     p_capacity: capacity,
+    p_tenant: tenantId,
   });
   if (error) {
     const message = error.message;
@@ -80,7 +90,9 @@ export async function deleteTable(number: number): Promise<Result> {
   if (!numberSchema.safeParse(number).success) return { ok: false, error: "Cerere invalidă." };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("delete_seating_table", { p_number: number });
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+  const { error } = await supabase.rpc("delete_seating_table", { p_number: number, p_tenant: tenantId });
   if (error) {
     return { ok: false, error: "Nu am putut șterge masa. Rulează migrarea v8 în Supabase." };
   }
@@ -95,9 +107,12 @@ export async function setTableCapacity(number: number, capacity: number): Promis
   }
 
   const supabase = await createClient();
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   const { error } = await supabase.rpc("set_table_capacity", {
     p_number: number,
     p_capacity: capacity,
+    p_tenant: tenantId,
   });
   if (error) {
     const message = error.message;

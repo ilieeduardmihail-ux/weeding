@@ -149,6 +149,18 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
         return ok(store.listLocations());
       }
 
+      case "tenants":
+        return ok([
+          {
+            id: "demo-tenant",
+            slug: "demo",
+            display_name: "Nunta demo",
+            status: "active",
+            expires_at: null,
+            created_at: new Date(0).toISOString(),
+          },
+        ]);
+
       default:
         return ok([]);
     }
@@ -184,6 +196,12 @@ export function createDemoClient() {
       switch (name) {
         case "is_admin":
           return ok(true);
+
+        case "is_platform_owner":
+          return ok(true);
+
+        case "default_tenant_id":
+          return ok("demo-tenant");
 
         case "submit_rsvp":
           return ok(

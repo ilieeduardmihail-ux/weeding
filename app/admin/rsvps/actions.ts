@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { adminRsvpSchema, type AdminRsvpInput } from "@/lib/admin-rsvp-schema";
+import { currentTenantId } from "@/lib/tenant-session";
 
 export type UpdateRsvpResult = { ok: true } | { ok: false; error: string };
 
@@ -19,6 +20,10 @@ export async function updateRsvp(input: AdminRsvpInput): Promise<UpdateRsvpResul
   if (isAdmin !== true) {
     return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   }
+  const tenantId = await currentTenantId();
+  if (!tenantId) {
+    return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+  }
 
   const attending = d.attending === "yes";
   const { error } = await supabase.rpc("admin_update_rsvp", {
@@ -29,6 +34,7 @@ export async function updateRsvp(input: AdminRsvpInput): Promise<UpdateRsvpResul
     p_guests: attending
       ? d.guests.map((g) => ({ id: g.guestId === "" ? null : g.guestId, name: g.name, isChild: g.isChild }))
       : [],
+    p_tenant: tenantId,
   });
 
   if (error) {

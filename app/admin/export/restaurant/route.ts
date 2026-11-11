@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { currentTenantId } from "@/lib/tenant-session";
 import { buildRestaurantReport, restaurantCsv, type VenueRow } from "@/lib/restaurant-report";
 
 const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -11,7 +12,10 @@ export async function GET(request: Request) {
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (isAdmin !== true) return new Response("Neautorizat", { status: 401 });
 
-  const { data, error } = await supabase.from("venue_report").select("*");
+  const tenantId = await currentTenantId();
+  if (!tenantId) return new Response("Neautorizat", { status: 401 });
+
+  const { data, error } = await supabase.from("venue_report").select("*").eq("tenant_id", tenantId);
   if (error) return new Response("Nu am putut citi datele.", { status: 500 });
 
   const report = buildRestaurantReport((data ?? []) as VenueRow[]);

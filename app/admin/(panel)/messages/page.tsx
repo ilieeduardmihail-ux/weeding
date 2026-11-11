@@ -309,9 +309,9 @@ function Messages({ data }: { data: AdminData }) {
     renderInviteMessage(template || DEFAULT_INVITE_MESSAGE, {
       fullName,
       settings: data.settings,
-      siteUrl: PUBLIC_SITE_URL,
+      siteUrl: `${PUBLIC_SITE_URL}/${data.slug}`,
       imageUrl: photoUrl?.startsWith("http")
-        ? new URL("/invitatia-poza", PUBLIC_SITE_URL).toString()
+        ? new URL(`/${data.slug}/invitatia-poza`, PUBLIC_SITE_URL).toString()
         : null,
     });
 

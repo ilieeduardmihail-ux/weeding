@@ -4,12 +4,13 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { locationSchema } from "@/lib/location-schema";
+import { currentTenantId } from "@/lib/tenant-session";
 
 export async function saveLocation(formData: FormData) {
   const supabase = await createClient();
 
-  const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (isAdmin !== true) redirect("/admin/login");
+  const tenantId = await currentTenantId();
+  if (!tenantId) redirect("/admin/login");
 
   const parsed = locationSchema.safeParse({
     key: String(formData.get("key") ?? ""),
@@ -25,9 +26,10 @@ export async function saveLocation(formData: FormData) {
   const { error } = await supabase.from("locations").upsert(
     {
       ...parsed.data,
+      tenant_id: tenantId,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "key" }
+    { onConflict: "tenant_id,key" }
   );
   if (error) redirect("/admin/locations?error=save");
 
@@ -44,8 +46,8 @@ export async function saveLocation(formData: FormData) {
 export async function saveLocationsIntro(formData: FormData) {
   const supabase = await createClient();
 
-  const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (isAdmin !== true) redirect("/admin/login");
+  const tenantId = await currentTenantId();
+  if (!tenantId) redirect("/admin/login");
 
   const intro = String(formData.get("locations_intro") ?? "")
     .replace(/\r\n/g, "\n")
@@ -56,7 +58,7 @@ export async function saveLocationsIntro(formData: FormData) {
   const { error } = await supabase
     .from("event_settings")
     .update({ locations_intro: intro === "" ? null : intro })
-    .eq("id", 1);
+    .eq("tenant_id", tenantId);
   if (error) {
     // Before migration v12 is applied PostgREST reports the missing column.
     const missingColumn =

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function RsvpForm({ initialName = "", onDone }: { initialName?: string; onDone: (name: string) => void }) {
+export function RsvpForm({ tenantId, initialName = "", onDone }: { tenantId: string; initialName?: string; onDone: (name: string) => void }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -24,7 +24,7 @@ export function RsvpForm({ initialName = "", onDone }: { initialName?: string; o
   const onSubmit = (data: RsvpInput) => {
     setServerError(null);
     start(async () => {
-      const res = await submitRsvp(data);
+      const res = await submitRsvp(data, tenantId);
       if (res.ok) onDone(data.name.trim());
       else setServerError(res.error);
     });

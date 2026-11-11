@@ -1,7 +1,7 @@
 /**
  * Who is signed in, and for which wedding. The admin panel has no tenant in the
- * URL: the session decides. RLS on `tenants` only returns the weddings the signed
- * in email administers, so this lookup doubles as the authorization check.
+ * URL: the session decides. Membership is read from `tenant_admins` (RLS only
+ * exposes the caller's own rows), so this doubles as the authorization check.
  */
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
@@ -31,21 +31,26 @@ export const getTenantContext = cache(async (): Promise<TenantContext> => {
     return { email: null, needsPassword: false, isOwner: false, tenants: [], tenant: null };
   }
 
-  const [tenantsResult, ownerResult] = await Promise.all([
-    supabase
-      .from("tenants")
-      .select("id, slug, display_name, status, expires_at, created_at")
-      .order("created_at", { ascending: true }),
+  const [membershipsResult, ownerResult] = await Promise.all([
+    supabase.from("tenant_admins").select("tenant_id").order("tenant_id", { ascending: true }),
     supabase.rpc("is_platform_owner"),
   ]);
 
-  const tenants = ((tenantsResult?.data ?? []) as ContextTenant[]).map((row) => ({
-    id: row.id,
-    slug: row.slug,
-    display_name: row.display_name,
-    status: row.status,
-    expires_at: row.expires_at,
-  }));
+  const tenantIds = [
+    ...new Set(
+      ((membershipsResult?.data ?? []) as { tenant_id: string }[]).map((row) => String(row.tenant_id))
+    ),
+  ];
+
+  let tenants: ContextTenant[] = [];
+  if (tenantIds.length > 0) {
+    const { data: rows } = await supabase
+      .from("tenants")
+      .select("id, slug, display_name, status, expires_at, created_at")
+      .in("id", tenantIds)
+      .order("created_at", { ascending: true });
+    tenants = (rows ?? []) as ContextTenant[];
+  }
 
   return {
     email: user.email ?? null,

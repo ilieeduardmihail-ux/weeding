@@ -12,3 +12,9 @@ export const SUPABASE_KEY = (
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   ""
 ).trim();
+
+/**
+ * Server-only key used to create auth accounts from the platform panel.
+ * Never import this in a client component.
+ */
+export const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();

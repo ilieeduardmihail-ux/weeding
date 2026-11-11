@@ -15,7 +15,7 @@ export type Tenant = {
   id: string;
   slug: string;
   display_name: string;
-  status: "active" | "suspended";
+  status: "pending" | "active" | "suspended";
   expires_at: string | null;
   theme: Record<string, unknown>;
 };

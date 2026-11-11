@@ -42,6 +42,12 @@ const normalize = (value: string) =>
     .toLowerCase()
     .trim();
 
+/** Only phones can hand a file to WhatsApp; desktop share sheets just ask to install it. */
+function isPhone() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 export default function MessagesPage() {
   const { data } = useAdminData();
   if (!data) return <AdminSectionSkeleton />;
@@ -68,6 +74,11 @@ function Messages({ data }: { data: AdminData }) {
 
   const photoUrl =
     photoOverride === undefined ? data.settings.invitation_image_url : photoOverride;
+
+  // The proxy streams the file with an attachment header, so "Descarcă" really
+  // saves it instead of opening a new tab (bucket URLs are cross-origin).
+  const downloadHref =
+    photoUrl && photoUrl.startsWith("http") ? "/invitatia-poza?download=1" : photoUrl;
 
   // Load the photo once, so the mobile share sheet opens instantly with the
   // file attached (awaiting a fetch inside the tap would lose the gesture).
@@ -247,30 +258,51 @@ function Messages({ data }: { data: AdminData }) {
       }
     });
 
-  /** Phone share sheet with the photo attached; WhatsApp link as fallback. */
+  /**
+   * WhatsApp drops the caption when an image is shared through the system share
+   * sheet, so on phones we copy the text and ask the guest to paste it. Desktops
+   * skip that sheet (it only offers to install WhatsApp) and open wa.me with the
+   * text, where the downloaded photo can be dragged into the same message.
+   */
   const sendMessage = async (row: Recipient, text: string) => {
     const href = whatsappHref(phoneOf(row), text);
+    if (!href) {
+      show("Adaugă un număr de telefon ca să trimiți mesajul.", "error");
+      return;
+    }
+
     const attachment = photoUrl ? photo : null;
-    if (
-      attachment &&
-      typeof navigator !== "undefined" &&
-      navigator.canShare?.({ files: [attachment] })
-    ) {
+    let canShareFile = false;
+    if (attachment && isPhone()) {
       try {
-        await navigator.share({ text, files: [attachment] });
+        canShareFile = navigator.canShare?.({ files: [attachment] }) === true;
+      } catch {
+        canShareFile = false;
+      }
+    }
+
+    if (attachment && canShareFile) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // Sharing still works; the text stays visible in the list.
+      }
+      try {
+        await navigator.share({ files: [attachment], text });
+        show("Poza a plecat spre WhatsApp. Textul e copiat — lipește-l ca descriere.", "success");
         return;
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
       }
     }
-    if (!href) {
-      show("Adaugă un număr de telefon ca să trimiți mesajul.", "error");
-      return;
-    }
+
     window.open(href, "_blank", "noreferrer");
-    if (attachment) {
-      show("Mesajul s-a deschis în WhatsApp. Poza se atașează din galerie.", "success");
-    }
+    show(
+      attachment
+        ? "WhatsApp s-a deschis cu textul. Adaugă poza descărcată (butonul Descarcă poza)."
+        : "Mesajul s-a deschis în WhatsApp.",
+      "success",
+    );
   };
 
   const withPhoto = (fullName: string) =>
@@ -324,7 +356,7 @@ function Messages({ data }: { data: AdminData }) {
               {photoUrl && (
                 <>
                   <Button asChild variant="ghost" size="sm">
-                    <a href={photoUrl} download="invitatie.jpg" target="_blank" rel="noreferrer">
+                    <a href={downloadHref ?? undefined} download="invitatie.jpg">
                       <Download className="size-4" /> Descarcă
                     </a>
                   </Button>
@@ -537,28 +569,41 @@ function Messages({ data }: { data: AdminData }) {
       {selectedList.length > 0 && (
         <section className="glass mt-8 rounded-xl p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <h2 className="font-display text-2xl">Mesaje gata de trimis</h2>
               {photoUrl && (
-                <p className="mt-1 text-xs text-ink/50">
-                  Butonul trimite mesajul și poza împreună, prin partajarea telefonului.
+                <p className="mt-1 max-w-xl text-xs text-ink/50">
+                  Pe telefon, butonul copiază textul și trimite poza; lipești textul ca
+                  descriere. Pe calculator, WhatsApp se deschide cu textul, iar poza o
+                  adaugi din fișierul descărcat.
                 </p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() =>
-                copy(
-                  selectedList
-                    .map((row) => `${row.name}\n${withPhoto(row.name)}`)
-                    .join("\n\n"),
-                  "Toate mesajele au fost copiate.",
-                )
-              }
-              className="text-sm text-ink/70 underline decoration-ink/30 underline-offset-4 transition-colors hover:text-ink"
-            >
-              Copiază toate
-            </button>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {photoUrl && (
+                <a
+                  href={downloadHref ?? undefined}
+                  download="invitatie.jpg"
+                  className="inline-flex items-center gap-1.5 text-sm text-ink/70 underline decoration-ink/30 underline-offset-4 transition-colors hover:text-ink"
+                >
+                  <Download className="size-4" /> Descarcă poza
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  copy(
+                    selectedList
+                      .map((row) => `${row.name}\n${withPhoto(row.name)}`)
+                      .join("\n\n"),
+                    "Toate mesajele au fost copiate.",
+                  )
+                }
+                className="text-sm text-ink/70 underline decoration-ink/30 underline-offset-4 transition-colors hover:text-ink"
+              >
+                Copiază toate
+              </button>
+            </div>
           </div>
 
           <ul className="mt-4 space-y-3">
@@ -590,7 +635,7 @@ function Messages({ data }: { data: AdminData }) {
                         disabled={!href}
                       >
                         <MessageCircle className="size-4" />
-                        {photo && photoUrl ? "Trimite cu poza" : "WhatsApp"}
+                        Trimite pe WhatsApp
                       </Button>
                     </div>
                   </div>

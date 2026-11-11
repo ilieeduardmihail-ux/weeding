@@ -6,6 +6,7 @@
  * properties the theme sets, so they follow the palette automatically.
  */
 import type { FloralIntensity, FloralPlacement } from "@/lib/theme";
+import { FLORAL_IMAGES } from "@/lib/theme";
 import { FloralCluster } from "@/components/floral-cluster";
 import { FloralWatercolor } from "@/components/floral-watercolor";
 
@@ -240,24 +241,61 @@ function motif(set: string, id: string) {
 
 /* ------------------------------------------------------------------ layout */
 
-const PLACEMENTS: Record<FloralPlacement, { cls: string; flip?: string; size: string; hide?: string }[]> = {
+/**
+ * How big a corner decoration is. It starts in the corner and reaches about a
+ * quarter of the screen, never more: the width is the smaller of 25% of the
+ * viewport width and 40% of its height, and the height is capped as well, so
+ * four corners never meet in the middle. Every set — drawn or photographed —
+ * uses the same scale.
+ */
+const CORNER = "w-[clamp(7rem,min(25vw,40vh),22rem)] max-h-[40vh]";
+const CORNER_SM = "w-[clamp(5.5rem,min(18vw,30vh),16rem)] max-h-[30vh]";
+
+type Slot = { cls: string; flip?: string; size: string; hide?: string };
+
+// The drawn sets (botanical, eucalyptus, …) are anchored to the bottom-left of
+// their viewBox, so a vertical mirror moves them to the top.
+const PLACEMENTS: Record<FloralPlacement, Slot[]> = {
   corners: [
-    { cls: "bottom-0 left-0", size: "w-[clamp(12rem,18vw,16rem)]", hide: "hidden md:block" },
-    { cls: "top-0 right-0", flip: "rotate-180", size: "w-[clamp(8rem,12vw,11rem)]" },
+    { cls: "bottom-0 left-0", size: CORNER, hide: "hidden md:block" },
+    { cls: "top-0 right-0", flip: "rotate-180", size: CORNER_SM },
   ],
   top: [
-    { cls: "top-0 left-0", flip: "-scale-y-100", size: "w-[clamp(9rem,15vw,13rem)]" },
-    { cls: "top-0 right-0", flip: "-scale-x-100 -scale-y-100", size: "w-[clamp(9rem,15vw,13rem)]" },
+    { cls: "top-0 left-0", flip: "-scale-y-100", size: CORNER },
+    { cls: "top-0 right-0", flip: "-scale-x-100 -scale-y-100", size: CORNER },
   ],
   bottom: [
-    { cls: "bottom-0 left-0", size: "w-[clamp(10rem,16vw,14rem)]" },
-    { cls: "bottom-0 right-0", flip: "-scale-x-100", size: "w-[clamp(10rem,16vw,14rem)]" },
+    { cls: "bottom-0 left-0", size: CORNER },
+    { cls: "bottom-0 right-0", flip: "-scale-x-100", size: CORNER },
   ],
   frame: [
-    { cls: "bottom-0 left-0", size: "w-[clamp(9rem,16vw,14rem)]" },
-    { cls: "bottom-0 right-0", flip: "-scale-x-100", size: "w-[clamp(9rem,16vw,14rem)]" },
-    { cls: "top-0 left-0", flip: "-scale-y-100", size: "w-[clamp(9rem,16vw,14rem)]" },
-    { cls: "top-0 right-0", flip: "-scale-x-100 -scale-y-100", size: "w-[clamp(9rem,16vw,14rem)]" },
+    { cls: "bottom-0 left-0", size: CORNER },
+    { cls: "bottom-0 right-0", flip: "-scale-x-100", size: CORNER },
+    { cls: "top-0 left-0", flip: "-scale-y-100", size: CORNER },
+    { cls: "top-0 right-0", flip: "-scale-x-100 -scale-y-100", size: CORNER },
+  ],
+};
+
+// A photographed corner is drawn for the top-left corner, so the mirroring is
+// the other way round.
+const PHOTO_PLACEMENTS: Record<FloralPlacement, Slot[]> = {
+  corners: [
+    { cls: "top-0 left-0", size: CORNER, hide: "hidden md:block" },
+    { cls: "bottom-0 right-0", flip: "-scale-x-100 -scale-y-100", size: CORNER_SM },
+  ],
+  top: [
+    { cls: "top-0 left-0", size: CORNER },
+    { cls: "top-0 right-0", flip: "-scale-x-100", size: CORNER },
+  ],
+  bottom: [
+    { cls: "bottom-0 left-0", flip: "-scale-y-100", size: CORNER },
+    { cls: "bottom-0 right-0", flip: "-scale-x-100 -scale-y-100", size: CORNER },
+  ],
+  frame: [
+    { cls: "top-0 left-0", size: CORNER },
+    { cls: "top-0 right-0", flip: "-scale-x-100", size: CORNER },
+    { cls: "bottom-0 left-0", flip: "-scale-y-100", size: CORNER },
+    { cls: "bottom-0 right-0", flip: "-scale-x-100 -scale-y-100", size: CORNER },
   ],
 };
 
@@ -272,7 +310,28 @@ export function FloralDecor({
   placement: FloralPlacement;
   id: string;
 }) {
-  const slots = PLACEMENTS[placement] ?? PLACEMENTS.corners;
+  const opacity = OPACITY[intensity];
+  const photo = FLORAL_IMAGES[set];
+
+  // A "frame" picture paints both diagonal corners itself, so it simply covers
+  // the whole landing instead of being mirrored into four slots.
+  if (photo?.kind === "frame") {
+    return (
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        {/* A plain img keeps arbitrary uploaded/replaced artwork working without
+            touching next.config; these are decorative and aria-hidden. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photo.src}
+          alt=""
+          className="h-full w-full object-cover object-center"
+          style={{ opacity }}
+        />
+      </div>
+    );
+  }
+
+  const slots = (photo ? PHOTO_PLACEMENTS : PLACEMENTS)[placement] ?? PLACEMENTS.corners;
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
@@ -280,9 +339,12 @@ export function FloralDecor({
         <div
           key={slot.cls}
           className={`absolute ${slot.cls} ${slot.hide ?? ""} ${slot.flip ?? ""}`}
-          style={{ opacity: OPACITY[intensity] }}
+          style={{ opacity }}
         >
-          {set === "watercolor" ? (
+          {photo ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={photo.src} alt="" className={`block h-auto ${slot.size}`} />
+          ) : set === "watercolor" ? (
             <FloralWatercolor id={`${id}-${index}`} className={`block h-auto ${slot.size}`} />
           ) : set === "botanical" ? (
             <FloralCluster id={`${id}-${index}`} className={`block h-auto ${slot.size}`} />

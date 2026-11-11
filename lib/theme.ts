@@ -140,6 +140,12 @@ export function paletteById(id: string) {
 
 export const FLORAL_SETS = [
   { id: "watercolor", name: "Acuarelă" },
+  { id: "photo-bujori", name: "Poză · bujori roz" },
+  { id: "photo-trandafiri", name: "Poză · trandafiri de grădină" },
+  { id: "photo-botanic", name: "Poză · botanic măsliniu" },
+  { id: "photo-piersica", name: "Poză · piersică" },
+  { id: "photo-delicata", name: "Poză · piersică delicată" },
+  { id: "photo-albastre", name: "Poză · flori albastre" },
   { id: "botanical", name: "Botanic clasic" },
   { id: "eucalyptus", name: "Eucalipt" },
   { id: "roses", name: "Trandafiri" },
@@ -152,6 +158,25 @@ export const FLORAL_SETS = [
   { id: "wildflowers", name: "Flori de câmp" },
   { id: "arch", name: "Arc floral" },
 ] as const;
+
+/**
+ * Floral sets that are real pictures rather than code-drawn vectors. The files
+ * live in /public/florals and were cleaned up (background removed, margins cut,
+ * saved as transparent PNG). A `corner` picture is one bouquet drawn for the
+ * top-left corner and is mirrored into the other corners; a `frame` picture
+ * already contains a decoration in two opposite corners and covers the page as
+ * a whole. These render at a fixed palette-free look, like the "Acuarelă" set.
+ */
+export type FloralImage = { src: string; kind: "corner" | "frame" };
+
+export const FLORAL_IMAGES: Record<string, FloralImage> = {
+  "photo-bujori": { src: "/florals/bujori.png", kind: "corner" },
+  "photo-trandafiri": { src: "/florals/trandafiri-gradina.png", kind: "corner" },
+  "photo-botanic": { src: "/florals/botanic-masliniu.png", kind: "corner" },
+  "photo-piersica": { src: "/florals/piersica-botanica.png", kind: "corner" },
+  "photo-delicata": { src: "/florals/piersica-delicata.png", kind: "corner" },
+  "photo-albastre": { src: "/florals/flori-albastre.png", kind: "corner" },
+};
 
 export const FLORAL_INTENSITIES: { id: FloralIntensity; name: string }[] = [
   { id: "subtle", name: "Discret" },

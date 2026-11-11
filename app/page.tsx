@@ -16,10 +16,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const date = formatEventDate(settings);
   const title = `${settings.partner_1} & ${settings.partner_2}: ${date}`;
   const description = `Vă așteptăm în ${settings.city}, pe ${date}.`;
+  // When a photo is uploaded in /admin/messages, WhatsApp shows it as the link
+  // preview instead of the generated card.
+  const photo = settings.invitation_image_url ? "/invitatia-poza" : undefined;
   return {
     title,
     description,
-    openGraph: { title, description, type: "website", locale: "ro_RO" },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      locale: "ro_RO",
+      ...(photo ? { images: [{ url: photo, alt: `Invitația ${settings.partner_1} & ${settings.partner_2}` }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      ...(photo ? { images: [photo] } : {}),
+    },
   };
 }
 

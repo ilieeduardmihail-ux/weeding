@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
-import { Copy, MessageCircle, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Image from "next/image";
+import { Copy, Download, ImagePlus, MessageCircle, Search, Trash2 } from "lucide-react";
 import type { AdminData } from "@/lib/admin-data";
 import { notifyAdminDataChanged } from "@/lib/admin-data";
 import { useAdminData } from "@/components/admin/admin-data";
@@ -17,7 +18,7 @@ import {
   renderInviteMessage,
   whatsappHref,
 } from "@/lib/message-template";
-import { saveInviteMessage, savePhones, type PhoneEntry } from "@/app/admin/messages/actions";
+import { saveInviteMessage, savePhones, uploadInvitationImage, removeInvitationImage, type PhoneEntry } from "@/app/admin/messages/actions";
 
 type Source = "all" | "rsvp" | "guest";
 
@@ -50,6 +51,7 @@ export default function MessagesPage() {
 function Messages({ data }: { data: AdminData }) {
   const { toast, show, dismiss } = useToast();
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const [template, setTemplate] = useState(data.settings.invite_message || DEFAULT_INVITE_MESSAGE);
   const [query, setQuery] = useState("");
@@ -59,6 +61,35 @@ function Messages({ data }: { data: AdminData }) {
   const [phones, setPhones] = useState<Record<string, string>>({});
   const [savingMessage, startMessage] = useTransition();
   const [savingPhones, startPhones] = useTransition();
+  const [savingPhoto, startPhoto] = useTransition();
+  const [photo, setPhoto] = useState<File | null>(null);
+  // Instant feedback after upload, before the admin dataset refreshes.
+  const [photoOverride, setPhotoOverride] = useState<string | null | undefined>(undefined);
+
+  const photoUrl =
+    photoOverride === undefined ? data.settings.invitation_image_url : photoOverride;
+
+  // Load the photo once, so the mobile share sheet opens instantly with the
+  // file attached (awaiting a fetch inside the tap would lose the gesture).
+  useEffect(() => {
+    if (!photoUrl) return;
+    let alive = true;
+    const source = photoUrl.startsWith("data:") ? photoUrl : "/invitatia-poza";
+    fetch(source, { cache: "no-store" })
+      .then((response) => (response.ok ? response.blob() : null))
+      .then((blob) => {
+        if (!alive || !blob || blob.size === 0) return;
+        const type = blob.type || "image/jpeg";
+        const extension = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+        setPhoto(new File([blob], `invitatie.${extension}`, { type }));
+      })
+      .catch(() => {
+        // Sharing still works without the file: the text opens in WhatsApp.
+      });
+    return () => {
+      alive = false;
+    };
+  }, [photoUrl]);
 
   const recipients = useMemo<Recipient[]>(
     () =>
@@ -145,11 +176,6 @@ function Messages({ data }: { data: AdminData }) {
   };
 
   const previewName = selectedList[0]?.name ?? "Ana Popescu";
-  const preview = renderInviteMessage(template || DEFAULT_INVITE_MESSAGE, {
-    fullName: previewName,
-    settings: data.settings,
-    siteUrl: PUBLIC_SITE_URL,
-  });
 
   const saveMessage = () =>
     startMessage(async () => {
@@ -184,13 +210,163 @@ function Messages({ data }: { data: AdminData }) {
     }
   };
 
+  const pickPhoto = (file: File | null) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      show("Poza trebuie să fie JPG, PNG sau WebP.", "error");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      show("Poza e prea mare. Alege una sub 8 MB.", "error");
+      return;
+    }
+    startPhoto(async () => {
+      const body = new FormData();
+      body.append("file", file);
+      const result = await uploadInvitationImage(body);
+      if (result.ok) {
+        setPhotoOverride(result.url);
+        notifyAdminDataChanged();
+        show("Poza invitației a fost salvată.", "success");
+      } else {
+        show(result.error, "error");
+      }
+      if (fileInput.current) fileInput.current.value = "";
+    });
+  };
+
+  const removePhoto = () =>
+    startPhoto(async () => {
+      const result = await removeInvitationImage();
+      if (result.ok) {
+        setPhotoOverride(null);
+        notifyAdminDataChanged();
+        show("Poza a fost ștearsă.", "success");
+      } else {
+        show(result.error, "error");
+      }
+    });
+
+  /** Phone share sheet with the photo attached; WhatsApp link as fallback. */
+  const sendMessage = async (row: Recipient, text: string) => {
+    const href = whatsappHref(phoneOf(row), text);
+    const attachment = photoUrl ? photo : null;
+    if (
+      attachment &&
+      typeof navigator !== "undefined" &&
+      navigator.canShare?.({ files: [attachment] })
+    ) {
+      try {
+        await navigator.share({ text, files: [attachment] });
+        return;
+      } catch (error) {
+        if ((error as Error).name === "AbortError") return;
+      }
+    }
+    if (!href) {
+      show("Adaugă un număr de telefon ca să trimiți mesajul.", "error");
+      return;
+    }
+    window.open(href, "_blank", "noreferrer");
+    if (attachment) {
+      show("Mesajul s-a deschis în WhatsApp. Poza se atașează din galerie.", "success");
+    }
+  };
+
+  const withPhoto = (fullName: string) =>
+    renderInviteMessage(template || DEFAULT_INVITE_MESSAGE, {
+      fullName,
+      settings: data.settings,
+      siteUrl: PUBLIC_SITE_URL,
+      imageUrl: photoUrl?.startsWith("http")
+        ? new URL("/invitatia-poza", PUBLIC_SITE_URL).toString()
+        : null,
+    });
+
+  const preview = withPhoto(previewName);
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-display text-4xl">Mesaje</h1>
       <p className="mt-2 max-w-2xl text-ink/70">
         Scrie o dată textul invitației, alege invitații și trimite fiecăruia mesajul
-        personalizat pe WhatsApp. Numele și linkul de confirmare se completează singure.
+        personalizat pe WhatsApp. Numele, linkul de confirmare și poza invitației se
+        completează singure.
       </p>
+
+      <section className="glass mt-8 rounded-xl p-5">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-2xl">Poza invitației</h2>
+            <p className="mt-1 max-w-md text-sm text-ink/60">
+              Încarcă fotografia invitației tipărite. Ea apare ca previzualizare când
+              trimiți linkul pe WhatsApp, iar butonul de trimitere o atașează direct pe
+              telefon, acolo unde partajarea cu fișiere este disponibilă.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                aria-label="Alege poza invitației"
+                onChange={(event) => pickPhoto(event.target.files?.[0] ?? null)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInput.current?.click()}
+                disabled={savingPhoto}
+              >
+                <ImagePlus className="size-4" />
+                {savingPhoto ? "Se încarcă…" : photoUrl ? "Schimbă poza" : "Încarcă poza"}
+              </Button>
+              {photoUrl && (
+                <>
+                  <Button asChild variant="ghost" size="sm">
+                    <a href={photoUrl} download="invitatie.jpg" target="_blank" rel="noreferrer">
+                      <Download className="size-4" /> Descarcă
+                    </a>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={removePhoto}
+                    disabled={savingPhoto}
+                  >
+                    <Trash2 className="size-4" /> Șterge
+                  </Button>
+                </>
+              )}
+            </div>
+            <p className="mt-3 text-xs text-ink/45">JPG, PNG sau WebP, până la 8 MB.</p>
+          </div>
+
+          {photoUrl ? (
+            <a
+              href={photoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 transition-transform duration-200 hover:-translate-y-0.5"
+              aria-label="Deschide poza invitației"
+            >
+              <Image
+                src={photoUrl}
+                alt="Poza invitației"
+                width={220}
+                height={275}
+                unoptimized
+                className="max-h-56 w-auto rounded-lg border border-gold/40 object-contain shadow-lg shadow-black/15"
+              />
+            </a>
+          ) : (
+            <div className="flex h-40 w-32 shrink-0 items-center justify-center rounded-lg border border-dashed border-ink/25 text-ink/30">
+              <ImagePlus className="size-6" aria-hidden />
+            </div>
+          )}
+        </div>
+      </section>
 
       <section className="glass mt-8 rounded-xl p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -361,20 +537,20 @@ function Messages({ data }: { data: AdminData }) {
       {selectedList.length > 0 && (
         <section className="glass mt-8 rounded-xl p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-2xl">Mesaje gata de trimis</h2>
+            <div>
+              <h2 className="font-display text-2xl">Mesaje gata de trimis</h2>
+              {photoUrl && (
+                <p className="mt-1 text-xs text-ink/50">
+                  Butonul trimite mesajul și poza împreună, prin partajarea telefonului.
+                </p>
+              )}
+            </div>
             <button
               type="button"
               onClick={() =>
                 copy(
                   selectedList
-                    .map((row) => {
-                      const text = renderInviteMessage(template || DEFAULT_INVITE_MESSAGE, {
-                        fullName: row.name,
-                        settings: data.settings,
-                        siteUrl: PUBLIC_SITE_URL,
-                      });
-                      return `${row.name}\n${text}`;
-                    })
+                    .map((row) => `${row.name}\n${withPhoto(row.name)}`)
                     .join("\n\n"),
                   "Toate mesajele au fost copiate.",
                 )
@@ -387,11 +563,7 @@ function Messages({ data }: { data: AdminData }) {
 
           <ul className="mt-4 space-y-3">
             {selectedList.map((row) => {
-              const text = renderInviteMessage(template || DEFAULT_INVITE_MESSAGE, {
-                fullName: row.name,
-                settings: data.settings,
-                siteUrl: PUBLIC_SITE_URL,
-              });
+              const text = withPhoto(row.name);
               const href = whatsappHref(phoneOf(row), text);
               return (
                 <li key={row.key} className="rounded-lg border border-ink/10 bg-paper/60 p-4">
@@ -411,17 +583,15 @@ function Messages({ data }: { data: AdminData }) {
                       >
                         <Copy className="size-4" /> Copiază
                       </Button>
-                      {href ? (
-                        <Button asChild size="sm">
-                          <a href={href} target="_blank" rel="noreferrer">
-                            <MessageCircle className="size-4" /> WhatsApp
-                          </a>
-                        </Button>
-                      ) : (
-                        <Button type="button" size="sm" disabled>
-                          <MessageCircle className="size-4" /> WhatsApp
-                        </Button>
-                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => sendMessage(row, text)}
+                        disabled={!href}
+                      >
+                        <MessageCircle className="size-4" />
+                        {photo && photoUrl ? "Trimite cu poza" : "WhatsApp"}
+                      </Button>
                     </div>
                   </div>
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink/75">{text}</p>

@@ -18,6 +18,8 @@ export type EventSettings = {
   public_url: string | null;
   /** Editable WhatsApp message shown in /admin/messages. */
   invite_message: string;
+  /** Public URL of the invitation photo attached to WhatsApp messages. */
+  invitation_image_url: string | null;
 };
 
 export const DEFAULT_INVITE_MESSAGE =
@@ -36,6 +38,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   seating_published: false,
   public_url: null,
   invite_message: DEFAULT_INVITE_MESSAGE,
+  invitation_image_url: null,
 };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -96,6 +99,12 @@ export function normalizeSettings(row: Record<string, unknown> | null | undefine
     seating_published: row.seating_published === true,
     public_url: typeof row.public_url === "string" && row.public_url !== "" ? row.public_url : null,
     invite_message: text("invite_message", DEFAULT_EVENT_SETTINGS.invite_message),
+    invitation_image_url:
+      typeof row.invitation_image_url === "string" &&
+      (row.invitation_image_url.startsWith("https://") ||
+        row.invitation_image_url.startsWith("data:image/"))
+        ? row.invitation_image_url
+        : null,
   };
 }
 

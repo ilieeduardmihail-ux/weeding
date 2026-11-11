@@ -31,6 +31,20 @@ describe("invitation message", () => {
     expect(text).toBe("Ana Popescu / Ana / {altceva}");
   });
 
+  it("adds the invitation photo link when one is uploaded", () => {
+    const withPhoto = renderInviteMessage("{nume}: {poza}", {
+      fullName: "Ana Popescu",
+      settings,
+      siteUrl: "https://exemplu.ro",
+      imageUrl: "https://exemplu.ro/invitatia-poza",
+    });
+    expect(withPhoto).toBe("Ana: https://exemplu.ro/invitatia-poza");
+
+    expect(
+      renderInviteMessage("Poza: {poza}", { fullName: "Ana", settings, imageUrl: null }),
+    ).toBe("Poza: ");
+  });
+
   it("uses an invitee fallback when the name is empty", () => {
     expect(
       renderInviteMessage("Bună, {nume}!", { fullName: "", settings, siteUrl: "https://exemplu.ro" }),

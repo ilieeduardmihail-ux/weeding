@@ -14,6 +14,7 @@ export const MESSAGE_PLACEHOLDERS = [
   { token: "{nume_complet}", label: "numele complet" },
   { token: "{data}", label: "data nunții" },
   { token: "{link}", label: "linkul de confirmare" },
+  { token: "{poza}", label: "linkul pozei cu invitația (dacă ai încărcat-o)" },
 ] as const;
 
 /** Canonical public URL; the browser can override it when running on another host. */
@@ -39,6 +40,7 @@ type RenderInput = {
   fullName: string;
   settings: Pick<EventSettings, "event_date">;
   siteUrl?: string;
+  imageUrl?: string | null;
 };
 
 /** Replaces every placeholder in one pass, so names containing `{...}` stay intact. */
@@ -49,8 +51,9 @@ export function renderInviteMessage(template: string, input: RenderInput) {
     "{nume}": firstName(name),
     "{data}": formatEventDate(input.settings),
     "{link}": rsvpLink(input.siteUrl ?? PUBLIC_SITE_URL, name),
+    "{poza}": input.imageUrl ?? "",
   };
-  return template.replace(/\{(?:nume_complet|nume|data|link)\}/g, (token) => values[token] ?? token);
+  return template.replace(/\{(?:nume_complet|nume|data|link|poza)\}/g, (token) => values[token] ?? token);
 }
 
 /** Digits only, because wa.me wants the full international number. */

@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+# local design references (the printed invitation photo is uploaded from the admin)
+/design/
 
 # debug
 npm-debug.log*

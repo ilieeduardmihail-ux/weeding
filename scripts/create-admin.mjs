@@ -96,7 +96,7 @@ console.log(created ? "✔ Cont admin creat" : "✔ Cont admin existent — paro
 console.log(`  Email:  ${email}`);
 console.log(`  Parolă: ${password}`);
 console.log("");
-console.log("La prima autentificare, adminul cere trimiterea emailului de schimbare a parolei.");
+console.log("La prima autentificare, adminul își alege o parolă proprie în popup-ul din admin.");
 if (!passwordArg) {
   console.log("Păstrează parola până la prima logare, apoi nu mai e necesară.");
 }

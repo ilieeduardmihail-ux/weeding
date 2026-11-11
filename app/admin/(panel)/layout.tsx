@@ -26,7 +26,7 @@ export default async function AdminPanelLayout({ children }: { children: React.R
         <AdminNav />
       </Suspense>
       <div className="animate-in fade-in duration-500">{children}</div>
-      {needsPassword && email && <PasswordChangeNotice email={email} />}
+      {email && <PasswordChangeNotice email={email} needsPassword={needsPassword} />}
     </AdminDataProvider>
   );
 }

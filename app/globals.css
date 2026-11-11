@@ -162,8 +162,11 @@ body {
 /* The public wedding site sets its own colour variables on this wrapper (see
    components/theme-root.tsx). Painting the paper here — from those variables —
    keeps the panel pages, which are not wrapped, on the default ivory surface
-   while every client gets its chosen palette. */
-.theme-canvas {
+   while every client gets its chosen palette. `.theme-canvas` still paints the
+   paper inside the admin theme preview; `.theme-paper` is the fixed full-page
+   layer on the public site, kept under the particle canvas. */
+.theme-canvas,
+.theme-paper {
   background-color: var(--color-sea);
   background-image:
     radial-gradient(55rem 38rem at 12% -8%, color-mix(in srgb, var(--color-sage) 16%, transparent), transparent 62%),

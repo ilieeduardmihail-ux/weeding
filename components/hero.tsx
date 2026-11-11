@@ -3,12 +3,15 @@ import { useEffect } from "react";
 import { MotionConfig, motion, useAnimationControls } from "framer-motion";
 import { requestOpenInvitation } from "@/lib/invitation";
 import { FloralDecor } from "@/components/floral-decor";
+import { Countdown } from "@/components/countdown";
 import type { Theme } from "@/lib/theme";
 
 type HeroProps = {
   names: [string, string];
   displayDate: string;
   displayTime: string;
+  /** Exact instant of the wedding, in ISO form, for the countdown. */
+  eventAt: string;
   floral: Theme["floral"];
 };
 
@@ -18,7 +21,7 @@ const rise = {
   show: { opacity: 1, y: 0, transition: { duration: 1, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-export function Hero({ names, displayDate, displayTime, floral }: HeroProps) {
+export function Hero({ names, displayDate, displayTime, eventAt, floral }: HeroProps) {
   const [a, b] = names;
   const controls = useAnimationControls();
 
@@ -60,6 +63,9 @@ export function Hero({ names, displayDate, displayTime, floral }: HeroProps) {
           <motion.p variants={rise} className="mt-8 text-lg">
             {displayDate} · ora {displayTime}
           </motion.p>
+          <motion.div variants={rise} className="w-full">
+            <Countdown targetIso={eventAt} />
+          </motion.div>
           <motion.div
             variants={rise}
             className="mt-12 flex w-full max-w-sm flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center"

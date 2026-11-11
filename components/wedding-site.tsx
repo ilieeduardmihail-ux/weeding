@@ -4,7 +4,7 @@ import { InvitationScreen } from "@/components/invitation-screen";
 import { Schedule } from "@/components/schedule";
 import { RsvpSection } from "@/components/rsvp-section";
 import { ThemeRoot } from "@/components/theme-root";
-import { formatEventDate, isRsvpClosed } from "@/lib/event-settings";
+import { formatEventDate, eventStartIso, isRsvpClosed } from "@/lib/event-settings";
 import { loadPublicPage } from "@/lib/public-page";
 import { resolveTheme } from "@/lib/theme";
 
@@ -41,6 +41,7 @@ export async function WeddingSite({
               names={[settings.partner_1, settings.partner_2]}
               displayDate={formatEventDate(settings)}
               displayTime={settings.event_time}
+              eventAt={eventStartIso(settings)}
               floral={floral}
             />
           }

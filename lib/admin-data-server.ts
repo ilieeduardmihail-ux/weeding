@@ -15,6 +15,7 @@ import { LOCATION_FALLBACK } from "@/lib/admin-data";
 import { DEFAULT_TABLE_CAPACITY } from "@/lib/seating";
 import type { WeddingLocation } from "@/lib/config";
 import type { VenueRow } from "@/lib/restaurant-report";
+import { normalizeTheme } from "@/lib/theme";
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
@@ -27,7 +28,7 @@ export async function loadAdminData(
 ): Promise<AdminData> {
   const tenantId = tenant.id;
 
-  const [rsvpsResult, peopleResult, tablesResult, expensesResult, locationsResult, settingsResult, guestsResult, reportResult] =
+  const [rsvpsResult, peopleResult, tablesResult, expensesResult, locationsResult, settingsResult, guestsResult, reportResult, tenantResult] =
     await Promise.all([
       supabase.from("rsvps").select("*, rsvp_guests(*)").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
       supabase.from("seating_people").select("id, kind, name, table_number").eq("tenant_id", tenantId).order("name"),
@@ -37,6 +38,7 @@ export async function loadAdminData(
       supabase.from("event_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
       supabase.from("guests").select("id, full_name, phone").eq("tenant_id", tenantId),
       supabase.from("venue_report").select("*").eq("tenant_id", tenantId),
+      supabase.from("tenants").select("theme").eq("id", tenantId).maybeSingle(),
     ]);
 
   const people: Person[] = (peopleResult.data ?? []).map((row: Record<string, unknown>) => ({
@@ -87,6 +89,7 @@ export async function loadAdminData(
     expenses,
     locations,
     settings: normalizeSettings(settingsResult.data as Record<string, unknown> | null),
+    theme: normalizeTheme(tenantResult.data?.theme),
     guestNames: (guestsResult.data ?? []).map((guest: Record<string, unknown>) => String(guest.full_name)),
     importedGuests: (guestsResult.data ?? []).map((guest: Record<string, unknown>) => ({
       id: String(guest.id),

@@ -5,6 +5,7 @@
  */
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { tenantIsAvailable } from "@/lib/tenants";
 
 export type ContextTenant = {
   id: string;
@@ -61,8 +62,10 @@ export const getTenantContext = cache(async (): Promise<TenantContext> => {
   };
 });
 
-/** Convenience for the server actions: the tenant they may write to. */
+/** Convenience for the server actions: the tenant they may write to. An expired
+ * or suspended wedding has no writable tenant, so every action fails closed. */
 export async function currentTenantId(): Promise<string | null> {
   const context = await getTenantContext();
-  return context.tenant?.id ?? null;
+  if (!context.tenant || !tenantIsAvailable(context.tenant)) return null;
+  return context.tenant.id;
 }

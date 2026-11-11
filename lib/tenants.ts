@@ -20,8 +20,8 @@ export type Tenant = {
   theme: Record<string, unknown>;
 };
 
-/** Only these tenants are allowed to serve a public site. */
-export function tenantIsAvailable(tenant: Tenant) {
+/** Only these tenants are allowed to serve a public site or an admin panel. */
+export function tenantIsAvailable(tenant: { status: string; expires_at: string | null }) {
   if (tenant.status !== "active") return false;
   return !tenant.expires_at || new Date(tenant.expires_at).getTime() > Date.now();
 }

@@ -3,8 +3,10 @@ import { Hero } from "@/components/hero";
 import { InvitationScreen } from "@/components/invitation-screen";
 import { Schedule } from "@/components/schedule";
 import { RsvpSection } from "@/components/rsvp-section";
+import { ThemeRoot } from "@/components/theme-root";
 import { formatEventDate, isRsvpClosed } from "@/lib/event-settings";
 import { loadPublicPage } from "@/lib/public-page";
+import { resolveTheme } from "@/lib/theme";
 
 /**
  * The public wedding site. Shared by the root (the first wedding, so already
@@ -22,6 +24,7 @@ export async function WeddingSite({
 
   const { settings, locations, tenant } = loaded;
   const params = await searchParams;
+  const { floral } = resolveTheme(tenant.theme);
 
   // Links sent from /admin/messages carry the guest's name, so the invitation
   // opens straight on their RSVP form instead of asking them to type it again.
@@ -29,25 +32,28 @@ export async function WeddingSite({
     typeof params.nume === "string" ? params.nume.replace(/\s+/g, " ").trim().slice(0, 120) : "";
 
   return (
-    <main>
-      <InvitationScreen
-        autoOpen={invited.length >= 2}
-        landing={
-          <Hero
-            names={[settings.partner_1, settings.partner_2]}
-            displayDate={formatEventDate(settings)}
-            displayTime={settings.event_time}
+    <ThemeRoot theme={tenant.theme}>
+      <main>
+        <InvitationScreen
+          autoOpen={invited.length >= 2}
+          landing={
+            <Hero
+              names={[settings.partner_1, settings.partner_2]}
+              displayDate={formatEventDate(settings)}
+              displayTime={settings.event_time}
+              floral={floral}
+            />
+          }
+        >
+          <Schedule locations={locations} intro={settings.locations_intro} />
+          <RsvpSection
+            tenantId={tenant.id}
+            closed={isRsvpClosed(settings)}
+            cutoffDate={settings.rsvp_cutoff_date}
+            initialName={invited}
           />
-        }
-      >
-        <Schedule locations={locations} intro={settings.locations_intro} />
-        <RsvpSection
-          tenantId={tenant.id}
-          closed={isRsvpClosed(settings)}
-          cutoffDate={settings.rsvp_cutoff_date}
-          initialName={invited}
-        />
-      </InvitationScreen>
-    </main>
+        </InvitationScreen>
+      </main>
+    </ThemeRoot>
   );
 }

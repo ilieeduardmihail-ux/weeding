@@ -11,6 +11,7 @@ const links = [
   ["/admin/restaurant", "Restaurant"],
   ["/admin/budget", "Buget"],
   ["/admin/import", "Import"],
+  ["/admin/theme", "Temă"],
   ["/admin/settings", "Setări"],
 ] as const;
 

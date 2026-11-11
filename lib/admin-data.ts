@@ -10,6 +10,7 @@ import type { EventSettings } from "@/lib/event-settings";
 import type { SeatingTable } from "@/lib/seating";
 import type { VenueRow } from "@/lib/restaurant-report";
 import type { WeddingLocation } from "@/lib/config";
+import type { Theme } from "@/lib/theme";
 
 export type AdminData = {
   /** The tenant slug, used to build the WhatsApp RSVP links. */
@@ -20,6 +21,8 @@ export type AdminData = {
   expenses: Expense[];
   locations: WeddingLocation[];
   settings: EventSettings;
+  /** Colour palette and floral decor chosen for this wedding's public site. */
+  theme: Theme;
   /** Names already in the imported-guests list, used to detect duplicates. */
   guestNames: string[];
   /** Imported guests with their contact details, used by /admin/messages. */

@@ -2,12 +2,14 @@
 import { useEffect } from "react";
 import { MotionConfig, motion, useAnimationControls } from "framer-motion";
 import { requestOpenInvitation } from "@/lib/invitation";
-import { FloralCluster } from "@/components/floral-cluster";
+import { FloralDecor } from "@/components/floral-decor";
+import type { Theme } from "@/lib/theme";
 
 type HeroProps = {
   names: [string, string];
   displayDate: string;
   displayTime: string;
+  floral: Theme["floral"];
 };
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.22 } } };
@@ -16,7 +18,7 @@ const rise = {
   show: { opacity: 1, y: 0, transition: { duration: 1, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-export function Hero({ names, displayDate, displayTime }: HeroProps) {
+export function Hero({ names, displayDate, displayTime, floral }: HeroProps) {
   const [a, b] = names;
   const controls = useAnimationControls();
 
@@ -38,18 +40,16 @@ export function Hero({ names, displayDate, displayTime }: HeroProps) {
         animate={controls}
         className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 text-center"
       >
-        {/* Two quiet botanical corners, like the flowers framing the printed
-            invitation. They sit behind the type and never cover it. */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
-          <FloralCluster
-            id="flora-bottom-left"
-            className="absolute bottom-0 left-0 hidden w-[clamp(11rem,17vw,15rem)] opacity-80 md:block"
+        {/* Botanical decor, chosen per wedding in /admin/theme. It sits behind
+            the type and never covers it. */}
+        {floral.enabled && (
+          <FloralDecor
+            set={floral.set}
+            intensity={floral.intensity}
+            placement={floral.placement}
+            id="flora-hero"
           />
-          <FloralCluster
-            id="flora-top-right"
-            className="absolute right-0 top-0 w-[clamp(6.5rem,9vw,8.5rem)] rotate-180 opacity-75"
-          />
-        </div>
+        )}
 
         <div className="relative z-10 flex w-full flex-col items-center">
           <motion.h1 variants={rise} className="font-display text-[clamp(4rem,16vw,11rem)] leading-[0.9] tracking-tight">

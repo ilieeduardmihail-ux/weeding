@@ -129,8 +129,10 @@
   }
 }
 /* wedding theme — palette taken from the printed invitation:
-   warm ivory paper, olive leaves, antique gold foil and dusty rose flowers. */
-@theme inline {
+   warm ivory paper, olive leaves, antique gold foil and dusty rose flowers.
+   Declared without `inline` so the utilities reference the custom properties
+   and each wedding can repaint them from its stored theme. */
+@theme {
   --color-sea: #f4ecdd;      /* page base, also text on dark buttons */
   --color-mist: #e9dcc5;     /* alternate section surface */
   --color-paper: #fbf6ec;    /* raised card surface */
@@ -153,6 +155,26 @@ body {
     radial-gradient(48rem 34rem at 88% 6%, rgb(185 138 147 / 0.30), transparent 66%),
     radial-gradient(60rem 45rem at 50% 110%, rgb(169 133 63 / 0.16), transparent 70%),
     linear-gradient(165deg, #faf5e9 0%, #f3ead8 46%, #ecdfc8 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* The public wedding site sets its own colour variables on this wrapper (see
+   components/theme-root.tsx). Painting the paper here — from those variables —
+   keeps the panel pages, which are not wrapped, on the default ivory surface
+   while every client gets its chosen palette. */
+.theme-canvas {
+  background-color: var(--color-sea);
+  background-image:
+    radial-gradient(55rem 38rem at 12% -8%, color-mix(in srgb, var(--color-sage) 16%, transparent), transparent 62%),
+    radial-gradient(48rem 34rem at 88% 6%, color-mix(in srgb, var(--color-rose) 30%, transparent), transparent 66%),
+    radial-gradient(60rem 45rem at 50% 110%, color-mix(in srgb, var(--color-gold) 16%, transparent), transparent 70%),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-sea) 55%, #ffffff) 0%,
+      var(--color-sea) 48%,
+      color-mix(in srgb, var(--color-sea) 85%, var(--color-gold)) 100%
+    );
   background-attachment: fixed;
   background-repeat: no-repeat;
 }

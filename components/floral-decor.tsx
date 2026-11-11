@@ -7,6 +7,7 @@
  */
 import type { FloralIntensity, FloralPlacement } from "@/lib/theme";
 import { FloralCluster } from "@/components/floral-cluster";
+import { FloralWatercolor } from "@/components/floral-watercolor";
 
 const SAGE = "var(--color-sage)";
 const GOLD = "var(--color-gold)";
@@ -241,22 +242,22 @@ function motif(set: string, id: string) {
 
 const PLACEMENTS: Record<FloralPlacement, { cls: string; flip?: string; size: string; hide?: string }[]> = {
   corners: [
-    { cls: "bottom-0 left-0", size: "w-[clamp(11rem,17vw,15rem)]", hide: "hidden md:block" },
-    { cls: "top-0 right-0", flip: "rotate-180", size: "w-[clamp(6.5rem,9vw,8.5rem)]" },
+    { cls: "bottom-0 left-0", size: "w-[clamp(12rem,18vw,16rem)]", hide: "hidden md:block" },
+    { cls: "top-0 right-0", flip: "rotate-180", size: "w-[clamp(8rem,12vw,11rem)]" },
   ],
   top: [
-    { cls: "top-0 left-0", flip: "-scale-y-100", size: "w-[clamp(7rem,12vw,11rem)]" },
-    { cls: "top-0 right-0", flip: "-scale-x-100 -scale-y-100", size: "w-[clamp(7rem,12vw,11rem)]" },
+    { cls: "top-0 left-0", flip: "-scale-y-100", size: "w-[clamp(9rem,15vw,13rem)]" },
+    { cls: "top-0 right-0", flip: "-scale-x-100 -scale-y-100", size: "w-[clamp(9rem,15vw,13rem)]" },
   ],
   bottom: [
-    { cls: "bottom-0 left-0", size: "w-[clamp(8rem,14vw,13rem)]" },
-    { cls: "bottom-0 right-0", flip: "-scale-x-100", size: "w-[clamp(8rem,14vw,13rem)]" },
+    { cls: "bottom-0 left-0", size: "w-[clamp(10rem,16vw,14rem)]" },
+    { cls: "bottom-0 right-0", flip: "-scale-x-100", size: "w-[clamp(10rem,16vw,14rem)]" },
   ],
   frame: [
-    { cls: "bottom-0 left-0", size: "w-[clamp(6rem,10vw,9rem)]" },
-    { cls: "bottom-0 right-0", flip: "-scale-x-100", size: "w-[clamp(6rem,10vw,9rem)]" },
-    { cls: "top-0 left-0", flip: "-scale-y-100", size: "w-[clamp(6rem,10vw,9rem)]" },
-    { cls: "top-0 right-0", flip: "-scale-x-100 -scale-y-100", size: "w-[clamp(6rem,10vw,9rem)]" },
+    { cls: "bottom-0 left-0", size: "w-[clamp(9rem,16vw,14rem)]" },
+    { cls: "bottom-0 right-0", flip: "-scale-x-100", size: "w-[clamp(9rem,16vw,14rem)]" },
+    { cls: "top-0 left-0", flip: "-scale-y-100", size: "w-[clamp(9rem,16vw,14rem)]" },
+    { cls: "top-0 right-0", flip: "-scale-x-100 -scale-y-100", size: "w-[clamp(9rem,16vw,14rem)]" },
   ],
 };
 
@@ -281,7 +282,9 @@ export function FloralDecor({
           className={`absolute ${slot.cls} ${slot.hide ?? ""} ${slot.flip ?? ""}`}
           style={{ opacity: OPACITY[intensity] }}
         >
-          {set === "botanical" ? (
+          {set === "watercolor" ? (
+            <FloralWatercolor id={`${id}-${index}`} className={`block h-auto ${slot.size}`} />
+          ) : set === "botanical" ? (
             <FloralCluster id={`${id}-${index}`} className={`block h-auto ${slot.size}`} />
           ) : (
             <svg

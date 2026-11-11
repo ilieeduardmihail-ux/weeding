@@ -139,6 +139,7 @@ export function paletteById(id: string) {
 /* -------------------------------------------------------------- floral sets */
 
 export const FLORAL_SETS = [
+  { id: "watercolor", name: "Acuarelă" },
   { id: "botanical", name: "Botanic clasic" },
   { id: "eucalyptus", name: "Eucalipt" },
   { id: "roses", name: "Trandafiri" },
@@ -168,7 +169,7 @@ export const FLORAL_PLACEMENTS: { id: FloralPlacement; name: string }[] = [
 export const DEFAULT_THEME: Theme = {
   palette: "ivory",
   colors: {},
-  floral: { enabled: true, set: "botanical", intensity: "medium", placement: "corners" },
+  floral: { enabled: true, set: "watercolor", intensity: "medium", placement: "frame" },
 };
 
 /* ------------------------------------------------------------------ helpers */

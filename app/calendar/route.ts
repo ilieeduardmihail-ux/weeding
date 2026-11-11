@@ -1,9 +1,9 @@
 import { buildCalendarEvent } from "@/lib/calendar";
-import { getEventSettings } from "@/lib/public-data";
+import { getDefaultEventSettings } from "@/lib/public-data";
 
-/** All-day calendar entry, generated from the settings the couple edits in /admin. */
+/** All-day calendar entry for the wedding served at the root of the domain. */
 export async function GET() {
-  const settings = await getEventSettings();
+  const settings = await getDefaultEventSettings();
   const body = buildCalendarEvent(settings);
 
   return new Response(body, {

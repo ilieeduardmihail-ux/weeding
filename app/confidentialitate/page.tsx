@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Footer } from "@/components/footer";
-import { getEventSettings } from "@/lib/public-data";
+import { getDefaultEventSettings } from "@/lib/public-data";
 import { formatEventDate } from "@/lib/event-settings";
 
 export const instant = false;
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function PrivacyPage() {
   await connection();
-  const settings = await getEventSettings();
+  const settings = await getDefaultEventSettings();
   const names: [string, string] = [settings.partner_1, settings.partner_2];
 
   return (

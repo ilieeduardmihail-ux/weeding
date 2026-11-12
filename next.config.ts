@@ -56,6 +56,16 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  /**
+   * The invoice fonts are read from disk at runtime (`lib/invoice-pdf.ts`), so
+   * the tracer has to be told about them: without this the serverless bundle
+   * ships without `assets/fonts` and every PDF fails in production. Only the
+   * two routes that build a note need them.
+   */
+  outputFileTracingIncludes: {
+    "/platform/facturi/[id]": ["./assets/fonts/**"],
+    "/platform/facturi/[id]/pdf": ["./assets/fonts/**"],
+  },
   experimental: {
     // Prefetched admin sections stay usable in the client router for a while,
     // so going back to a section never starts a fresh server request.

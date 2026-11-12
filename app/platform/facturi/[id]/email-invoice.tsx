@@ -1,81 +1,43 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Check, Copy, Mail } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Check, Copy, Download, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Invoice, IssuerSettings } from "@/lib/platform-types";
-import {
-  MAIL_PROVIDERS,
-  invoiceEmailBody,
-  invoiceEmailCopy,
-  invoiceEmailSubject,
-  invoiceEmailUrl,
-  isEmailLike,
-  isMailProvider,
-  mailProviderOpensTab,
-  type MailProvider,
-} from "@/lib/invoice-email";
-
-/** The owner's usual mail service, remembered in this browser. */
-const PROVIDER_KEY = "wedding:invoice-mail";
-
-/** localStorage does not notify anyone; the choice is re-rendered from state. */
-const subscribeToNothing = () => () => {};
+import { invoiceEmailBody, invoiceEmailCopy, invoiceEmailSubject, isEmailLike } from "@/lib/invoice-email";
+import { sendInvoiceEmail } from "@/app/platform/actions";
 
 /**
- * Sending a note opens the owner's mailbox, not a server: the address is typed
- * here (prefilled when the invoice already has one, editable), the message is
- * already written, and the owner presses Send from a mailbox the client
- * recognises.
+ * The note goes out from the platform's own mailbox, with the PDF attached: the
+ * owner types the address, presses once, and the client receives the same note
+ * they would print. The address is not stored — every send can go elsewhere.
  *
- * It opens *their* webmail directly instead of a `mailto:`, because Windows
- * answers a mailto with "how do you want to open this?" and an empty tab when no
- * mail app is installed — which is exactly the case for someone who reads mail
- * in the browser.
+ * A download and a copy button stay next to it, so the invoice can still be sent
+ * by hand when mail is not configured or a send fails.
  */
 export function EmailInvoice({
   invoice,
   issuer,
+  sender,
 }: {
   invoice: Invoice;
   issuer: IssuerSettings;
+  /** The address invoices are sent from, or null when mail is not configured. */
+  sender: string | null;
 }) {
   const details = useRef<HTMLDetailsElement>(null);
   const [address, setAddress] = useState(invoice.clientEmail ?? "");
-  const [chosen, setChosen] = useState<MailProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pending, start] = useTransition();
 
   // The "Trimite" icon in the invoice list links to `#email`.
   useEffect(() => {
     if (window.location.hash === "#email" && details.current) details.current.open = true;
   }, []);
-
-  // A remembered choice is external state: read it through the store hook so the
-  // server-rendered markup stays untouched and no effect has to set state.
-  const stored = useSyncExternalStore(
-    subscribeToNothing,
-    () => {
-      try {
-        return window.localStorage.getItem(PROVIDER_KEY) ?? "";
-      } catch {
-        return "";
-      }
-    },
-    () => ""
-  );
-  const provider: MailProvider = chosen ?? (isMailProvider(stored) ? stored : "gmail");
-
-  const chooseProvider = (next: MailProvider) => {
-    setChosen(next);
-    try {
-      window.localStorage.setItem(PROVIDER_KEY, next);
-    } catch {
-      // Not remembered; the choice still applies to this send.
-    }
-  };
 
   const send = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -85,19 +47,15 @@ export function EmailInvoice({
       return;
     }
     setError(null);
-    const url = invoiceEmailUrl(provider, invoice, issuer, to);
-    if (mailProviderOpensTab(provider)) {
-      // A real link click opens a tab without the popup blocker's permission,
-      // and drops the opener reference (rel) so the mail site cannot navigate
-      // this panel.
-      const link = document.createElement("a");
-      link.href = url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.click();
-    } else {
-      window.location.href = url;
-    }
+    setSentTo(null);
+    start(async () => {
+      const result = await sendInvoiceEmail({ id: invoice.id, to });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSentTo(to);
+    });
   };
 
   const copy = async () => {
@@ -110,14 +68,12 @@ export function EmailInvoice({
     }
   };
 
-  const opensTab = mailProviderOpensTab(provider);
-
   return (
     <details ref={details} id="email" className="glass mb-8 rounded-xl p-5 print:hidden">
       <summary className="cursor-pointer text-sm font-medium">Trimite pe email</summary>
 
-      <form onSubmit={send} className="mt-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+      {sender ? (
+        <form onSubmit={send} className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="space-y-1">
             <Label htmlFor="invoice-email" className="text-xs">
               Adresa clientului
@@ -128,35 +84,26 @@ export function EmailInvoice({
               inputMode="email"
               autoComplete="off"
               value={address}
-              onChange={(event) => setAddress(event.target.value)}
+              onChange={(event) => {
+                setAddress(event.target.value);
+                setSentTo(null);
+              }}
               placeholder="client@exemplu.ro"
               aria-invalid={Boolean(error)}
               aria-describedby={error ? "invoice-email-error" : undefined}
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="invoice-mail-app" className="text-xs">
-              Trimit prin
-            </Label>
-            <select
-              id="invoice-mail-app"
-              value={provider}
-              onChange={(event) => chooseProvider(event.target.value as MailProvider)}
-              className="h-9 w-full rounded-md border border-ink/20 bg-transparent px-3 text-sm"
-            >
-              {MAIL_PROVIDERS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <Button type="submit" className="mt-4 bg-ink text-sea">
-          <Mail aria-hidden="true" /> Deschide emailul
-        </Button>
-      </form>
+          <Button type="submit" disabled={pending} className="bg-ink text-sea">
+            {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Mail aria-hidden="true" />}
+            {pending ? "Se trimite…" : "Trimite factura"}
+          </Button>
+        </form>
+      ) : (
+        <p className="mt-4 text-sm text-ink/70">
+          Trimiterea automată nu este configurată. Poți descărca factura mai jos și o poți trimite
+          tu, cu orice program de email.
+        </p>
+      )}
 
       {error && (
         <p id="invoice-email-error" role="alert" className="mt-2 text-sm text-red-800">
@@ -164,26 +111,36 @@ export function EmailInvoice({
         </p>
       )}
 
-      <p className="mt-3 text-xs text-ink/60">
-        {opensTab
-          ? "Se deschide un tab nou cu mesajul completat; apeși Trimite acolo."
-          : "Se deschide aplicația de email instalată pe calculator."}{" "}
-        Adresa o poți schimba oricând, iar trimiterea rămâne la tine. Subiect: „
-        {invoiceEmailSubject(invoice, issuer)}”.
-      </p>
+      {sentTo && (
+        <p role="status" className="mt-2 flex items-center gap-2 text-sm text-emerald-800">
+          <Check className="size-4" aria-hidden="true" /> Trimis către {sentTo}.
+        </p>
+      )}
+
+      {sender && (
+        <p className="mt-3 text-xs text-ink/60">
+          Pleacă de la {sender}, cu factura atașată în format PDF. Adresa se scrie aici de fiecare
+          dată și nu se salvează. Subiect: „{invoiceEmailSubject(invoice, issuer)}”.
+        </p>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
+        <Button asChild variant="ghost" size="sm">
+          <a href={`/platform/facturi/${invoice.id}/pdf`}>
+            <Download aria-hidden="true" /> Descarcă PDF
+          </a>
+        </Button>
         <Button type="button" variant="ghost" size="sm" onClick={copy}>
           {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
           {copied ? "Copiat" : "Copiază mesajul"}
         </Button>
-        <span className="text-xs text-ink/55">
-          Dacă nu se deschide nimic, alege altceva la „Trimit prin” sau copiază mesajul.
-        </span>
+        <span className="text-xs text-ink/55">Pentru trimitere manuală, din orice aplicație.</span>
       </div>
 
       <p className="mt-4 text-xs uppercase tracking-[0.2em] text-ink/45">Mesajul care pleacă</p>
-      <p className="mt-1 whitespace-pre-wrap text-sm text-ink/60">{invoiceEmailBody(invoice, issuer)}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm text-ink/60">
+        {invoiceEmailBody(invoice, issuer, { attachment: Boolean(sender) })}
+      </p>
     </details>
   );
 }

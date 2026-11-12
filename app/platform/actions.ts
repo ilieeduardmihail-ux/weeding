@@ -14,6 +14,10 @@ import {
   slugProblem,
 } from "@/lib/platform";
 import { DEFAULT_TENANT_SLUG } from "@/lib/tenants";
+import { loadInvoice } from "@/lib/platform-data";
+import { buildInvoicePdf, invoicePdfFileName } from "@/lib/invoice-pdf";
+import { invoiceEmailBody, invoiceEmailSubject } from "@/lib/invoice-email";
+import { mailConfigured, mailError, sendInvoiceMail } from "@/lib/mail";
 
 export type Result = { ok: true } | { ok: false; error: string };
 export type KeyResult = { ok: true; code: string } | { ok: false; error: string };
@@ -310,6 +314,50 @@ export async function setInvoicePaid(input: z.infer<typeof invoicePaidSchema>): 
   if (error) return { ok: false, error: "Nu am putut actualiza factura." };
 
   revalidatePath("/platform/facturi");
+  return { ok: true };
+}
+
+/**
+ * Sends the note to the address the owner typed, with the PDF attached, from
+ * the platform's Gmail account. The address is not stored: it is chosen per
+ * send, exactly like the rest of the form.
+ */
+const sendInvoiceSchema = z.object({
+  id: z.string().uuid(),
+  to: emailSchema,
+});
+
+export async function sendInvoiceEmail(input: z.infer<typeof sendInvoiceSchema>): Promise<Result> {
+  if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
+  if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
+  if (!mailConfigured()) {
+    return { ok: false, error: "Trimiterea pe email nu este configurată (GMAIL_USER / GMAIL_APP_PASSWORD)." };
+  }
+
+  const parsed = sendInvoiceSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Verifică adresa de email." };
+  }
+
+  const loaded = await loadInvoice(parsed.data.id);
+  if (!loaded) return { ok: false, error: "Factura nu există." };
+
+  const { invoice, issuer } = loaded;
+  const pdf = await buildInvoicePdf(invoice, issuer);
+
+  try {
+    await sendInvoiceMail({
+      to: parsed.data.to,
+      subject: invoiceEmailSubject(invoice, issuer),
+      text: invoiceEmailBody(invoice, issuer, { attachment: true }),
+      fromName: issuer.issuerName.trim() || "Ne căsătorim",
+      replyTo: issuer.issuerEmail.trim() || undefined,
+      attachment: { filename: invoicePdfFileName(invoice), content: Buffer.from(pdf) },
+    });
+  } catch (error) {
+    return { ok: false, error: mailError(error) };
+  }
+
   return { ok: true };
 }
 

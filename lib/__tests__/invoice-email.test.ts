@@ -4,10 +4,7 @@ import {
   invoiceEmailBody,
   invoiceEmailCopy,
   invoiceEmailSubject,
-  invoiceEmailUrl,
-  invoiceMailto,
   isEmailLike,
-  mailProviderOpensTab,
 } from "@/lib/invoice-email";
 import type { Invoice, IssuerSettings } from "@/lib/platform-types";
 
@@ -98,16 +95,12 @@ describe("invoice email", () => {
     expect(body).toContain("Plata se face până la 1 decembrie.");
   });
 
-  it("opens the mail app with subject and body, using CRLF line breaks", () => {
-    const href = invoiceMailto(invoice(), issuer, " client@exemplu.ro ");
-
-    expect(href.startsWith("mailto:client@exemplu.ro?subject=")).toBe(true);
-    expect(href).toContain(encodeURIComponent("Notă de plată nr. 12 — Ilie Eduard"));
-    expect(href).toContain("%0D%0A");
-    expect(href).not.toContain("%0A%0A");
-    expect(decodeURIComponent(href.split("&body=")[1].replace(/%0D/g, ""))).toBe(
-      invoiceEmailBody(invoice(), issuer)
+  it("mentions the attachment only when the note travels as a PDF", () => {
+    expect(invoiceEmailBody(invoice(), issuer)).not.toContain("Atașat");
+    expect(invoiceEmailBody(invoice(), issuer, { attachment: true })).toContain(
+      "Atașat găsiți nota de plată în format PDF."
     );
+    expect(invoiceEmailCopy(invoice(), issuer)).not.toContain("Atașat");
   });
 
   it("puts the subject above the body when copied", () => {
@@ -130,28 +123,5 @@ describe("invoice email", () => {
     expect(invoiceDate("2026-11-20T10:00:00Z")).toBe("20 noiembrie 2026");
     expect(invoiceDate(null)).toBe("");
     expect(invoiceDate("nu-i-o-data")).toBe("");
-  });
-
-  it("opens Gmail's compose window with the note already written", () => {
-    const url = invoiceEmailUrl("gmail", invoice(), issuer, " client@exemplu.ro ");
-
-    expect(url.startsWith("https://mail.google.com/mail/?view=cm&fs=1&to=client%40exemplu.ro&su=")).toBe(
-      true
-    );
-    expect(url).toContain(`&body=${encodeURIComponent(invoiceEmailBody(invoice(), issuer))}`);
-  });
-
-  it("uses each provider's own compose link, and mailto only for the installed app", () => {
-    const starts = (provider: Parameters<typeof invoiceEmailUrl>[0], prefix: string) =>
-      invoiceEmailUrl(provider, invoice(), issuer, "a@b.ro").startsWith(prefix);
-
-    expect(starts("outlook", "https://outlook.live.com/mail/0/deeplink/compose?to=a%40b.ro&")).toBe(true);
-    expect(starts("office", "https://outlook.office.com/mail/deeplink/compose?to=a%40b.ro&")).toBe(true);
-    expect(starts("yahoo", "https://compose.mail.yahoo.com/?to=a%40b.ro&")).toBe(true);
-    expect(starts("app", "mailto:a@b.ro?subject=")).toBe(true);
-
-    expect(mailProviderOpensTab("gmail")).toBe(true);
-    expect(mailProviderOpensTab("office")).toBe(true);
-    expect(mailProviderOpensTab("app")).toBe(false);
   });
 });

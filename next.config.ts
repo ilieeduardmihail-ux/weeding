@@ -6,6 +6,8 @@ import type { NextConfig } from "next";
  * injects inline bootstrap scripts, Supabase Realtime opens a websocket, Vercel
  * Analytics and Google Maps embeds have their own hosts) before enforcing it.
  */
+const isDev = process.env.NODE_ENV === "development";
+
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -16,7 +18,10 @@ const CSP = [
   "media-src 'self' data: blob:",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
+  // `unsafe-eval` is only needed by the dev server's refresh runtime; production
+  // ships without it, so an injected string cannot be turned into code.
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://va.vercel-scripts.com`,
+  "script-src-attr 'none'",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vitals.vercel-insights.com",
   "frame-src https://www.google.com",
 ].join("; ");

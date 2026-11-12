@@ -14,7 +14,7 @@ export const SUPABASE_KEY = (
 ).trim();
 
 /**
- * Server-only key used to create auth accounts from the platform panel.
- * Never import this in a client component.
+ * The service-role key lives in `./service-env`, which imports `server-only`:
+ * that file cannot be pulled into a client bundle by mistake. Everything here
+ * is safe to ship to the browser.
  */
-export const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();

@@ -3,6 +3,13 @@
  * scoped to one tenant, so the whole admin panel costs one round trip and never
  * shows another client's data.
  */
+/**
+ * Next keeps this module on the server: importing it from a client component
+ * would leak the dataset loader (and the service of reading every table) into
+ * the browser bundle. `server-only` turns that mistake into a build error.
+ */
+import "server-only";
+
 import type { Kind, Person } from "@/components/admin/seating-board";
 import type { GuestRow } from "@/components/admin/guest-list";
 import type { Expense } from "@/components/admin/budget-tracker";

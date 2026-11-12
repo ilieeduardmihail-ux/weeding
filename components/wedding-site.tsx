@@ -48,7 +48,7 @@ export async function WeddingSite({
         >
           <Schedule locations={locations} intro={settings.locations_intro} />
           <RsvpSection
-            tenantId={tenant.id}
+            token={loaded.token}
             slug={slug}
             closed={isRsvpClosed(settings)}
             cutoffDate={settings.rsvp_cutoff_date}

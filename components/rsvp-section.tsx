@@ -9,10 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Reveal } from "@/components/ui/reveal";
 
-// The reply form (and the form library plus schema it depends on) is only
-// fetched once a guest actually reaches the form: typing a name and pressing
-// "Continuă" already involves a server round-trip, so the extra chunk lands
-// well before it matters, and the first visit stays light.
+// The reply form is only fetched once a guest actually reaches it: typing a name
+// and pressing "Continuă" already involves a server round-trip, so the extra
+// chunk lands well before it matters and the first visit stays light.
 const RsvpForm = dynamic(() => import("@/components/rsvp-form").then((mod) => mod.RsvpForm), {
   ssr: false,
   loading: () => <div aria-hidden className="glass mt-8 h-44 animate-pulse rounded-xl" />,
@@ -71,19 +70,19 @@ const formatDate = (iso: string) =>
   }).format(new Date(`${iso}T12:00:00Z`));
 
 export function RsvpSection({
-  tenantId,
+  token,
   slug,
   closed,
   cutoffDate,
   initialName = "",
 }: {
-  tenantId: string;
+  token: string;
   slug: string;
   closed: boolean;
   cutoffDate: string | null;
   initialName?: string;
 }) {
-  if (!closed) return <RsvpFlow tenantId={tenantId} slug={slug} initialName={initialName} />;
+  if (!closed) return <RsvpFlow token={token} slug={slug} initialName={initialName} />;
 
   return (
     <section id="rsvp" className="mx-auto max-w-xl scroll-mt-24 px-6 py-24">
@@ -101,7 +100,7 @@ export function RsvpSection({
   );
 }
 
-function RsvpFlow({ tenantId, slug, initialName }: { tenantId: string; slug: string; initialName: string }) {
+function RsvpFlow({ token, slug, initialName }: { token: string; slug: string; initialName: string }) {
   const [view, setView] = useState<View>("lookup");
   const [name, setName] = useState(initialName);
   const [status, setStatus] = useState<RsvpStatus | null>(null);
@@ -114,7 +113,7 @@ function RsvpFlow({ tenantId, slug, initialName }: { tenantId: string; slug: str
   const lookup = (who: string) =>
     start(async () => {
       setError(null);
-      const r = await checkRsvpStatus(who, tenantId);
+      const r = await checkRsvpStatus(who, token);
       if (!r.ok) { setError(r.error); return; }
       if (r.status) { setStatus(r.status); setNotFound(false); setView("card"); return; }
       setNotFound(true); // no reply under this name yet, so show the form
@@ -152,7 +151,7 @@ function RsvpFlow({ tenantId, slug, initialName }: { tenantId: string; slug: str
         {view === "form" && (
           <>
             <RsvpForm
-              tenantId={tenantId}
+              token={token}
               slug={slug}
               initialName={clean}
               // The server already confirmed the write, so the thank-you card

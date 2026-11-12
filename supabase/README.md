@@ -46,6 +46,15 @@ Fără această migrare, paginile **Buget** și **Mese** afișează erori la sal
 
 Fără această migrare: cheltuielile noi cad pe `RON`, retragerea la „Fără masă” dă eroare, iar lista din admin se actualizează doar prin reîmprospătare (polling-ul de 15 s rămâne activ).
 
+## Ce face `migration-v23-rsvp-hardening`
+
+- `submit_rsvp` și `check_rsvp_status` ies din API-ul public: `anon` și `authenticated` pierd dreptul de execuție, rămâne doar `service_role`. Aplicația le apelează din server actions, cu cheia de service, unde hash-ul de IP e calculat din header-ele cererii. Înainte, oricine putea chema PostgREST direct cu un `p_ip_hash` inventat și ocoli limita pe IP.
+- Plafon pe toată nunta: 300 de răspunsuri pe oră, ca o rețea de boți cu IP-uri diferite să nu poată inunda o listă.
+
+Rulează-o **după** deploy-ul care folosește service role pentru RSVP. Dacă o rulezi înainte, versiunea veche din producție (care folosea cheia publică) nu mai poate trimite răspunsuri până la deploy.
+
+Fără această migrare: RSVP-ul și verificarea răspunsului funcționează în continuare (serverul are acces oricum), dar limita pe IP rămâne ocolibilă, iar `submit_rsvp` rămâne apelabil public.
+
 ## Dacă apare o eroare
 
 - `42P07 relation "rsvps" already exists` → `schema.sql` a rulat deja. **Nu** îl rula din nou; treci la `migration-v2.sql`.

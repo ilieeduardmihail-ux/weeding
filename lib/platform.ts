@@ -1,10 +1,17 @@
 /**
  * Server-only helpers for the platform owner: the service-role client (bypasses
  * RLS, so it is only ever used after an owner check) and access-key handling.
+ *
+ * Access keys are generated with `crypto.randomBytes` and only their SHA-256
+ * hash is stored, so a client can never mint a working key: the alphabet is
+ * server-side, and a row in `access_keys` is worthless without the code itself.
  */
+import "server-only";
+
 import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
+import { SUPABASE_URL } from "@/lib/supabase/env";
+import { SUPABASE_SERVICE_ROLE_KEY } from "@/lib/supabase/service-env";
 import { demoMode } from "@/lib/demo/mode";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 

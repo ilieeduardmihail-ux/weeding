@@ -1,61 +1,106 @@
 "use client";
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useRef, useState, useTransition, useEffect } from "react";
 import Link from "next/link";
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { rsvpSchema, type RsvpInput } from "@/lib/schemas";
 import { MAX_GUESTS } from "@/lib/config";
+import { hasErrors, toRsvpInput, validateRsvp, type RsvpErrors } from "@/lib/rsvp-validation";
 import { submitRsvp } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function RsvpForm({ tenantId, slug, initialName = "", onDone }: { tenantId: string; slug: string; initialName?: string; onDone: (name: string) => void }) {
+type Guest = { id: number; name: string; isChild: boolean };
+
+const NO_ERRORS: RsvpErrors = { guests: {} };
+
+export function RsvpForm({ token, slug, initialName = "", onDone }: { token: string; slug: string; initialName?: string; onDone: (name: string) => void }) {
+  const [name, setName] = useState(initialName);
+  const [attending, setAttending] = useState<"yes" | "no">("yes");
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [message, setMessage] = useState("");
+  const [errors, setErrors] = useState<RsvpErrors>(NO_ERRORS);
   const [serverError, setServerError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
   const [pending, start] = useTransition();
+  // Honeypot stays uncontrolled: it must not re-render anything while typing.
+  const website = useRef<HTMLInputElement>(null);
+  const nextGuest = useRef(0);
   // When the form appeared, so the server can tell a person from an instant bot.
   const openedAt = useRef(0);
   useEffect(() => {
     openedAt.current = Date.now();
   }, []);
 
-  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<RsvpInput>({
-    resolver: zodResolver(rsvpSchema),
-    defaultValues: { name: initialName, attending: "yes", guests: [], message: "", website: "" },
-  });
-  const { fields, append, remove } = useFieldArray({ control, name: "guests" });
-  const attending = watch("attending");
+  const clearError = (key: "name" | "message") =>
+    setErrors((current) => (current[key] ? { ...current, [key]: undefined } : current));
 
-  const onSubmit = (data: RsvpInput) => {
-    if (!consent) {
-      setConsentError(true);
+  const addGuest = () => {
+    if (guests.length >= MAX_GUESTS) return;
+    nextGuest.current += 1;
+    setGuests((current) => [...current, { id: nextGuest.current, name: "", isChild: false }]);
+  };
+
+  const removeGuest = (index: number) => {
+    setGuests((current) => current.filter((_, i) => i !== index));
+    // Guest errors are keyed by position, so they all shift with the list.
+    setErrors((current) => ({ ...current, guests: {} }));
+  };
+
+  const updateGuest = (index: number, patch: Partial<Guest>) => {
+    setGuests((current) => current.map((guest, i) => (i === index ? { ...guest, ...patch } : guest)));
+    setErrors((current) => {
+      if (!current.guests[index]) return current;
+      const next = { ...current.guests };
+      delete next[index];
+      return { ...current, guests: next };
+    });
+  };
+
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const draft = { name, attending, guests, message };
+    const found = validateRsvp(draft);
+    setErrors(found);
+    if (!consent) setConsentError(true);
+
+    if (hasErrors(found)) {
+      const firstGuest = Object.keys(found.guests)[0];
+      const target = found.name ? "name" : firstGuest !== undefined ? `guest-${firstGuest}` : "message";
+      document.getElementById(target)?.focus();
       return;
     }
+    if (!consent) return;
+
     setServerError(null);
     start(async () => {
       const res = await submitRsvp(
-        { ...data, consent: true, elapsedMs: Date.now() - openedAt.current },
-        tenantId
+        { ...toRsvpInput(draft), website: website.current?.value ?? "", consent: true, elapsedMs: Date.now() - openedAt.current },
+        token
       );
-      if (res.ok) onDone(data.name.trim());
+      if (res.ok) onDone(draft.name.trim());
       else setServerError(res.error);
     });
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="glass mt-8 space-y-6 rounded-xl p-5" noValidate>
+    <form onSubmit={onSubmit} className="glass mt-8 space-y-6 rounded-xl p-5" noValidate>
       {/* Honeypot: off-screen, skipped by keyboards and screen readers, still visible to bots */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
-        <label>Website <input type="text" tabIndex={-1} autoComplete="off" {...register("website")} /></label>
+        <label>Website <input ref={website} type="text" tabIndex={-1} autoComplete="off" /></label>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="name">Numele complet</Label>
-        <Input id="name" autoComplete="name" aria-invalid={!!errors.name} aria-describedby="name-hint" {...register("name")} />
+        <Input
+          id="name"
+          autoComplete="name"
+          value={name}
+          onChange={(event) => { setName(event.target.value); clearError("name"); }}
+          aria-invalid={!!errors.name}
+          aria-describedby="name-hint"
+        />
         <p id="name-hint" className="text-sm text-ink/60">Folosește numele de pe invitație. Îl vei folosi și ca să-ți verifici răspunsul.</p>
-        {errors.name && <p className="text-sm text-red-700">{errors.name.message}</p>}
+        {errors.name && <p className="text-sm text-red-700">{errors.name}</p>}
       </div>
 
       <fieldset className="space-y-2">
@@ -66,7 +111,7 @@ export function RsvpForm({ tenantId, slug, initialName = "", onDone }: { tenantI
               key={v}
               type="button"
               aria-pressed={attending === v}
-              onClick={() => setValue("attending", v)}
+              onClick={() => setAttending(v)}
               className={`rounded-md border px-4 py-3 transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
                 attending === v ? "border-ink bg-ink text-sea shadow-lg shadow-black/20" : "border-ink/30 hover:border-ink hover:bg-ink/5"
               }`}
@@ -81,20 +126,27 @@ export function RsvpForm({ tenantId, slug, initialName = "", onDone }: { tenantI
         <div className="animate-drop-in motion-reduce:animate-none">
           <div className="space-y-4 pb-1">
             <p className="text-sm font-medium">Alte persoane din grupul tău</p>
-            {fields.map((f, i) => (
-              <div key={f.id} className="flex items-start gap-3">
+            {guests.map((guest, i) => (
+              <div key={guest.id} className="flex items-start gap-3">
                 <div className="flex-1 space-y-1">
-                  <Input aria-label={`Numele persoanei ${i + 1}`} placeholder="Nume complet" {...register(`guests.${i}.name`)} />
-                  {errors.guests?.[i]?.name && <p className="text-sm text-red-700">{errors.guests[i]!.name!.message}</p>}
+                  <Input
+                    id={`guest-${i}`}
+                    aria-label={`Numele persoanei ${i + 1}`}
+                    placeholder="Nume complet"
+                    value={guest.name}
+                    onChange={(event) => updateGuest(i, { name: event.target.value })}
+                    aria-invalid={!!errors.guests[i]}
+                  />
+                  {errors.guests[i] && <p className="text-sm text-red-700">{errors.guests[i]}</p>}
                   <label className="flex items-center gap-2 text-sm text-ink/75">
-                    <input type="checkbox" {...register(`guests.${i}.isChild`)} /> Copil
+                    <input type="checkbox" checked={guest.isChild} onChange={(event) => updateGuest(i, { isChild: event.target.checked })} /> Copil
                   </label>
                 </div>
-                <Button type="button" variant="ghost" onClick={() => remove(i)}>Elimină</Button>
+                <Button type="button" variant="ghost" onClick={() => removeGuest(i)}>Elimină</Button>
               </div>
             ))}
-            {fields.length < MAX_GUESTS && (
-              <Button type="button" variant="outline" onClick={() => append({ name: "", isChild: false })}>Adaugă o persoană</Button>
+            {guests.length < MAX_GUESTS && (
+              <Button type="button" variant="outline" onClick={addGuest}>Adaugă o persoană</Button>
             )}
           </div>
         </div>
@@ -102,9 +154,11 @@ export function RsvpForm({ tenantId, slug, initialName = "", onDone }: { tenantI
 
       <div className="space-y-2">
         <Label htmlFor="message">Mesaj pentru mir(i) (opțional)</Label>
-        <textarea id="message" rows={3} {...register("message")}
+        <textarea id="message" rows={3} value={message}
+          onChange={(event) => { setMessage(event.target.value); clearError("message"); }}
+          aria-invalid={!!errors.message}
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 transition-[border-color,box-shadow] duration-200 focus-visible:border-gold focus-visible:outline-2 focus-visible:outline-gold" />
-        {errors.message && <p className="text-sm text-red-700">{errors.message.message}</p>}
+        {errors.message && <p className="text-sm text-red-700">{errors.message}</p>}
       </div>
 
       <div className="space-y-2 rounded-lg border border-ink/15 bg-ink/5 p-3">
@@ -146,7 +200,7 @@ export function RsvpForm({ tenantId, slug, initialName = "", onDone }: { tenantI
 
       {serverError && <p role="alert" className="text-red-700">{serverError}</p>}
       <Button type="submit" size="lg" disabled={pending} className="w-full bg-ink text-sea hover:bg-ink/85">
-        {pending ? "Se trimite…" : "Trimite răspunsul"}
+        {pending ? "Se trimite..." : "Trimite răspunsul"}
       </Button>
     </form>
   );

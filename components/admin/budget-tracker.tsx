@@ -1,6 +1,5 @@
 "use client";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,11 +123,11 @@ const ExpenseRow = memo(function ExpenseRow({
   // silently showing the first option of the new list.
   const knownCategory = (CATEGORIES as readonly string[]).includes(x.category);
   return (
-    <motion.li
-      initial={{ opacity: 0, y: 14, scale: 0.985 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className={cx("glass-soft card-hover rounded-lg p-4", x.pending && "opacity-80")}
+    <li
+      className={cx(
+        "glass-soft card-hover rounded-lg p-4 animate-in fade-in slide-in-from-bottom-1 duration-200",
+        x.pending && "opacity-80",
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -181,7 +180,7 @@ const ExpenseRow = memo(function ExpenseRow({
         </Button>
       </div>
       {x.notes && <p className="mt-1 text-sm text-ink/60">{x.notes}</p>}
-    </motion.li>
+    </li>
   );
 });
 

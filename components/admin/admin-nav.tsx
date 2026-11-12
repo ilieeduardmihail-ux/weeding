@@ -30,9 +30,9 @@ export function AdminNav() {
             <Link
               key={suffix || "home"}
               href={href}
-              // Every section is a static shell reading shared client data, so a
-              // full prefetch makes the click render from the router cache.
-              prefetch
+              // Default (viewport) prefetch: sections still render from the
+              // router cache on click, but opening the panel no longer fires an
+              // eager request for all eleven links at once.
               aria-current={path === href ? "page" : undefined}
               className={`shrink-0 rounded-md px-3 py-2 text-sm transition-[background-color,color,box-shadow,transform] duration-200 ease-out hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
                 path === href ? "bg-ink text-sea shadow-md shadow-black/20" : "hover:bg-ink/10"

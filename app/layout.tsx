@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Figtree } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { Particles } from "@/components/particles";
 import "./globals.css";
 
 const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces" });
@@ -18,7 +17,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ro" data-scroll-behavior="smooth" className={`${fraunces.variable} ${figtree.variable}`}>
       <body className="bg-sea font-sans text-ink antialiased">
-        <Particles />
         {children}
         <Analytics />
       </body>

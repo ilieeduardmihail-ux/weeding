@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AnimatePresence, motion } from "framer-motion";
 import { Armchair } from "lucide-react";
 import { adminRsvpSchema, type AdminRsvpInput } from "@/lib/admin-rsvp-schema";
 import { MAX_GUESTS } from "@/lib/config";
@@ -90,16 +89,9 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
         </div>
       </fieldset>
 
-      <AnimatePresence initial={false}>
-        {attending === "yes" && (
-          <motion.div
-            key="party"
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-          >
-            <div className="space-y-4 pb-1">
+      {attending === "yes" && (
+        <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="space-y-4 pb-1">
               <div>
                 <p className="text-sm font-medium">Însoțitorii</p>
                 <p className="text-xs text-ink/60">
@@ -146,10 +138,9 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
                   Adaugă o persoană
                 </Button>
               )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="admin-message">Mesaj (opțional)</Label>

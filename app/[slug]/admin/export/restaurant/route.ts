@@ -15,7 +15,10 @@ export async function GET(request: Request) {
   const tenantId = await currentTenantId();
   if (!tenantId) return new Response("Neautorizat", { status: 401 });
 
-  const { data, error } = await supabase.from("venue_report").select("*").eq("tenant_id", tenantId);
+  const { data, error } = await supabase
+    .from("venue_report")
+    .select("kind, name, is_child, table_number, counted")
+    .eq("tenant_id", tenantId);
   if (error) return new Response("Nu am putut citi datele.", { status: 500 });
 
   const report = buildRestaurantReport((data ?? []) as VenueRow[]);

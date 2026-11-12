@@ -7,7 +7,6 @@ import {
   type MouseSensorOptions, type TouchSensorOptions,
 } from "@dnd-kit/core";
 import { Plus, Undo2, X } from "lucide-react";
-import { motion } from "framer-motion";
 import { addTable, assignTable, deleteGuest, deleteTable, setTableCapacity } from "@/app/admin/seating/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,12 +80,7 @@ const PersonChip = memo(function PersonChip({
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: keyOf(p) });
   return (
-    <motion.li
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="flex items-center gap-1"
-    >
+    <li className="flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
       <div
         ref={setNodeRef}
         {...listeners}
@@ -112,7 +106,7 @@ const PersonChip = memo(function PersonChip({
           <X className="size-4" />
         </button>
       )}
-    </motion.li>
+    </li>
   );
 });
 
@@ -143,14 +137,11 @@ const TableCard = memo(function TableCard({
   };
 
   return (
-    <motion.section
+    <section
       ref={setNodeRef}
-      initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       aria-label={`Masa ${n}, ${members.length} din ${capacity} locuri ocupate`}
       className={cx(
-        "glass-soft card-hover group relative rounded-2xl border p-3",
+        "glass-soft card-hover group relative rounded-2xl border p-3 animate-in fade-in zoom-in-95 duration-200",
         isOver
           ? (full ? "border-red-500 bg-red-600/10" : "border-gold bg-gold/10")
           : "border-ink/15"
@@ -196,7 +187,7 @@ const TableCard = memo(function TableCard({
           className="w-12 rounded border border-ink/20 bg-transparent px-1 py-0.5 text-center text-xs tabular-nums focus:border-gold focus:outline-none"
         />
       </div>
-    </motion.section>
+    </section>
   );
 });
 

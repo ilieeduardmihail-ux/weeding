@@ -1,5 +1,3 @@
-import Papa from "papaparse";
-
 const MAX_NAMES = 500;
 const MAX_BYTES = 2 * 1024 * 1024;
 const HEADER = /^(nume|name|invitat|invita[tț]i|guest|guests|nume [sș]i prenume|full name)$/i;
@@ -20,6 +18,7 @@ export async function parseFile(file: File): Promise<string[]> {
   if (ext === "txt") {
     return parseText(await file.text());
   } else if (ext === "csv") {
+    const Papa = (await import("papaparse")).default; // loaded only for CSV
     rows = Papa.parse<string[]>(await file.text(), { skipEmptyLines: true }).data;
   } else if (ext === "xlsx" || ext === "xls") {
     const XLSX = await import("xlsx"); // loaded only when needed

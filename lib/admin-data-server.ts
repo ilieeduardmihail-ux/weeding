@@ -33,11 +33,11 @@ export async function loadAdminData(
       supabase.from("rsvps").select("*, rsvp_guests(*)").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
       supabase.from("seating_people").select("id, kind, name, table_number").eq("tenant_id", tenantId).order("name"),
       supabase.from("seating_tables").select("number, capacity").eq("tenant_id", tenantId).order("number"),
-      supabase.from("expenses").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+      supabase.from("expenses").select("id, item_name, category, currency, total_cost, amount_paid, notes").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
       supabase.from("locations").select("key, label, name, address, event_time, embed_url").eq("tenant_id", tenantId).order("key", { ascending: true }),
       supabase.from("event_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
       supabase.from("guests").select("id, full_name, phone").eq("tenant_id", tenantId),
-      supabase.from("venue_report").select("*").eq("tenant_id", tenantId),
+      supabase.from("venue_report").select("kind, name, is_child, table_number, counted").eq("tenant_id", tenantId),
       supabase.from("tenants").select("theme").eq("id", tenantId).maybeSingle(),
     ]);
 

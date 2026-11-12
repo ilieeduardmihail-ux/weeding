@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Footer } from "@/components/footer";
+import { Particles } from "@/components/particles";
 import { formatEventDate, type EventSettings } from "@/lib/event-settings";
 
 /**
@@ -16,6 +17,7 @@ export function PrivacyPolicy({ settings, slug }: { settings: EventSettings; slu
 
   return (
     <main className="min-h-svh">
+      <Particles />
       <article className="mx-auto max-w-2xl px-6 py-16">
         <Link
           href={base}

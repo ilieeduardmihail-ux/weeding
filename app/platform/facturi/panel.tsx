@@ -321,11 +321,17 @@ function NewInvoiceForm({
   const pick = (id: string) => {
     setClientId(id);
     const client = clients.find((item) => item.id === id);
-    if (client) {
-      setName(client.displayName);
-      setSlug(client.slug);
-      setEmail(client.email ?? "");
+    if (!client) {
+      // "fără client (manual)": start from a blank note instead of keeping the
+      // previous client's details.
+      setName("");
+      setSlug("");
+      setEmail("");
+      return;
     }
+    setName(client.displayName);
+    setSlug(client.slug);
+    setEmail(client.email ?? "");
   };
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -394,6 +400,18 @@ function NewInvoiceForm({
           />
         </div>
         <div className="space-y-1">
+          <Label htmlFor="inv-email" className="text-xs">
+            Email client (opțional)
+          </Label>
+          <Input
+            id="inv-email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="client@exemplu.ro"
+          />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
           <Label htmlFor="inv-slug" className="text-xs">
             Adresă (opțional)
           </Label>

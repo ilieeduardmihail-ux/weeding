@@ -30,12 +30,21 @@ export default async function InvoicesPage() {
         { tenants: [], owners: [] },
       ];
 
-  const clients: InvoiceClient[] = overview.tenants.map((tenant) => ({
-    id: tenant.id,
-    slug: tenant.slug,
-    displayName: tenant.displayName,
-    email: tenant.admins[0]?.email ?? null,
-  }));
+  // A wedding's first admin is usually also its owner account, which is not
+  // what belongs on an invoice. Prefer the first admin that is not one of this
+  // platform's owners; the form still lets the address be edited or cleared.
+  const ownerEmails = new Set(overview.owners.map((email) => email.trim().toLowerCase()));
+
+  const clients: InvoiceClient[] = overview.tenants.map((tenant) => {
+    const admins = tenant.admins.map((admin) => admin.email);
+    const clientAdmin = admins.find((email) => !ownerEmails.has(email.trim().toLowerCase()));
+    return {
+      id: tenant.id,
+      slug: tenant.slug,
+      displayName: tenant.displayName,
+      email: clientAdmin ?? null,
+    };
+  });
 
   return (
     <InvoicesPanel

@@ -89,3 +89,57 @@ export function invoiceMailto(invoice: Invoice, issuer: IssuerSettings, to: stri
 export function invoiceEmailCopy(invoice: Invoice, issuer: IssuerSettings): string {
   return `${invoiceEmailSubject(invoice, issuer)}\n\n${invoiceEmailBody(invoice, issuer)}`;
 }
+
+/**
+ * Where the message is written. `mailto:` is only one of the answers: on a
+ * machine with no mail app installed Windows answers it with "how do you want
+ * to open this?" and then an empty tab, so webmail has to be opened directly.
+ */
+export type MailProvider = "gmail" | "outlook" | "office" | "yahoo" | "app";
+
+export const MAIL_PROVIDERS: { id: MailProvider; label: string }[] = [
+  { id: "gmail", label: "Gmail" },
+  { id: "outlook", label: "Outlook / Hotmail" },
+  { id: "office", label: "Outlook de la serviciu" },
+  { id: "yahoo", label: "Yahoo Mail" },
+  { id: "app", label: "Aplicația mea de email" },
+];
+
+export function isMailProvider(value: string | null): value is MailProvider {
+  return MAIL_PROVIDERS.some((item) => item.id === value);
+}
+
+/** True when the link opens a web page instead of the installed mail app. */
+export function mailProviderOpensTab(provider: MailProvider): boolean {
+  return provider !== "app";
+}
+
+/**
+ * The compose window of the chosen mail service, with the note already written.
+ * Every one of these is a documented deep link that works while signed in; the
+ * owner only presses Send.
+ */
+export function invoiceEmailUrl(
+  provider: MailProvider,
+  invoice: Invoice,
+  issuer: IssuerSettings,
+  to: string
+): string {
+  const address = encodeURIComponent(to.trim());
+  if (provider === "app") return invoiceMailto(invoice, issuer, to);
+
+  const subject = encodeURIComponent(invoiceEmailSubject(invoice, issuer));
+  const body = encodeURIComponent(invoiceEmailBody(invoice, issuer));
+
+  switch (provider) {
+    case "outlook":
+      return `https://outlook.live.com/mail/0/deeplink/compose?to=${address}&subject=${subject}&body=${body}`;
+    case "office":
+      return `https://outlook.office.com/mail/deeplink/compose?to=${address}&subject=${subject}&body=${body}`;
+    case "yahoo":
+      return `https://compose.mail.yahoo.com/?to=${address}&subject=${subject}&body=${body}`;
+    default:
+      return `https://mail.google.com/mail/?view=cm&fs=1&to=${address}&su=${subject}&body=${body}`;
+  }
+}
+

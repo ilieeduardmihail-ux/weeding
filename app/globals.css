@@ -184,6 +184,59 @@ body {
 
 
 /* ---------------------------------------------------------------------------
+   Motion: the guest site's entrances, written as plain CSS so the public page
+   no longer ships an animation library (~49 KB compressed). Every utility is
+   paired with `motion-reduce:animate-none` where it is used, and the scroll
+   reveal below falls back to "already visible" when the visitor asks for less
+   motion.
+   --------------------------------------------------------------------------- */
+@theme {
+  --animate-rise: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-screen-in: screen-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-swap-in: swap-in 0.25s ease-out both;
+  --animate-drop-in: drop-in 0.22s ease-out both;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translate3d(0, 28px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes screen-in {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes swap-in {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes drop-in {
+  from { opacity: 0; transform: translate3d(0, -6px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Scroll reveal (components/ui/reveal.tsx). The observer adds `.is-visible`
+   once the block is close to the viewport; the transition does the rest. */
+.reveal {
+  opacity: 0;
+  transform: translate3d(var(--reveal-x, 0), var(--reveal-y, 24px), 0);
+  transition:
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0s);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Glass surfaces: semi-transparent ivory with a soft blur, so the paper
    background and particles stay visible through cards and panels.
    --------------------------------------------------------------------------- */

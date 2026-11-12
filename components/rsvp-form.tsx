@@ -3,7 +3,6 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AnimatePresence, motion } from "framer-motion";
 import { rsvpSchema, type RsvpInput } from "@/lib/schemas";
 import { MAX_GUESTS } from "@/lib/config";
 import { submitRsvp } from "@/app/actions";
@@ -78,31 +77,28 @@ export function RsvpForm({ tenantId, slug, initialName = "", onDone }: { tenantI
         </div>
       </fieldset>
 
-      <AnimatePresence initial={false}>
-        {attending === "yes" && (
-          <motion.div key="party" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: "easeOut" }}>
-            <div className="space-y-4 pb-1">
-              <p className="text-sm font-medium">Alte persoane din grupul tău</p>
-              {fields.map((f, i) => (
-                <div key={f.id} className="flex items-start gap-3">
-                  <div className="flex-1 space-y-1">
-                    <Input aria-label={`Numele persoanei ${i + 1}`} placeholder="Nume complet" {...register(`guests.${i}.name`)} />
-                    {errors.guests?.[i]?.name && <p className="text-sm text-red-700">{errors.guests[i]!.name!.message}</p>}
-                    <label className="flex items-center gap-2 text-sm text-ink/75">
-                      <input type="checkbox" {...register(`guests.${i}.isChild`)} /> Copil
-                    </label>
-                  </div>
-                  <Button type="button" variant="ghost" onClick={() => remove(i)}>Elimină</Button>
+      {attending === "yes" && (
+        <div className="animate-drop-in motion-reduce:animate-none">
+          <div className="space-y-4 pb-1">
+            <p className="text-sm font-medium">Alte persoane din grupul tău</p>
+            {fields.map((f, i) => (
+              <div key={f.id} className="flex items-start gap-3">
+                <div className="flex-1 space-y-1">
+                  <Input aria-label={`Numele persoanei ${i + 1}`} placeholder="Nume complet" {...register(`guests.${i}.name`)} />
+                  {errors.guests?.[i]?.name && <p className="text-sm text-red-700">{errors.guests[i]!.name!.message}</p>}
+                  <label className="flex items-center gap-2 text-sm text-ink/75">
+                    <input type="checkbox" {...register(`guests.${i}.isChild`)} /> Copil
+                  </label>
                 </div>
-              ))}
-              {fields.length < MAX_GUESTS && (
-                <Button type="button" variant="outline" onClick={() => append({ name: "", isChild: false })}>Adaugă o persoană</Button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <Button type="button" variant="ghost" onClick={() => remove(i)}>Elimină</Button>
+              </div>
+            ))}
+            {fields.length < MAX_GUESTS && (
+              <Button type="button" variant="outline" onClick={() => append({ name: "", isChild: false })}>Adaugă o persoană</Button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="message">Mesaj pentru mir(i) (opțional)</Label>

@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { OPEN_INVITATION_EVENT } from "@/lib/invitation";
 
 /**
@@ -9,6 +8,11 @@ import { OPEN_INVITATION_EVENT } from "@/lib/invitation";
  * Only one screen exists in the DOM at a time: first the landing, then the
  * invitation. The landing is unmounted (not hidden, not scrolled past) once the
  * visitor opens the invitation, and the rest of the site mounts in its place.
+ *
+ * The swap itself is instant — the invitation simply fades in — so the click
+ * feels immediate. The entrance class is applied only to that swap, never to
+ * the first paint: a link that opens the invitation directly (#rsvp, or a name
+ * already filled in by the couple) must show the content at once.
  */
 export function InvitationScreen({
   landing,
@@ -20,9 +24,13 @@ export function InvitationScreen({
   autoOpen?: boolean;
 }) {
   const [opened, setOpened] = useState(autoOpen);
+  const [swapping, setSwapping] = useState(false);
 
   useEffect(() => {
-    const open = () => setOpened(true);
+    const open = () => {
+      setSwapping(true);
+      setOpened(true);
+    };
     window.addEventListener(OPEN_INVITATION_EVENT, open);
     return () => window.removeEventListener(OPEN_INVITATION_EVENT, open);
   }, []);
@@ -45,32 +53,11 @@ export function InvitationScreen({
     };
   }, [opened]);
 
+  if (!opened) {
+    return <div className="pb-24 sm:pb-0">{landing}</div>;
+  }
+
   return (
-    <MotionConfig reducedMotion="user">
-      <AnimatePresence mode="wait" initial={false}>
-        {opened ? (
-          <motion.div
-            key="invitation"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {children}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="landing"
-            exit={{
-              opacity: 0,
-              scale: 1.025,
-              transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
-            }}
-            className="pb-24 sm:pb-0"
-          >
-            {landing}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </MotionConfig>
+    <div className={swapping ? "animate-screen-in motion-reduce:animate-none" : undefined}>{children}</div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { CircleCheck } from "lucide-react";
 import { checkRsvpStatus } from "@/app/actions";
 import type { RsvpStatus } from "@/lib/rsvp-types";
@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Reveal } from "@/components/ui/reveal";
-import { RsvpForm } from "./rsvp-form";
+
+// The reply form (and the form library plus schema it depends on) is only
+// fetched once a guest actually reaches the form: typing a name and pressing
+// "Continuă" already involves a server round-trip, so the extra chunk lands
+// well before it matters, and the first visit stays light.
+const RsvpForm = dynamic(() => import("@/components/rsvp-form").then((mod) => mod.RsvpForm), {
+  ssr: false,
+  loading: () => <div aria-hidden className="glass mt-8 h-44 animate-pulse rounded-xl" />,
+});
 
 type View = "lookup" | "form" | "card" | "thanks";
 
@@ -78,20 +86,18 @@ export function RsvpSection({
   if (!closed) return <RsvpFlow tenantId={tenantId} slug={slug} initialName={initialName} />;
 
   return (
-    <MotionConfig reducedMotion="user">
-      <section id="rsvp" className="mx-auto max-w-xl scroll-mt-24 px-6 py-24">
-        <Reveal>
-          <h2 className="font-display text-4xl">Vii la nuntă?</h2>
-          <div role="status" className="glass mt-8 rounded-lg p-8">
-            <p className="font-display text-3xl">Confirmările sunt închise.</p>
-            <p className="mt-2 text-ink/75">
-              {cutoffDate ? `Formularul s-a închis pe ${formatDate(cutoffDate)}. ` : ""}
-              Dacă mai vrei să modifici ceva, scrie-ne direct.
-            </p>
-          </div>
-        </Reveal>
-      </section>
-    </MotionConfig>
+    <section id="rsvp" className="mx-auto max-w-xl scroll-mt-24 px-6 py-24">
+      <Reveal>
+        <h2 className="font-display text-4xl">Vii la nuntă?</h2>
+        <div role="status" className="glass mt-8 rounded-lg p-8">
+          <p className="font-display text-3xl">Confirmările sunt închise.</p>
+          <p className="mt-2 text-ink/75">
+            {cutoffDate ? `Formularul s-a închis pe ${formatDate(cutoffDate)}. ` : ""}
+            Dacă mai vrei să modifici ceva, scrie-ne direct.
+          </p>
+        </div>
+      </Reveal>
+    </section>
   );
 }
 
@@ -119,53 +125,50 @@ function RsvpFlow({ tenantId, slug, initialName }: { tenantId: string; slug: str
   const reset = () => { setView("lookup"); setStatus(null); setNotFound(false); setError(null); };
 
   return (
-    <MotionConfig reducedMotion="user">
-      <section id="rsvp" className="mx-auto max-w-xl scroll-mt-24 px-6 py-24">
-        <Reveal>
-          <h2 className="font-display text-4xl">Vii la nuntă?</h2>
-          <p className="mt-3 text-ink/70">
-            {view === "lookup" && "Scrie-ți numele ca să răspunzi sau să-ți verifici răspunsul."}
-            {view === "form" && (notFound ? "Nu avem încă un răspuns pe acest nume. Verifică ortografia sau adaugă răspunsul mai jos." : "Actualizează-ți răspunsul mai jos.")}
-            {view === "card" && "Iată situația."}
-          </p>
-        </Reveal>
+    <section id="rsvp" className="mx-auto max-w-xl scroll-mt-24 px-6 py-24">
+      <Reveal>
+        <h2 className="font-display text-4xl">Vii la nuntă?</h2>
+        <p className="mt-3 text-ink/70">
+          {view === "lookup" && "Scrie-ți numele ca să răspunzi sau să-ți verifici răspunsul."}
+          {view === "form" && (notFound ? "Nu avem încă un răspuns pe acest nume. Verifică ortografia sau adaugă răspunsul mai jos." : "Actualizează-ți răspunsul mai jos.")}
+          {view === "card" && "Iată situația."}
+        </p>
+      </Reveal>
 
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={view} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-            {view === "lookup" && (
-              <form onSubmit={(e) => { e.preventDefault(); lookup(clean, false); }} className="glass mt-8 space-y-4 rounded-xl p-5" noValidate>
-                <div className="space-y-2">
-                  <Label htmlFor="lookup-name">Numele complet</Label>
-                  <Input id="lookup-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
-                </div>
-                {error && <p role="alert" className="text-red-700">{error}</p>}
-                <Button type="submit" size="lg" disabled={pending || clean.length < 3} className="w-full bg-ink text-sea hover:bg-ink/85">
-                  {pending ? "Se verifică…" : "Continuă"}
-                </Button>
-              </form>
-            )}
+      {/* `key` restarts the fade whenever the step changes. */}
+      <div key={view} className="animate-swap-in motion-reduce:animate-none">
+        {view === "lookup" && (
+          <form onSubmit={(e) => { e.preventDefault(); lookup(clean, false); }} className="glass mt-8 space-y-4 rounded-xl p-5" noValidate>
+            <div className="space-y-2">
+              <Label htmlFor="lookup-name">Numele complet</Label>
+              <Input id="lookup-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            {error && <p role="alert" className="text-red-700">{error}</p>}
+            <Button type="submit" size="lg" disabled={pending || clean.length < 3} className="w-full bg-ink text-sea hover:bg-ink/85">
+              {pending ? "Se verifică..." : "Continuă"}
+            </Button>
+          </form>
+        )}
 
-            {view === "form" && (
-              <>
-                <RsvpForm tenantId={tenantId} slug={slug} initialName={clean} onDone={(n) => { setName(n); lookup(n, true); }} />
-                <Button type="button" variant="ghost" className="mt-4" onClick={reset}>Folosește alt nume</Button>
-              </>
-            )}
+        {view === "form" && (
+          <>
+            <RsvpForm tenantId={tenantId} slug={slug} initialName={clean} onDone={(n) => { setName(n); lookup(n, true); }} />
+            <Button type="button" variant="ghost" className="mt-4" onClick={reset}>Folosește alt nume</Button>
+          </>
+        )}
 
-            {view === "card" && status && (
-              <StatusCard s={status} onChange={() => { setNotFound(false); setView("form"); }} onOther={reset} />
-            )}
+        {view === "card" && status && (
+          <StatusCard s={status} onChange={() => { setNotFound(false); setView("form"); }} onOther={reset} />
+        )}
 
-            {view === "thanks" && (
-              <div role="status" className="glass mt-8 rounded-lg p-8">
-                <p className="font-display text-3xl">Mulțumim!</p>
-                <p className="mt-2 text-ink/75">Răspunsul tău a fost înregistrat. Revino oricând cu numele tău ca să îl verifici.</p>
-                <Button type="button" variant="ghost" className="mt-6" onClick={reset}>Verifică alt nume</Button>
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </section>
-    </MotionConfig>
+        {view === "thanks" && (
+          <div role="status" className="glass mt-8 rounded-lg p-8">
+            <p className="font-display text-3xl">Mulțumim!</p>
+            <p className="mt-2 text-ink/75">Răspunsul tău a fost înregistrat. Revino oricând cu numele tău ca să îl verifici.</p>
+            <Button type="button" variant="ghost" className="mt-6" onClick={reset}>Verifică alt nume</Button>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

@@ -1,6 +1,4 @@
 "use client";
-import { useEffect } from "react";
-import { MotionConfig, motion, useAnimationControls } from "framer-motion";
 import { requestOpenInvitation } from "@/lib/invitation";
 import { FloralDecor } from "@/components/floral-decor";
 import { Countdown } from "@/components/countdown";
@@ -15,73 +13,50 @@ type HeroProps = {
   floral: Theme["floral"];
 };
 
-const container = { hidden: {}, show: { transition: { staggerChildren: 0.22 } } };
-const rise = {
-  hidden: { opacity: 0, y: 28 },
-  show: { opacity: 1, y: 0, transition: { duration: 1, ease: [0.22, 1, 0.36, 1] as const } },
-};
+// The entrance is a CSS animation with a staggered delay, so the first paint
+// is not blocked by a runtime animation library.
+const rise = "animate-rise motion-reduce:animate-none";
 
 export function Hero({ names, displayDate, displayTime, eventAt, floral }: HeroProps) {
   const [a, b] = names;
-  const controls = useAnimationControls();
-
-  // Start only once the browser is actually painting. If the page opens in a
-  // background or occluded window, frames are paused; starting on mount would
-  // run the whole entrance off-screen and the visitor would just see the end.
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      void controls.start("show");
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [controls]);
 
   return (
-    <MotionConfig reducedMotion="user">
-      <motion.header
-        variants={container}
-        initial="hidden"
-        animate={controls}
-        className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 text-center"
-      >
-        {/* Botanical decor, chosen per wedding in /admin/theme. It sits behind
-            the type and never covers it. */}
-        {floral.enabled && (
-          <FloralDecor
-            set={floral.set}
-            intensity={floral.intensity}
-            placement={floral.placement}
-            id="flora-hero"
-          />
-        )}
+    <header className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 text-center">
+      {/* Botanical decor, chosen per wedding in /admin/theme. It sits behind
+          the type and never covers it. */}
+      {floral.enabled && (
+        <FloralDecor
+          set={floral.set}
+          intensity={floral.intensity}
+          placement={floral.placement}
+          id="flora-hero"
+        />
+      )}
 
-        <div className="relative z-10 flex w-full flex-col items-center">
-          <motion.h1 variants={rise} className="font-display text-[clamp(4rem,16vw,11rem)] leading-[0.9] tracking-tight">
-            {a}
-            <span className="block text-gold italic">&amp;</span>
-            {b}
-          </motion.h1>
-          <motion.p variants={rise} className="mt-8 text-lg">
-            {displayDate} · ora {displayTime}
-          </motion.p>
-          <motion.div variants={rise} className="w-full">
-            <Countdown targetIso={eventAt} />
-          </motion.div>
-          <motion.div
-            variants={rise}
-            className="mt-12 flex w-full max-w-sm flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center"
-          >
-            <motion.button
-              type="button"
-              onClick={requestOpenInvitation}
-              whileHover={{ y: -1 }}
-              whileTap={{ scale: 0.97 }}
-              className="rounded-full bg-ink px-8 py-3 text-center text-sea shadow-lg shadow-black/20 transition-colors duration-200 ease-out hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
-            >
-              Deschide Invitația
-            </motion.button>
-          </motion.div>
+      <div className="relative z-10 flex w-full flex-col items-center">
+        <h1 className={`${rise} font-display text-[clamp(4rem,16vw,11rem)] leading-[0.9] tracking-tight`}>
+          {a}
+          <span className="block text-gold italic">&amp;</span>
+          {b}
+        </h1>
+        <p className={`${rise} mt-8 text-lg [animation-delay:220ms]`}>
+          {displayDate} · ora {displayTime}
+        </p>
+        <div className={`${rise} w-full [animation-delay:440ms]`}>
+          <Countdown targetIso={eventAt} />
         </div>
-      </motion.header>
-    </MotionConfig>
+        <div
+          className={`${rise} mt-12 flex w-full max-w-sm flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center [animation-delay:660ms]`}
+        >
+          <button
+            type="button"
+            onClick={requestOpenInvitation}
+            className="rounded-full bg-ink px-8 py-3 text-center text-sea shadow-lg shadow-black/20 transition-[background-color,transform] duration-200 ease-out hover:bg-ink/85 hover:-translate-y-px active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+          >
+            Deschide Invitația
+          </button>
+        </div>
+      </div>
+    </header>
   );
 }

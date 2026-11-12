@@ -68,8 +68,11 @@ function Confirmari() {
   const [query, setQuery] = useState("");
   const debounced = useDebouncedValue(query, 200);
 
-  const rows = data?.rsvps ?? [];
-  const imported = data?.importedGuests ?? [];
+  // `data?.rsvps ?? []` would hand a brand-new array to every render (and to
+  // every `useMemo` below) whenever the dataset is still empty, so the memos
+  // could never hit. Two stable fallbacks keep them honest.
+  const rows = useMemo(() => data?.rsvps ?? [], [data]);
+  const imported = useMemo(() => data?.importedGuests ?? [], [data]);
 
   const summary = useMemo(() => {
     const yes = rows.filter((row) => row.attending);
@@ -87,16 +90,18 @@ function Confirmari() {
   }, [imported]);
 
   const q = nameKey(debounced);
-  const matches = (name: string) => q === "" || nameKey(name).includes(q);
 
   const visibleResponses = useMemo(() => {
     if (filter === "pending") return [];
     const base = filter === "yes" ? summary.yes : filter === "no" ? summary.no : rows;
-    return base.filter((row) => matches(row.name));
+    return base.filter((row) => q === "" || nameKey(row.name).includes(q));
   }, [filter, rows, summary, q]);
 
   const visiblePending = useMemo(
-    () => (filter === "pending" ? summary.pending.filter((guest) => matches(guest.name)) : []),
+    () =>
+      filter === "pending"
+        ? summary.pending.filter((guest) => q === "" || nameKey(guest.name).includes(q))
+        : [],
     [filter, summary, q]
   );
 

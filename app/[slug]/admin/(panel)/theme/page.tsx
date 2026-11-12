@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useTransition, type CSSProperties } from "react";
+import { Suspense, useState, useTransition, type CSSProperties } from "react";
 import { Check, Palette as PaletteIcon, RotateCcw, Sparkles } from "lucide-react";
 import { useAdminData } from "@/components/admin/admin-data";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
@@ -141,13 +141,22 @@ function ThemeEditor({ theme, settings }: { theme: Theme; settings: EventSetting
   const [intensity, setIntensity] = useState<FloralIntensity>(theme.floral.intensity);
   const [placement, setPlacement] = useState<FloralPlacement>(theme.floral.placement);
 
-  // Switching palette nudges the colours that are still following it.
-  useEffect(() => {
-    const next = paletteById(palette);
-    if (!customBg) setBg(next.bg);
-    if (!customText) setText(next.text);
-    if (!customAccent) setAccent(next.accent);
-  }, [palette, customBg, customText, customAccent]);
+  // Switching palette nudges the colours that are still following it — the
+  // pickers read `fallback` for those, so the only thing to keep in step is the
+  // value a picker opens with when "Personalizat" is ticked. Doing it in the
+  // toggle handler instead of an effect avoids a second render of the form.
+  const toggleBg = (on: boolean) => {
+    if (on) setBg(paletteById(palette).bg);
+    setCustomBg(on);
+  };
+  const toggleText = (on: boolean) => {
+    if (on) setText(paletteById(palette).text);
+    setCustomText(on);
+  };
+  const toggleAccent = (on: boolean) => {
+    if (on) setAccent(paletteById(palette).accent);
+    setCustomAccent(on);
+  };
 
   const draft: Theme = {
     palette,
@@ -242,7 +251,7 @@ function ThemeEditor({ theme, settings }: { theme: Theme; settings: EventSetting
                 custom={customBg}
                 value={bg}
                 fallback={paletteById(palette).bg}
-                onToggle={setCustomBg}
+                onToggle={toggleBg}
                 onChange={setBg}
               />
               <ColorField
@@ -251,7 +260,7 @@ function ThemeEditor({ theme, settings }: { theme: Theme; settings: EventSetting
                 custom={customText}
                 value={text}
                 fallback={paletteById(palette).text}
-                onToggle={setCustomText}
+                onToggle={toggleText}
                 onChange={setText}
               />
               <ColorField
@@ -260,7 +269,7 @@ function ThemeEditor({ theme, settings }: { theme: Theme; settings: EventSetting
                 custom={customAccent}
                 value={accent}
                 fallback={paletteById(palette).accent}
-                onToggle={setCustomAccent}
+                onToggle={toggleAccent}
                 onChange={setAccent}
               />
             </div>

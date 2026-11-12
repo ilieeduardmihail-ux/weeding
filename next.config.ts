@@ -28,6 +28,9 @@ const CSP = [
 
 const SECURITY_HEADERS = [
   { key: "Content-Security-Policy-Report-Only", value: CSP },
+  // Belt and braces for the meta tags: this also covers files that cannot carry
+  // a `<meta>` (the calendar feed, the invitation image, exports).
+  { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -35,6 +38,18 @@ const SECURITY_HEADERS = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+];
+
+/**
+ * Files in `public/` are served with `max-age=0, must-revalidate` by default, so
+ * every visit costs a conditional request per decoration. These names are part of
+ * the asset (the width is baked into them), so they can be cached for a while.
+ */
+const FLORAL_CACHE = [
+  {
+    key: "Cache-Control",
+    value: "public, max-age=2592000, stale-while-revalidate=86400",
+  },
 ];
 
 const nextConfig: NextConfig = {
@@ -58,7 +73,10 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
-    return [{ source: "/(.*)", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/florals/:path*", headers: [...SECURITY_HEADERS, ...FLORAL_CACHE] },
+      { source: "/(.*)", headers: SECURITY_HEADERS },
+    ];
   },
 };
 

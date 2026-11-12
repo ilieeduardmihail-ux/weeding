@@ -5,8 +5,9 @@
  * per tenant in /admin/theme. All shapes take their colour from the CSS custom
  * properties the theme sets, so they follow the palette automatically.
  */
-import type { FloralIntensity, FloralPlacement } from "@/lib/theme";
-import { FLORAL_IMAGES } from "@/lib/theme";
+import type { CSSProperties } from "react";
+import type { FloralImage, FloralIntensity, FloralPlacement } from "@/lib/theme";
+import { FLORAL_IMAGES, floralSrcSet } from "@/lib/theme";
 import { FloralCluster } from "@/components/floral-cluster";
 import { FloralWatercolor } from "@/components/floral-watercolor";
 
@@ -299,6 +300,48 @@ const PHOTO_PLACEMENTS: Record<FloralPlacement, Slot[]> = {
   ],
 };
 
+/**
+ * How wide the browser should assume a corner is, so it picks the 420px file on
+ * a phone and the 760px one on a retina laptop. Both slots of a page land on the
+ * same URL, so a page still downloads one picture, not four.
+ */
+const PHOTO_SIZES = "(min-width: 768px) 352px, 112px";
+
+/**
+ * A photographed floral set. `<picture>` gives browsers that speak AVIF the
+ * smaller file and everyone else WebP (with transparency, which the source art
+ * needs); the PNG masters are no longer shipped.
+ */
+function FloralPhoto({
+  photo,
+  className,
+  sizes,
+  style,
+  pictureClassName = "block",
+}: {
+  photo: FloralImage;
+  className: string;
+  sizes: string;
+  style?: CSSProperties;
+  /** The `<picture>` wrapper is inline by default; give it a box when it must fill a parent. */
+  pictureClassName?: string;
+}) {
+  return (
+    <picture className={pictureClassName} style={style}>
+      <source type="image/avif" srcSet={floralSrcSet(photo, "avif")} sizes={sizes} />
+      <source type="image/webp" srcSet={floralSrcSet(photo, "webp")} sizes={sizes} />
+      <img
+        src={`${photo.src}-${photo.widths[0]}.webp`}
+        width={photo.width}
+        height={photo.height}
+        alt=""
+        decoding="async"
+        className={className}
+      />
+    </picture>
+  );
+}
+
 export function FloralDecor({
   set,
   intensity,
@@ -318,14 +361,12 @@ export function FloralDecor({
   if (photo?.kind === "frame") {
     return (
       <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        {/* A plain img keeps arbitrary uploaded/replaced artwork working without
-            touching next.config; these are decorative and aria-hidden. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photo.src}
-          alt=""
+        <FloralPhoto
+          photo={photo}
           className="h-full w-full object-cover object-center"
+          sizes="100vw"
           style={{ opacity }}
+          pictureClassName="block h-full w-full"
         />
       </div>
     );
@@ -342,8 +383,7 @@ export function FloralDecor({
           style={{ opacity }}
         >
           {photo ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={photo.src} alt="" className={`block h-auto ${slot.size}`} />
+            <FloralPhoto photo={photo} className={`block h-auto ${slot.size}`} sizes={PHOTO_SIZES} />
           ) : set === "watercolor" ? (
             <FloralWatercolor id={`${id}-${index}`} className={`block h-auto ${slot.size}`} />
           ) : set === "botanical" ? (

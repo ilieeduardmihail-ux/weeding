@@ -141,10 +141,13 @@ export function PlatformDashboard({
   overview,
   ownerEmail,
   configured,
+  now,
 }: {
   overview: PlatformOverview;
   ownerEmail: string;
   configured: boolean;
+  /** Server render time: expiry is decided there, so the cards stay pure. */
+  now: number;
 }) {
   const { toast, show, dismiss } = useToast();
 
@@ -197,6 +200,7 @@ export function PlatformDashboard({
             key={tenant.id}
             tenant={tenant}
             disabled={!configured}
+            now={now}
             onError={(m) => show(m)}
             onSuccess={(m) => show(m, "success")}
           />
@@ -285,11 +289,13 @@ function NewClientForm({ disabled, onError }: { disabled: boolean; onError: (m: 
 function TenantCard({
   tenant,
   disabled,
+  now,
   onError,
   onSuccess,
 }: {
   tenant: PlatformTenant;
   disabled: boolean;
+  now: number;
   onError: (m: string) => void;
   onSuccess: (m: string) => void;
 }) {
@@ -302,7 +308,7 @@ function TenantCard({
   const openKeys = tenant.keys.filter((k) => !k.usedAt && !k.revokedAt).length;
   // Independent of status: a suspended client can also be past its expiry, and
   // then „Reactivează" alone would not bring the site back.
-  const isExpired = Boolean(tenant.expiresAt && new Date(tenant.expiresAt).getTime() <= Date.now());
+  const isExpired = Boolean(tenant.expiresAt && new Date(tenant.expiresAt).getTime() <= now);
 
   type RunResult = { ok: boolean; error?: string; code?: string };
   const run = (task: () => Promise<RunResult>, after?: (result: RunResult) => void) =>

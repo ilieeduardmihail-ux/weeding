@@ -160,23 +160,43 @@ export const FLORAL_SETS = [
 ] as const;
 
 /**
- * Floral sets that are real pictures rather than code-drawn vectors. The files
- * live in /public/florals and were cleaned up (background removed, margins cut,
- * saved as transparent PNG). A `corner` picture is one bouquet drawn for the
- * top-left corner and is mirrored into the other corners; a `frame` picture
- * already contains a decoration in two opposite corners and covers the page as
- * a whole. These render at a fixed palette-free look, like the "Acuarelă" set.
+ * Floral sets that are real pictures rather than code-drawn vectors.
+ *
+ * A `corner` picture is one bouquet drawn for the top-left corner and is
+ * mirrored into the other corners; a `frame` picture already contains a
+ * decoration in two opposite corners and covers the page as a whole. These
+ * render at a fixed palette-free look, like the "Acuarelă" set.
+ *
+ * Each picture ships as AVIF and WebP at the two widths a corner can actually
+ * use, not as the 1000px PNG master it was cut from: the corner is at most
+ * 352 CSS px wide, so a 420px file covers phones (even at 3× density) and a
+ * 760px one covers a retina laptop. That took the landing page from a 193 KB
+ * PNG to ~18 KB on a phone; `floralSrcSet` lets the browser pick.
  */
-export type FloralImage = { src: string; kind: "corner" | "frame" };
+export type FloralImage = {
+  /** Extension-less path: the files are `${src}-${width}.avif|webp`. */
+  src: string;
+  kind: "corner" | "frame";
+  /** Intrinsic size of the artwork, so the box is right before it loads. */
+  width: number;
+  height: number;
+  /** Available widths, ascending. */
+  widths: number[];
+};
 
 export const FLORAL_IMAGES: Record<string, FloralImage> = {
-  "photo-bujori": { src: "/florals/bujori.png", kind: "corner" },
-  "photo-trandafiri": { src: "/florals/trandafiri-gradina.png", kind: "corner" },
-  "photo-botanic": { src: "/florals/botanic-masliniu.png", kind: "corner" },
-  "photo-piersica": { src: "/florals/piersica-botanica.png", kind: "corner" },
-  "photo-delicata": { src: "/florals/piersica-delicata.png", kind: "corner" },
-  "photo-albastre": { src: "/florals/flori-albastre.png", kind: "corner" },
+  "photo-bujori": { src: "/florals/bujori", kind: "corner", width: 1089, height: 1100, widths: [420, 760] },
+  "photo-trandafiri": { src: "/florals/trandafiri-gradina", kind: "corner", width: 973, height: 1100, widths: [420, 760] },
+  "photo-botanic": { src: "/florals/botanic-masliniu", kind: "corner", width: 1029, height: 1100, widths: [420, 760] },
+  "photo-piersica": { src: "/florals/piersica-botanica", kind: "corner", width: 488, height: 566, widths: [420, 488] },
+  "photo-delicata": { src: "/florals/piersica-delicata", kind: "corner", width: 516, height: 625, widths: [420, 516] },
+  "photo-albastre": { src: "/florals/flori-albastre", kind: "corner", width: 223, height: 333, widths: [223] },
 };
+
+/** `"/florals/bujori-420.avif 420w, /florals/bujori-760.avif 760w"` */
+export function floralSrcSet(image: FloralImage, format: "avif" | "webp") {
+  return image.widths.map((w) => `${image.src}-${w}.${format} ${w}w`).join(", ");
+}
 
 export const FLORAL_INTENSITIES: { id: FloralIntensity; name: string }[] = [
   { id: "subtle", name: "Discret" },

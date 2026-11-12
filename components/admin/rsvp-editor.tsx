@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Armchair } from "lucide-react";
 import { adminRsvpSchema, type AdminRsvpInput } from "@/lib/admin-rsvp-schema";
@@ -34,7 +34,7 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
     [rsvp.guests]
   );
 
-  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<AdminRsvpInput>({
+  const { register, control, handleSubmit, setValue, formState: { errors } } = useForm<AdminRsvpInput>({
     resolver: zodResolver(adminRsvpSchema),
     defaultValues: {
       id: rsvp.id,
@@ -45,7 +45,10 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
     },
   });
   const { fields, append, remove } = useFieldArray({ control, name: "guests" });
-  const attending = watch("attending");
+  // `useWatch` instead of `watch()`: it subscribes to this one field, so the
+  // whole form does not re-render on every keystroke, and it keeps the component
+  // memoizable (the compiler skips anything holding `watch`'s unstable function).
+  const attending = useWatch({ control, name: "attending" });
 
   const onSubmit = (data: AdminRsvpInput) => {
     setServerError(null);

@@ -8,15 +8,49 @@ import { remainingParts, type CountdownParts } from "@/lib/countdown";
  * The first render is left blank on purpose: the server and the browser do not
  * share a clock, so printing the numbers during hydration would mismatch. They
  * appear a millisecond later, once the client mounts.
+ *
+ * The timer is not left running blindly: it stops once the day has arrived (the
+ * numbers are replaced by a message) and while the tab is hidden, so an
+ * invitation left open on a phone does not tick — and re-render — forever.
  */
 export function Countdown({ targetIso }: { targetIso: string }) {
   const [parts, setParts] = useState<CountdownParts | null>(null);
 
   useEffect(() => {
-    const tick = () => setParts(remainingParts(targetIso));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    let id: number | undefined;
+
+    const stop = () => {
+      if (id !== undefined) {
+        window.clearInterval(id);
+        id = undefined;
+      }
+    };
+
+    const tick = () => {
+      const next = remainingParts(targetIso);
+      setParts(next);
+      if (next.totalMs <= 0) stop();
+    };
+
+    // (Re)start from a fresh reading, not from the second it stopped at.
+    const start = () => {
+      stop();
+      const next = remainingParts(targetIso);
+      setParts(next);
+      if (next.totalMs > 0) id = window.setInterval(tick, 1000);
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) stop();
+      else start();
+    };
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [targetIso]);
 
   if (parts && parts.totalMs <= 0) {

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isOwnerRequest, platformIsConfigured } from "@/lib/platform";
 import { loadPlatformOverview } from "@/lib/platform-data";
+import { requestNow } from "@/lib/request-now";
 import { PlatformDashboard } from "./dashboard";
 
 export const instant = false;
@@ -29,6 +30,11 @@ export default async function PlatformPage() {
     : { tenants: [], owners: [] };
 
   return (
-    <PlatformDashboard overview={overview} ownerEmail={email ?? ""} configured={configured} />
+    <PlatformDashboard
+      overview={overview}
+      ownerEmail={email ?? ""}
+      configured={configured}
+      now={requestNow()}
+    />
   );
 }

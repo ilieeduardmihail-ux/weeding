@@ -5,6 +5,7 @@ import {
   renderInviteMessage,
   rsvpLink,
   whatsappHref,
+  whatsappShareHref,
 } from "@/lib/message-template";
 
 const settings = { event_date: "2027-07-17" };
@@ -74,6 +75,12 @@ describe("whatsapp links", () => {
     expect(whatsappHref("", "Salut")).toBeNull();
     expect(whatsappHref("123", "Salut")).toBeNull();
     expect(whatsappHref(null, "Salut")).toBeNull();
+  });
+
+  it("builds a share link that asks WhatsApp who should receive the message", () => {
+    expect(whatsappShareHref("Salut & bine")).toBe(
+      "https://wa.me/?text=Salut%20%26%20bine",
+    );
   });
 });
 

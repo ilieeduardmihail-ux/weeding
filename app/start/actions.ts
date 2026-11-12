@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { clientKey } from "@/lib/client-key";
 import { hashAccessKey, platformIsConfigured, serviceClient } from "@/lib/platform";
 
 export type ActivateResult = { ok: true } | { ok: false; error: string };
@@ -32,6 +33,17 @@ export async function activateAccount(input: z.infer<typeof schema>): Promise<Ac
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Verifică datele introduse." };
   }
   const { email, password } = parsed.data;
+
+  const supabase = await createClient();
+
+  // Rate limit per visitor before the key is ever looked up, so a stolen list of
+  // key shapes cannot be brute-forced from one place.
+  const { error: rateError } = await supabase.rpc("hit_activate_rate_limit", {
+    p_key: await clientKey(),
+  });
+  if (rateError) {
+    return { ok: false, error: "Prea multe încercări. Așteaptă câteva minute și încearcă din nou." };
+  }
 
   const service = serviceClient();
   const codeHash = hashAccessKey(parsed.data.key);
@@ -87,7 +99,6 @@ export async function activateAccount(input: z.infer<typeof schema>): Promise<Ac
 
   await activateFromKey(key.tenant_id, key.duration_days, service);
 
-  const supabase = await createClient();
   await supabase.auth.signInWithPassword({ email, password });
   redirect("/admin");
 }

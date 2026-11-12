@@ -64,16 +64,18 @@ const formatDate = (iso: string) =>
 
 export function RsvpSection({
   tenantId,
+  slug,
   closed,
   cutoffDate,
   initialName = "",
 }: {
   tenantId: string;
+  slug: string;
   closed: boolean;
   cutoffDate: string | null;
   initialName?: string;
 }) {
-  if (!closed) return <RsvpFlow tenantId={tenantId} initialName={initialName} />;
+  if (!closed) return <RsvpFlow tenantId={tenantId} slug={slug} initialName={initialName} />;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -93,7 +95,7 @@ export function RsvpSection({
   );
 }
 
-function RsvpFlow({ tenantId, initialName }: { tenantId: string; initialName: string }) {
+function RsvpFlow({ tenantId, slug, initialName }: { tenantId: string; slug: string; initialName: string }) {
   const [view, setView] = useState<View>("lookup");
   const [name, setName] = useState(initialName);
   const [status, setStatus] = useState<RsvpStatus | null>(null);
@@ -145,7 +147,7 @@ function RsvpFlow({ tenantId, initialName }: { tenantId: string; initialName: st
 
             {view === "form" && (
               <>
-                <RsvpForm tenantId={tenantId} initialName={clean} onDone={(n) => { setName(n); lookup(n, true); }} />
+                <RsvpForm tenantId={tenantId} slug={slug} initialName={clean} onDone={(n) => { setName(n); lookup(n, true); }} />
                 <Button type="button" variant="ghost" className="mt-4" onClick={reset}>Folosește alt nume</Button>
               </>
             )}

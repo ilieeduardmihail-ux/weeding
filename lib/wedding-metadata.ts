@@ -15,6 +15,9 @@ export function weddingMetadata(settings: EventSettings, slug?: string): Metadat
   return {
     title,
     description,
+    // Every wedding site is private by design: guests get the link directly on
+    // WhatsApp, so no invitation (root included) should ever be indexed.
+    robots: { index: false, follow: false },
     alternates: { canonical: slug ? `/${slug}` : "/" },
     openGraph: {
       title,

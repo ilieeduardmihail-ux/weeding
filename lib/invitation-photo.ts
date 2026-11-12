@@ -15,6 +15,13 @@ export async function invitationPhotoResponse(request: Request, settings: EventS
   const url = settings.invitation_image_url;
   if (!url) return new Response("Lipsește poza invitației.", { status: 404 });
 
+  // Anti-hotlink: another site embedding this photo sends its own address as
+  // the referer. WhatsApp, the Open Graph scrapers and direct visits send none
+  // or the same host, so only a clear cross-site referer is refused.
+  if (isCrossSiteReferer(request)) {
+    return new Response("Poza poate fi folosită doar pe site-ul invitației.", { status: 403 });
+  }
+
   const wantsDownload = new URL(request.url).searchParams.has("download");
 
   if (url.startsWith("data:image/")) {
@@ -52,4 +59,16 @@ export async function invitationPhotoResponse(request: Request, settings: EventS
 function attachmentName(type: string) {
   const extension = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
   return `attachment; filename="invitatie.${extension}"`;
+}
+
+/** True only when a referer is present and points at another site. */
+function isCrossSiteReferer(request: Request) {
+  const referer = request.headers.get("referer");
+  if (!referer) return false;
+  try {
+    const host = request.headers.get("host");
+    return host !== null && new URL(referer).host !== host;
+  } catch {
+    return false; // malformed referer: treat it as a direct request
+  }
 }

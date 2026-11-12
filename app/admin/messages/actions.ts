@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { isPhoneLike } from "@/lib/message-template";
 import { demoMode } from "@/lib/demo/mode";
 import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
 
@@ -34,49 +33,6 @@ export async function saveInviteMessage(body: string): Promise<Result> {
     .eq("tenant_id", tenantId);
   if (error) {
     return { ok: false, error: "Nu am putut salva mesajul. Rulează migrarea v10 în Supabase." };
-  }
-
-  revalidatePath(await adminBasePath(), "layout");
-  return { ok: true };
-}
-
-const phoneEntrySchema = z.object({
-  kind: z.enum(["rsvp", "guest"]),
-  id: z.string().uuid(),
-  phone: z
-    .string()
-    .trim()
-    .max(40)
-    .refine(isPhoneLike, "Numărul de telefon nu pare valid."),
-});
-
-export type PhoneEntry = z.infer<typeof phoneEntrySchema>;
-
-const phonesSchema = z.array(phoneEntrySchema).min(1).max(500);
-
-/** Saves the phone numbers the couple typed for the selected guests. */
-export async function savePhones(entries: PhoneEntry[]): Promise<Result> {
-  const parsed = phonesSchema.safeParse(entries);
-  if (!parsed.success) {
-    return { ok: false, error: "Unele numere de telefon nu par valide. Include prefixul țării." };
-  }
-
-  const supabase = await createClient();
-  const tenantId = await currentTenantId();
-  if (!tenantId) {
-    return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
-  }
-
-  for (const entry of parsed.data) {
-    const table = entry.kind === "rsvp" ? "rsvps" : "guests";
-    const { error } = await supabase
-      .from(table)
-      .update({ phone: entry.phone === "" ? null : entry.phone })
-      .eq("id", entry.id)
-      .eq("tenant_id", tenantId);
-    if (error) {
-      return { ok: false, error: "Nu am putut salva telefoanele. Rulează migrarea v10 în Supabase." };
-    }
   }
 
   revalidatePath(await adminBasePath(), "layout");

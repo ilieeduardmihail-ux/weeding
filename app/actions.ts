@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { clientKey } from "@/lib/client-key";
 import { rsvpSchema, type RsvpInput } from "@/lib/schemas";
+import { PRIVACY_POLICY_VERSION } from "@/lib/privacy";
 import type { RsvpStatus } from "@/lib/rsvp-types";
 
 type SubmitResult = { ok: true } | { ok: false; error: string };
@@ -14,7 +15,15 @@ export async function submitRsvp(input: RsvpInput, tenantId: string): Promise<Su
   const d = parsed.data;
 
   if (d.website) return { ok: true }; // honeypot filled: pretend it worked, save nothing
+  // Time trap: dropped as silently as the honeypot. A real person needs far
+  // more than 2.5s to pick attendance and type names.
+  if (d.elapsedMs !== undefined && d.elapsedMs < 2500) return { ok: true };
   if (!tenantId) return { ok: false, error: "Invitația nu este disponibilă." };
+  // Consent is required to store the reply at all (GDPR). The form sends the
+  // checkbox value; older cached pages that omit it are refused, not stored.
+  if (d.consent !== true) {
+    return { ok: false, error: "Bifează acordul pentru prelucrarea datelor ca să trimitem răspunsul." };
+  }
 
   const attending = d.attending === "yes";
   const supabase = await createClient();
@@ -25,6 +34,8 @@ export async function submitRsvp(input: RsvpInput, tenantId: string): Promise<Su
     p_guests: attending ? d.guests : [],
     p_ip_hash: await clientKey(),
     p_tenant: tenantId,
+    p_consent_at: new Date().toISOString(),
+    p_policy_version: PRIVACY_POLICY_VERSION,
   });
   if (error) {
     return {

@@ -1,5 +1,6 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,9 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function RsvpForm({ tenantId, initialName = "", onDone }: { tenantId: string; initialName?: string; onDone: (name: string) => void }) {
+export function RsvpForm({ tenantId, slug, initialName = "", onDone }: { tenantId: string; slug: string; initialName?: string; onDone: (name: string) => void }) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
   const [pending, start] = useTransition();
+  // When the form appeared, so the server can tell a person from an instant bot.
+  const openedAt = useRef(0);
+  useEffect(() => {
+    openedAt.current = Date.now();
+  }, []);
 
   const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<RsvpInput>({
     resolver: zodResolver(rsvpSchema),
@@ -22,9 +30,16 @@ export function RsvpForm({ tenantId, initialName = "", onDone }: { tenantId: str
   const attending = watch("attending");
 
   const onSubmit = (data: RsvpInput) => {
+    if (!consent) {
+      setConsentError(true);
+      return;
+    }
     setServerError(null);
     start(async () => {
-      const res = await submitRsvp(data, tenantId);
+      const res = await submitRsvp(
+        { ...data, consent: true, elapsedMs: Date.now() - openedAt.current },
+        tenantId
+      );
       if (res.ok) onDone(data.name.trim());
       else setServerError(res.error);
     });
@@ -94,6 +109,43 @@ export function RsvpForm({ tenantId, initialName = "", onDone }: { tenantId: str
         <textarea id="message" rows={3} {...register("message")}
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 transition-[border-color,box-shadow] duration-200 focus-visible:border-gold focus-visible:outline-2 focus-visible:outline-gold" />
         {errors.message && <p className="text-sm text-red-700">{errors.message.message}</p>}
+      </div>
+
+      <div className="space-y-2 rounded-lg border border-ink/15 bg-ink/5 p-3">
+        <label className="flex items-start gap-3 text-sm text-ink/80">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 shrink-0"
+            checked={consent}
+            aria-invalid={consentError}
+            aria-describedby="consent-hint"
+            onChange={(event) => {
+              setConsent(event.target.checked);
+              if (event.target.checked) setConsentError(false);
+            }}
+          />
+          <span>
+            Sunt de acord ca numele meu și răspunsul să fie prelucrate pentru organizarea nunții,
+            conform{" "}
+            <Link
+              href={`/${slug}/confidentialitate`}
+              target="_blank"
+              className="underline decoration-gold underline-offset-4 hover:text-ink"
+            >
+              politicii de confidențialitate
+            </Link>
+            .
+          </span>
+        </label>
+        <p id="consent-hint" className="text-xs text-ink/55">
+          Operatorul datelor este perechea care organizează nunta. Poți cere oricând ștergerea
+          răspunsului.
+        </p>
+        {consentError && (
+          <p role="alert" className="text-sm text-red-700">
+            Bifează acordul ca să putem salva răspunsul.
+          </p>
+        )}
       </div>
 
       {serverError && <p role="alert" className="text-red-700">{serverError}</p>}

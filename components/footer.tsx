@@ -5,8 +5,9 @@ import { Reveal } from "@/components/ui/reveal";
 const linkClass =
   "rounded-sm transition-colors duration-200 ease-out hover:text-ink hover:underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold";
 
-export function Footer({ names, email }: { names: [string, string]; email: string }) {
+export function Footer({ names, email, slug }: { names: [string, string]; email: string; slug?: string }) {
   const [a, b] = names;
+  const base = slug ? `/${slug}` : "";
 
   return (
     <footer className="border-t border-ink/10 px-6 py-12 text-center text-sm text-ink/65">
@@ -15,13 +16,13 @@ export function Footer({ names, email }: { names: [string, string]; email: strin
           {a} <span className="text-gold italic">&amp;</span> {b}
         </p>
         <nav aria-label="Linkuri utile" className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-          <Link href="#rsvp" className={linkClass}>
+          <Link href={`${base}#rsvp`} className={linkClass}>
             Confirmă prezența
           </Link>
-          <a href="/calendar" className={linkClass}>
+          <a href={`${base}/calendar`} className={linkClass}>
             Calendar
           </a>
-          <Link href="/confidentialitate" className={linkClass}>
+          <Link href={`${base}/confidentialitate`} className={linkClass}>
             Confidențialitate
           </Link>
           <a href={`mailto:${email}`} className={linkClass}>

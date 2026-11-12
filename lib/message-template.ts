@@ -67,6 +67,17 @@ export function whatsappHref(phone: string | null | undefined, text: string) {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
+/**
+ * Opens WhatsApp on its "pick a contact" screen with the message pre-filled.
+ *
+ * The couple no longer types the guests' phone numbers, so there is no chat to
+ * target: WhatsApp itself asks who should receive the message. The same link
+ * works in the browser (WhatsApp Web) and on phones (the app).
+ */
+export function whatsappShareHref(text: string) {
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
 /** Optional phone: empty is allowed, otherwise digits with an optional leading +. */
 export function isPhoneLike(value: string) {
   const trimmed = value.trim();

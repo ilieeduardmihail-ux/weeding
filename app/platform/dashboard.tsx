@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -10,6 +11,7 @@ import {
   Plus,
   RefreshCw,
   ShieldCheck,
+  Trash2,
   UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,7 @@ import { tenantHealth, type PlatformTenant, type PlatformOverview } from "@/lib/
 import {
   createAdminAccount,
   createTenant,
+  deleteTenant,
   generateKey,
   renewTenant,
   setTenantStatus,
@@ -156,11 +159,19 @@ export function PlatformDashboard({
             {overview.owners.length === 1 ? "" : "i"} de platformă
           </p>
         </div>
-        <form action={signOutOwner}>
-          <Button type="submit" variant="outline">
-            <LogOut aria-hidden="true" /> Ieși ({ownerEmail})
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/platform/facturi">Facturi</Link>
           </Button>
-        </form>
+          <Button asChild variant="outline">
+            <Link href="/platform/documente">Documente</Link>
+          </Button>
+          <form action={signOutOwner}>
+            <Button type="submit" variant="outline">
+              <LogOut aria-hidden="true" /> Ieși ({ownerEmail})
+            </Button>
+          </form>
+        </div>
       </header>
 
       {!configured && (
@@ -287,6 +298,7 @@ function TenantCard({
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedAdmin, setCopiedAdmin] = useState(false);
+  const [confirmSlug, setConfirmSlug] = useState("");
   const openKeys = tenant.keys.filter((k) => !k.usedAt && !k.revokedAt).length;
   // Independent of status: a suspended client can also be past its expiry, and
   // then „Reactivează" alone would not bring the site back.
@@ -355,6 +367,14 @@ function TenantCard({
       () => setTenantStatus({ tenantId: tenant.id, status: tenant.status === "suspended" ? "active" : "suspended" }),
       () => onSuccess(tenant.status === "suspended" ? "Client reactivat." : "Client suspendat.")
     );
+
+  const remove = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    run(
+      () => deleteTenant({ tenantId: tenant.id, confirmSlug }),
+      () => onSuccess("Client șters definitiv.")
+    );
+  };
 
   const copyKey = async () => {
     if (!generatedKey) return;
@@ -515,6 +535,39 @@ function TenantCard({
           </ul>
         </details>
       )}
+
+      <details className="mt-4 rounded-lg border border-red-700/30 bg-red-700/5 p-4 text-sm">
+        <summary className="cursor-pointer font-medium text-red-800">Șterge clientul</summary>
+        <p className="mt-2 text-ink/70">
+          Șterge definitiv nunta „{tenant.displayName}”: confirmările, invitații, mesele, bugetul,
+          poza invitației, cheile nefolosite și conturile care aparțin doar acestei nunți.
+          Conturile folosite și de altă nuntă sunt păstrate. Acțiunea nu poate fi anulată.
+        </p>
+        <form onSubmit={remove} className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label htmlFor={`del-${tenant.id}`} className="text-xs">
+              Scrie „{tenant.slug}” ca să confirmi
+            </Label>
+            <Input
+              id={`del-${tenant.id}`}
+              name="confirmSlug"
+              value={confirmSlug}
+              onChange={(event) => setConfirmSlug(event.target.value)}
+              placeholder={tenant.slug}
+              autoComplete="off"
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            disabled={disabled || pending || confirmSlug.trim().toLowerCase() !== tenant.slug}
+            className="border-red-700/50 text-red-800 hover:bg-red-700/10"
+          >
+            <Trash2 aria-hidden="true" /> Șterge definitiv
+          </Button>
+        </form>
+      </details>
     </article>
   );
 }

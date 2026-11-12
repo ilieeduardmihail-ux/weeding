@@ -16,9 +16,9 @@ import {
   MESSAGE_PLACEHOLDERS,
   PUBLIC_SITE_URL,
   renderInviteMessage,
-  whatsappHref,
+  whatsappShareHref,
 } from "@/lib/message-template";
-import { saveInviteMessage, savePhones, uploadInvitationImage, removeInvitationImage, type PhoneEntry } from "@/app/admin/messages/actions";
+import { saveInviteMessage, uploadInvitationImage, removeInvitationImage } from "@/app/admin/messages/actions";
 
 type Source = "all" | "rsvp" | "guest";
 
@@ -27,7 +27,6 @@ type Recipient = {
   kind: "rsvp" | "guest";
   id: string;
   name: string;
-  phone: string | null;
 };
 
 const SOURCE_LABEL: Record<Recipient["kind"], string> = {
@@ -64,9 +63,7 @@ function Messages({ data }: { data: AdminData }) {
   const q = useDebouncedValue(query);
   const [source, setSource] = useState<Source>("all");
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
-  const [phones, setPhones] = useState<Record<string, string>>({});
   const [savingMessage, startMessage] = useTransition();
-  const [savingPhones, startPhones] = useTransition();
   const [savingPhoto, startPhoto] = useTransition();
   const [photo, setPhoto] = useState<File | null>(null);
   // Instant feedback after upload, before the admin dataset refreshes.
@@ -110,14 +107,12 @@ function Messages({ data }: { data: AdminData }) {
           kind: "rsvp" as const,
           id: row.id,
           name: row.name,
-          phone: row.phone ?? null,
         })),
         ...data.importedGuests.map((row) => ({
           key: `guest:${row.id}`,
           kind: "guest" as const,
           id: row.id,
           name: row.name,
-          phone: row.phone,
         })),
       ].sort((a, b) => a.name.localeCompare(b.name, "ro")),
     [data.rsvps, data.importedGuests],
@@ -136,21 +131,6 @@ function Messages({ data }: { data: AdminData }) {
     () => recipients.filter((row) => selected.has(row.key)),
     [recipients, selected],
   );
-
-  const phoneOf = (row: Recipient) => phones[row.key] ?? row.phone ?? "";
-
-  const dirtyPhones = useMemo<PhoneEntry[]>(
-    () =>
-      recipients.flatMap((row) => {
-        const value = phones[row.key];
-        if (value === undefined || value.trim() === (row.phone ?? "").trim()) return [];
-        return [{ kind: row.kind, id: row.id, phone: value.trim() } as PhoneEntry];
-      }),
-    [recipients, phones],
-  );
-
-  const setPhone = (key: string, value: string) =>
-    setPhones((prev) => ({ ...prev, [key]: value }));
 
   const toggle = (key: string) =>
     setSelected((prev) => {
@@ -194,19 +174,6 @@ function Messages({ data }: { data: AdminData }) {
       if (result.ok) {
         notifyAdminDataChanged();
         show("Mesajul a fost salvat.", "success");
-      } else {
-        show(result.error, "error");
-      }
-    });
-
-  const saveNumbers = () =>
-    startPhones(async () => {
-      if (dirtyPhones.length === 0) return;
-      const result = await savePhones(dirtyPhones);
-      if (result.ok) {
-        setPhones({});
-        notifyAdminDataChanged();
-        show("Numerele de telefon au fost salvate.", "success");
       } else {
         show(result.error, "error");
       }
@@ -259,48 +226,48 @@ function Messages({ data }: { data: AdminData }) {
     });
 
   /**
-   * WhatsApp drops the caption when an image is shared through the system share
-   * sheet, so on phones we copy the text and ask the guest to paste it. Desktops
-   * skip that sheet (it only offers to install WhatsApp) and open wa.me with the
-   * text, where the downloaded photo can be dragged into the same message.
+   * Opens WhatsApp for one guest. WhatsApp drops the caption when an image is
+   * shared through the system share sheet, so we always copy the text too and
+   * ask the couple to paste it as the description. On phones that support file
+   * sharing we hand the photo over directly; everywhere else WhatsApp opens on
+   * its "choose a contact" screen with the text already filled in.
+   *
+   * `window.open` runs synchronously inside the tap: an `await` before it would
+   * let the popup blocker stop the WhatsApp tab from opening.
    */
-  const sendMessage = async (row: Recipient, text: string) => {
-    const href = whatsappHref(phoneOf(row), text);
-    if (!href) {
-      show("Adaugă un număr de telefon ca să trimiți mesajul.", "error");
+  const openWhatsApp = (row: Recipient, text: string) => {
+    const attachment = photoUrl ? photo : null;
+    const canShareFile =
+      attachment !== null &&
+      isPhone() &&
+      (() => {
+        try {
+          return navigator.canShare?.({ files: [attachment], text }) === true;
+        } catch {
+          return false;
+        }
+      })();
+
+    // Copy in the background: the guest still needs the text in the message box.
+    void navigator.clipboard.writeText(text).catch(() => {});
+
+    if (canShareFile && attachment) {
+      navigator
+        .share({ files: [attachment], text })
+        .then(() => show(`Textul pentru ${row.name} este copiat — lipește-l ca descriere.`, "success"))
+        .catch((error) => {
+          if ((error as Error).name !== "AbortError") {
+            show("Nu am putut deschide partajarea. Încearcă din nou.", "error");
+          }
+        });
       return;
     }
 
-    const attachment = photoUrl ? photo : null;
-    let canShareFile = false;
-    if (attachment && isPhone()) {
-      try {
-        canShareFile = navigator.canShare?.({ files: [attachment] }) === true;
-      } catch {
-        canShareFile = false;
-      }
-    }
-
-    if (attachment && canShareFile) {
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch {
-        // Sharing still works; the text stays visible in the list.
-      }
-      try {
-        await navigator.share({ files: [attachment], text });
-        show("Poza a plecat spre WhatsApp. Textul e copiat — lipește-l ca descriere.", "success");
-        return;
-      } catch (error) {
-        if ((error as Error).name === "AbortError") return;
-      }
-    }
-
-    window.open(href, "_blank", "noreferrer");
+    window.open(whatsappShareHref(text), "_blank", "noreferrer");
     show(
       attachment
-        ? "WhatsApp s-a deschis cu textul. Adaugă poza descărcată (butonul Descarcă poza)."
-        : "Mesajul s-a deschis în WhatsApp.",
+        ? "WhatsApp s-a deschis cu textul copiat. Atașează poza descărcată mai jos."
+        : `WhatsApp s-a deschis cu mesajul pentru ${row.name} copiat.`,
       "success",
     );
   };
@@ -331,9 +298,9 @@ function Messages({ data }: { data: AdminData }) {
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-2xl">Poza invitației</h2>
             <p className="mt-1 max-w-md text-sm text-ink/60">
-              Încarcă fotografia invitației tipărite. Ea apare ca previzualizare când
-              trimiți linkul pe WhatsApp, iar butonul de trimitere o atașează direct pe
-              telefon, acolo unde partajarea cu fișiere este disponibilă.
+              Încarcă fotografia invitației tipărite. Ea apare ca previzualizare când trimiți
+              linkul pe WhatsApp, iar butonul „Deschide WhatsApp” o atașează direct pe telefon,
+              acolo unde partajarea cu fișiere este disponibilă.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <input
@@ -516,7 +483,6 @@ function Messages({ data }: { data: AdminData }) {
           <ul className="mt-3 max-h-[28rem] divide-y divide-ink/10 overflow-y-auto rounded-lg border border-ink/10">
             {filtered.map((row) => {
               const checked = selected.has(row.key);
-              const phone = phoneOf(row);
               return (
                 <li
                   key={row.key}
@@ -538,32 +504,12 @@ function Messages({ data }: { data: AdminData }) {
                       </span>
                     </span>
                   </label>
-                  <Input
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(row.key, event.target.value)}
-                    placeholder="+40 721 234 567"
-                    aria-label={`Telefon pentru ${row.name}`}
-                    className="h-9 w-full bg-paper/70 sm:w-52"
-                  />
                 </li>
               );
             })}
           </ul>
         )}
 
-        {dirtyPhones.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gold/10 px-4 py-3">
-            <p className="text-sm text-ink/75">
-              {dirtyPhones.length === 1
-                ? "Un număr de telefon nesalvat."
-                : `${dirtyPhones.length} numere de telefon nesalvate.`}
-            </p>
-            <Button type="button" onClick={saveNumbers} disabled={savingPhones}>
-              {savingPhones ? "Se salvează…" : "Salvează telefoanele"}
-            </Button>
-          </div>
-        )}
       </section>
 
       {selectedList.length > 0 && (
@@ -573,9 +519,9 @@ function Messages({ data }: { data: AdminData }) {
               <h2 className="font-display text-2xl">Mesaje gata de trimis</h2>
               {photoUrl && (
                 <p className="mt-1 max-w-xl text-xs text-ink/50">
-                  Pe telefon, butonul copiază textul și trimite poza; lipești textul ca
-                  descriere. Pe calculator, WhatsApp se deschide cu textul, iar poza o
-                  adaugi din fișierul descărcat.
+                  Butonul „Deschide WhatsApp” copiază textul și, pe telefon, atașează și poza.
+                  Pe calculator, WhatsApp se deschide cu textul, iar poza o adaugi din fișierul
+                  descărcat.
                 </p>
               )}
             </div>
@@ -609,15 +555,11 @@ function Messages({ data }: { data: AdminData }) {
           <ul className="mt-4 space-y-3">
             {selectedList.map((row) => {
               const text = withPhoto(row.name);
-              const href = whatsappHref(phoneOf(row), text);
               return (
                 <li key={row.key} className="rounded-lg border border-ink/10 bg-paper/60 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-medium">{row.name}</p>
-                      <p className="text-xs text-ink/50">
-                        {phoneOf(row) || "Fără telefon — adaugă numărul mai sus."}
-                      </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -631,11 +573,10 @@ function Messages({ data }: { data: AdminData }) {
                       <Button
                         type="button"
                         size="sm"
-                        onClick={() => sendMessage(row, text)}
-                        disabled={!href}
+                        onClick={() => openWhatsApp(row, text)}
                       >
                         <MessageCircle className="size-4" />
-                        Trimite pe WhatsApp
+                        Deschide WhatsApp
                       </Button>
                     </div>
                   </div>

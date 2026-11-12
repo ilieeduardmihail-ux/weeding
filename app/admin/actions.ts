@@ -9,20 +9,35 @@ import { demoMode } from "@/lib/demo/mode";
 
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
+  const base = await adminBasePath();
   const { error } = await supabase.auth.signInWithPassword({
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
   });
-  if (error) redirect(`${await adminBasePath()}/login?error=1`);
+  if (error) redirect(`${base}/login?error=1`);
 
   // Valid Supabase account but not one of the couple: sign straight back out
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (isAdmin !== true) {
     await supabase.auth.signOut();
-    redirect(`${await adminBasePath()}/login?error=1`); // same message, so nobody learns which accounts exist
+    redirect(`${base}/login?error=1`); // same message, so nobody learns which accounts exist
   }
-  // The resolver forwards to the signed-in account's own /<slug>/admin panel.
-  redirect("/admin");
+  // Back to where the middleware caught them, or to the resolver (which
+  // forwards to the signed-in account's own /<slug>/admin panel).
+  redirect(safeAdminPath(formData.get("redirect")) ?? "/admin");
+}
+
+/**
+ * Only a same-origin admin path is accepted, so a crafted `?redirect=` link can
+ * never bounce the person to another site or into a non-admin area.
+ */
+function safeAdminPath(value: FormDataEntryValue | null): string | null {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) return null;
+  // A client panel (/<slug>/admin/...) or the legacy /admin resolver.
+  if (raw === "/admin" || raw.startsWith("/admin/")) return raw;
+  if (/^\/[^/]+\/admin(\/|$)/.test(raw)) return raw;
+  return null;
 }
 
 export async function signOut() {

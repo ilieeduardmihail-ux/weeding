@@ -41,7 +41,7 @@ function adminSlugFromPath(pathname: string): string | null {
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
   const slug = adminSlugFromPath(pathname);
   const isPlatform = pathname === "/platform" || pathname.startsWith("/platform/");
   const onLogin = pathname === PLATFORM_LOGIN || pathname.endsWith("/admin/login");
@@ -51,6 +51,8 @@ export async function proxy(request: NextRequest) {
   const adminHome = slug ? `/${slug}/admin` : "/admin";
   const adminLogin = slug ? `/${slug}/admin/login` : "/admin/login";
   const panelHome = isPlatform ? "/platform" : adminHome;
+  // Where an unauthenticated visitor is sent: this panel's own login page.
+  const loginPath = isPlatform ? PLATFORM_LOGIN : adminLogin;
 
   // DEMO MODE: no Supabase session. The platform panel needs the real backend,
   // so previews are sent to the admin demo instead.
@@ -102,18 +104,34 @@ export async function proxy(request: NextRequest) {
     allowed = data === true;
   }
 
+  // Any refresh above rotated the auth cookies onto `response`. Every response
+  // we return must carry them, otherwise the browser keeps the old tokens and
+  // the next request repeats the refresh — and Supabase treats a reused refresh
+  // token as a leaked session, logging the person out.
+  const withRefreshedCookies = (target: NextResponse) => {
+    response.cookies.getAll().forEach((c) => target.cookies.set(c));
+    return target;
+  };
+
   if (allowed) {
-    if (onLogin) return NextResponse.redirect(new URL(panelHome, request.url));
+    if (onLogin) return withRefreshedCookies(NextResponse.redirect(new URL(panelHome, request.url)));
     response.headers.set("Cache-Control", "private, no-store");
     return response;
   }
 
-  if (onLogin) return response; // let the person sign in
+  // Signed in, but without the role for THIS panel: do not enter the panel and
+  // do not loop on a login form. The resolver picks a panel they can use.
+  if (signedIn) {
+    if (onLogin) return withRefreshedCookies(response); // let them sign in
+    return withRefreshedCookies(NextResponse.redirect(new URL(HOME, request.url)));
+  }
 
-  // Signed out, or signed in without the right role
-  const redirect = NextResponse.redirect(new URL(HOME, request.url));
-  response.cookies.getAll().forEach((c) => redirect.cookies.set(c)); // keep refreshed auth cookies
-  return redirect;
+  // Signed out, or the session expired: go to THIS panel's login — never the
+  // public homepage — and remember the exact route so they land back on it.
+  if (onLogin) return withRefreshedCookies(response); // let them sign in
+  const loginUrl = new URL(loginPath, request.url);
+  loginUrl.searchParams.set("redirect", `${pathname}${search}`);
+  return withRefreshedCookies(NextResponse.redirect(loginUrl));
 }
 
 export const config = { matcher: ["/admin/:path*", "/platform/:path*", "/:slug/admin/:path*"] };

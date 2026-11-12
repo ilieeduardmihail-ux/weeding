@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 /** The login form, shared by /admin/login and /<slug>/admin/login. */
-export function AdminLogin({ error }: { error?: string }) {
+export function AdminLogin({ error, redirect }: { error?: string; redirect?: string }) {
   return (
     <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 px-6">
       <h1 className="font-display text-3xl">Autentificare admin</h1>
       <form action={signIn} className="glass space-y-4 rounded-xl p-6">
+        {/* Where the middleware caught the visitor, so signing back in lands
+            them on the exact page instead of the panel root. */}
+        {redirect && <input type="hidden" name="redirect" value={redirect} />}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" name="email" type="email" required />

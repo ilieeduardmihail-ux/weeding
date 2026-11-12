@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 export default async function PlatformLogin({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; redirect?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, redirect: next } = await searchParams;
   return (
     <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 px-6">
       <div>
@@ -24,6 +24,8 @@ export default async function PlatformLogin({
         <h1 className="font-display text-3xl">Cont de administrator</h1>
       </div>
       <form action={signInOwner} className="glass space-y-4 rounded-xl p-6">
+        {/* Where the middleware caught the owner, so signing back in returns there. */}
+        {next && <input type="hidden" name="redirect" value={next} />}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" name="email" type="email" required autoComplete="email" />

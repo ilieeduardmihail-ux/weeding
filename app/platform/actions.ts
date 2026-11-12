@@ -35,7 +35,17 @@ export async function signInOwner(formData: FormData) {
     await supabase.auth.signOut();
     redirect("/platform/login?error=1");
   }
-  redirect("/platform");
+  // Back to the exact platform page the middleware caught, when it is a safe
+  // same-origin path; otherwise the dashboard.
+  redirect(safePlatformPath(formData.get("redirect")) ?? "/platform");
+}
+
+/** Only a same-origin /platform path is accepted, so a crafted link cannot bounce elsewhere. */
+function safePlatformPath(value: FormDataEntryValue | null): string | null {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) return null;
+  if (raw === "/platform" || raw.startsWith("/platform/")) return raw;
+  return null;
 }
 
 export async function signOutOwner() {

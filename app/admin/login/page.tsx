@@ -4,7 +4,11 @@ import { AdminLogin } from "@/components/admin/admin-login";
 // person is forwarded by /admin to their own /<slug>/admin panel.
 export const instant = false;
 
-export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
-  return <AdminLogin error={error} />;
+export default async function Login({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; redirect?: string }>;
+}) {
+  const { error, redirect } = await searchParams;
+  return <AdminLogin error={error} redirect={redirect} />;
 }

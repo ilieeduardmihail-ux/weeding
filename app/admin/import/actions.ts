@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { currentTenantId } from "@/lib/tenant-session";
+import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
 
 const schema = z.object({ names: z.array(z.string().trim().min(2).max(120)).min(1).max(500) });
 
@@ -24,7 +24,8 @@ export async function importGuests(
   if (error) return { ok: false, error: "Nu am putut importa lista. Te rugăm să încerci din nou." };
 
   const inserted = Number(data ?? 0);
-  revalidatePath("/admin", "layout");
-  revalidatePath("/admin/seating");
+  const base = await adminBasePath();
+  revalidatePath(base, "layout");
+  revalidatePath(`${base}/seating`);
   return { ok: true, inserted, skipped: parsed.data.names.length - inserted };
 }

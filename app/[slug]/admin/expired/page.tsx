@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { CalendarX2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getTenantContext } from "@/lib/tenant-session";
+import { getTenantContextForSlug } from "@/lib/tenant-session";
 import { tenantIsAvailable } from "@/lib/tenants";
-import { signOut } from "../actions";
+import { signOut } from "@/app/admin/actions";
 
 // Per-user, and it reads the session to pick the message.
 export const instant = false;
@@ -17,11 +17,13 @@ export const metadata: Metadata = {
 
 const CONTACT = "contact@wedding-ro.vercel.app";
 
-export default async function ExpiredPage() {
+export default async function ExpiredPage({ params }: { params: Promise<{ slug: string }> }) {
   await connection();
-  const { tenant } = await getTenantContext();
-  if (!tenant) redirect("/admin/login");
-  if (tenantIsAvailable(tenant)) redirect("/admin");
+  const { slug } = await params;
+  const { email, tenant } = await getTenantContextForSlug(slug);
+  if (!email) redirect(`/${slug}/admin/login`);
+  if (!tenant) redirect("/admin");
+  if (tenantIsAvailable(tenant)) redirect(`/${slug}/admin`);
 
   const suspended = tenant.status === "suspended";
 

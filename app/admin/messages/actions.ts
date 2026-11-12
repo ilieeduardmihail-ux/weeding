@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { isPhoneLike } from "@/lib/message-template";
 import { demoMode } from "@/lib/demo/mode";
-import { currentTenantId } from "@/lib/tenant-session";
+import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
 
 type Result = { ok: true } | { ok: false; error: string };
 type UploadResult = { ok: true; url: string } | { ok: false; error: string };
@@ -36,7 +36,7 @@ export async function saveInviteMessage(body: string): Promise<Result> {
     return { ok: false, error: "Nu am putut salva mesajul. Rulează migrarea v10 în Supabase." };
   }
 
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }
 
@@ -79,7 +79,7 @@ export async function savePhones(entries: PhoneEntry[]): Promise<Result> {
     }
   }
 
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }
 
@@ -137,7 +137,7 @@ export async function uploadInvitationImage(formData: FormData): Promise<UploadR
       .eq("tenant_id", tenantId);
     if (error) return { ok: false, error: "Nu am putut salva poza în demo." };
     revalidatePath("/");
-    revalidatePath("/admin", "layout");
+    revalidatePath(await adminBasePath(), "layout");
     return { ok: true, url };
   }
 
@@ -171,7 +171,7 @@ export async function uploadInvitationImage(formData: FormData): Promise<UploadR
   if (typeof previous === "string" && previous !== url) await removeStoredPhoto(supabase, previous);
 
   revalidatePath("/");
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true, url };
 }
 
@@ -201,6 +201,6 @@ export async function removeInvitationImage(): Promise<Result> {
   if (!demoMode && typeof previous === "string") await removeStoredPhoto(supabase, previous);
 
   revalidatePath("/");
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }

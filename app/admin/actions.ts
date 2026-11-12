@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { adminBasePath } from "@/lib/tenant-session";
 import { demoMode } from "@/lib/demo/mode";
 
 export async function signIn(formData: FormData) {
@@ -12,21 +13,22 @@ export async function signIn(formData: FormData) {
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
   });
-  if (error) redirect("/admin/login?error=1");
+  if (error) redirect(`${await adminBasePath()}/login?error=1`);
 
   // Valid Supabase account but not one of the couple: sign straight back out
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (isAdmin !== true) {
     await supabase.auth.signOut();
-    redirect("/admin/login?error=1"); // same message, so nobody learns which accounts exist
+    redirect(`${await adminBasePath()}/login?error=1`); // same message, so nobody learns which accounts exist
   }
+  // The resolver forwards to the signed-in account's own /<slug>/admin panel.
   redirect("/admin");
 }
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/admin/login");
+  redirect(`${await adminBasePath()}/login`);
 }
 
 /* ------------------------------------------------------------ new password */
@@ -77,6 +79,6 @@ export async function deleteRsvp(id: string): Promise<DeleteRsvpResult> {
   const supabase = await createClient();
   const { error } = await supabase.from("rsvps").delete().eq("id", id); // RLS: admins only
   if (error) return { ok: false, error: "Nu am putut șterge răspunsul. Încearcă din nou." };
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }

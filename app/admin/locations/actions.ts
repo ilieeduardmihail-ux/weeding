@@ -4,13 +4,14 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { locationSchema } from "@/lib/location-schema";
-import { currentTenantId } from "@/lib/tenant-session";
+import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
 
 export async function saveLocation(formData: FormData) {
   const supabase = await createClient();
+  const base = await adminBasePath();
 
   const tenantId = await currentTenantId();
-  if (!tenantId) redirect("/admin/login");
+  if (!tenantId) redirect(`${base}/login`);
 
   const parsed = locationSchema.safeParse({
     key: String(formData.get("key") ?? ""),
@@ -21,7 +22,7 @@ export async function saveLocation(formData: FormData) {
     embed_url: String(formData.get("embed_url") ?? ""),
   });
 
-  if (!parsed.success) redirect("/admin/locations?error=validation");
+  if (!parsed.success) redirect(`${base}/locations?error=validation`);
 
   const { error } = await supabase.from("locations").upsert(
     {
@@ -31,12 +32,12 @@ export async function saveLocation(formData: FormData) {
     },
     { onConflict: "tenant_id,key" }
   );
-  if (error) redirect("/admin/locations?error=save");
+  if (error) redirect(`${base}/locations?error=save`);
 
   revalidatePath("/");
-  revalidatePath("/admin", "layout");
-  revalidatePath("/admin/locations");
-  redirect("/admin/locations?saved=1");
+  revalidatePath(base, "layout");
+  revalidatePath(`${base}/locations`);
+  redirect(`${base}/locations?saved=1`);
 }
 
 /**
@@ -45,15 +46,16 @@ export async function saveLocation(formData: FormData) {
  */
 export async function saveLocationsIntro(formData: FormData) {
   const supabase = await createClient();
+  const base = await adminBasePath();
 
   const tenantId = await currentTenantId();
-  if (!tenantId) redirect("/admin/login");
+  if (!tenantId) redirect(`${base}/login`);
 
   const intro = String(formData.get("locations_intro") ?? "")
     .replace(/\r\n/g, "\n")
     .trim();
 
-  if (intro.length > 600) redirect("/admin/locations?error=intro-length");
+  if (intro.length > 600) redirect(`${base}/locations?error=intro-length`);
 
   const { error } = await supabase
     .from("event_settings")
@@ -63,11 +65,11 @@ export async function saveLocationsIntro(formData: FormData) {
     // Before migration v12 is applied PostgREST reports the missing column.
     const missingColumn =
       error.code === "PGRST204" || String(error.message).includes("locations_intro");
-    redirect(`/admin/locations?error=${missingColumn ? "intro-migration" : "intro-save"}`);
+    redirect(`${base}/locations?error=${missingColumn ? "intro-migration" : "intro-save"}`);
   }
 
   revalidatePath("/");
-  revalidatePath("/admin", "layout");
-  revalidatePath("/admin/locations");
-  redirect("/admin/locations?saved=intro");
+  revalidatePath(base, "layout");
+  revalidatePath(`${base}/locations`);
+  redirect(`${base}/locations?saved=intro`);
 }

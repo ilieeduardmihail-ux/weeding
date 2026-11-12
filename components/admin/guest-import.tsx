@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { correctName, nameKey, type NameFix, type Status } from "@/lib/fuzzy";
 import { parseFile, parseText } from "@/lib/parse-guests";
 import { importGuests } from "@/app/admin/import/actions";
+import { useAdminPath } from "@/components/admin/admin-tenant";
 import { notifyAdminDataChanged } from "@/lib/admin-data";
 
 type Row = NameFix & { id: number; value: string; include: boolean; dup: boolean };
@@ -54,6 +55,7 @@ const ImportRow = memo(function ImportRow({
 });
 
 export function GuestImport({ existing }: { existing: string[] }) {
+  const adminPath = useAdminPath();
   const [text, setText] = useState("");
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +125,7 @@ export function GuestImport({ existing }: { existing: string[] }) {
     <div className="mt-6 space-y-6">
       {done && (
         <p role="status" className="rounded-lg bg-mist p-4">
-          {done} <Link href="/admin/seating" className="underline decoration-gold underline-offset-4">Mergi la mese</Link>
+          {done} <Link href={adminPath("/seating")} className="underline decoration-gold underline-offset-4">Mergi la mese</Link>
         </p>
       )}
 

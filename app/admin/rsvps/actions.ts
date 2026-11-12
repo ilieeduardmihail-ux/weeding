@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { adminRsvpSchema, type AdminRsvpInput } from "@/lib/admin-rsvp-schema";
-import { currentTenantId } from "@/lib/tenant-session";
+import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
 
 export type UpdateRsvpResult = { ok: true } | { ok: false; error: string };
 
@@ -46,9 +46,10 @@ export async function updateRsvp(input: AdminRsvpInput): Promise<UpdateRsvpResul
     };
   }
 
+  const base = await adminBasePath();
   revalidatePath("/");
-  revalidatePath("/admin", "layout");
-  revalidatePath("/admin");
-  revalidatePath(`/admin/rsvps/${d.id}/edit`);
+  revalidatePath(base, "layout");
+  revalidatePath(base);
+  revalidatePath(`${base}/rsvps/${d.id}/edit`);
   return { ok: true };
 }

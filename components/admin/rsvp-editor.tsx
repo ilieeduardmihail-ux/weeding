@@ -10,6 +10,7 @@ import { Armchair } from "lucide-react";
 import { adminRsvpSchema, type AdminRsvpInput } from "@/lib/admin-rsvp-schema";
 import { MAX_GUESTS } from "@/lib/config";
 import { updateRsvp } from "@/app/admin/rsvps/actions";
+import { useAdminPath } from "@/components/admin/admin-tenant";
 import { notifyAdminDataChanged } from "@/lib/admin-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ export type RsvpForEdit = {
 
 export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
   const router = useRouter();
+  const adminPath = useAdminPath();
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -52,7 +54,7 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
       const res = await updateRsvp(data);
       if (res.ok) {
         notifyAdminDataChanged();
-        router.push("/admin?edited=1");
+        router.push(`${adminPath()}?edited=1`);
       } else {
         setServerError(res.error);
       }
@@ -167,7 +169,7 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
           {pending ? "Se salvează…" : "Salvează modificările"}
         </Button>
         <Button asChild variant="outline">
-          <Link href="/admin">Renunță</Link>
+          <Link href={adminPath()}>Renunță</Link>
         </Button>
       </div>
     </form>

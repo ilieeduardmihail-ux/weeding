@@ -33,6 +33,91 @@ function formatDate(value: string | null) {
   return dateFmt.format(new Date(value));
 }
 
+/** Predefined durations, in the days the server stores. */
+const DURATION_PRESETS = [
+  { label: "6 luni", days: 180 },
+  { label: "1 an", days: 365 },
+  { label: "1 an și 6 luni", days: 540 },
+  { label: "2 ani", days: 730 },
+] as const;
+
+/** Turns a day count into something readable, e.g. 365 -> "1 an (365 zile)". */
+function durationLabel(days: number) {
+  const preset = DURATION_PRESETS.find((p) => p.days === days);
+  return preset ? `${preset.label} (${days} zile)` : `${days} zile`;
+}
+
+/**
+ * Duration picker shared by the key, direct-account and renew forms: quick
+ * presets plus a free "Personalizat" field, all submitted as a day count.
+ */
+function DurationPicker({
+  idPrefix,
+  name,
+  label = "Durată",
+  defaultDays = 365,
+}: {
+  idPrefix: string;
+  name: string;
+  label?: string;
+  defaultDays?: number;
+}) {
+  const isPreset = DURATION_PRESETS.some((p) => p.days === defaultDays);
+  const [days, setDays] = useState(defaultDays);
+  const [custom, setCustom] = useState(!isPreset);
+
+  const chip = (active: boolean) =>
+    `rounded-md border px-2.5 py-1 text-xs transition-colors ${
+      active ? "border-ink bg-ink text-sea" : "border-ink/25 hover:bg-ink/10"
+    }`;
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs">{label}</Label>
+      <div className="flex flex-wrap gap-1.5">
+        {DURATION_PRESETS.map((preset) => (
+          <button
+            key={preset.days}
+            type="button"
+            aria-pressed={!custom && days === preset.days}
+            onClick={() => {
+              setCustom(false);
+              setDays(preset.days);
+            }}
+            className={chip(!custom && days === preset.days)}
+          >
+            {preset.label}
+          </button>
+        ))}
+        <button type="button" aria-pressed={custom} onClick={() => setCustom(true)} className={chip(custom)}>
+          Personalizat
+        </button>
+      </div>
+
+      {custom ? (
+        <div className="flex items-center gap-2">
+          <Input
+            id={`${idPrefix}-custom`}
+            type="number"
+            name={name}
+            min={1}
+            max={3650}
+            value={days}
+            onChange={(event) => setDays(Number(event.target.value) || 0)}
+            className="w-28"
+          />
+          <span className="text-xs text-ink/60">zile</span>
+        </div>
+      ) : (
+        <>
+          <input type="hidden" name={name} value={days} />
+          <p className="text-xs text-ink/60">{durationLabel(days)}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
 const TONE: Record<string, string> = {
   active: "border-emerald-700/40 bg-emerald-700/10 text-emerald-800",
   pending: "border-amber-600/40 bg-amber-500/10 text-amber-800",
@@ -201,6 +286,7 @@ function TenantCard({
   const [pending, start] = useTransition();
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedAdmin, setCopiedAdmin] = useState(false);
   const openKeys = tenant.keys.filter((k) => !k.usedAt && !k.revokedAt).length;
   // Independent of status: a suspended client can also be past its expiry, and
   // then „Reactivează" alone would not bring the site back.
@@ -280,6 +366,17 @@ function TenantCard({
     }
   };
 
+  const copyAdminUrl = async () => {
+    const url = `${window.location.origin}/${tenant.slug}/admin`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedAdmin(true);
+      onSuccess("Linkul de admin a fost copiat.");
+    } catch {
+      onError("Nu am putut copia linkul. Selectează-l manual.");
+    }
+  };
+
   return (
     <article className="glass rounded-xl p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -294,6 +391,20 @@ function TenantCard({
             </a>
             {" · "}activat {formatDate(tenant.activatedAt)}
             {" · "}expiră {formatDate(tenant.expiresAt)}
+          </p>
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink/65">
+            <span>Admin client:</span>
+            <a href={`/${tenant.slug}/admin`} target="_blank" rel="noreferrer" className="underline decoration-gold underline-offset-4">
+              /{tenant.slug}/admin
+            </a>
+            <button
+              type="button"
+              onClick={copyAdminUrl}
+              aria-label="Copiază linkul de admin"
+              className="rounded p-1 text-ink/60 transition-colors hover:bg-ink/10 hover:text-ink"
+            >
+              {copiedAdmin ? <Check className="size-3.5" aria-hidden="true" /> : <Copy className="size-3.5" aria-hidden="true" />}
+            </button>
           </p>
           <p className="mt-1 text-xs text-ink/55">
             {tenant.admins.length} cont{tenant.admins.length === 1 ? "" : "uri"} · {openKeys} chei
@@ -332,19 +443,12 @@ function TenantCard({
           <p className="flex items-center gap-2 text-sm font-medium">
             <KeyRound className="size-4" aria-hidden="true" /> Cheie de acces
           </p>
-          <div className="flex gap-2">
-            <div className="flex-1 space-y-1">
-              <Label htmlFor={`days-${tenant.id}`} className="text-xs">
-                Zile
-              </Label>
-              <Input id={`days-${tenant.id}`} name="durationDays" type="number" min={1} max={3650} defaultValue={365} />
-            </div>
-            <div className="flex-[2] space-y-1">
-              <Label htmlFor={`label-${tenant.id}`} className="text-xs">
-                Etichetă (opțional)
-              </Label>
-              <Input id={`label-${tenant.id}`} name="label" maxLength={120} placeholder="Ana & Stefan" />
-            </div>
+          <DurationPicker idPrefix={`days-${tenant.id}`} name="durationDays" defaultDays={365} />
+          <div className="space-y-1">
+            <Label htmlFor={`label-${tenant.id}`} className="text-xs">
+              Etichetă (opțional)
+            </Label>
+            <Input id={`label-${tenant.id}`} name="label" maxLength={120} placeholder="Ana & Stefan" />
           </div>
           <Button type="submit" disabled={disabled || pending} size="sm" className="bg-ink text-sea">
             Generează cheia
@@ -369,33 +473,21 @@ function TenantCard({
             </Label>
             <Input id={`email-${tenant.id}`} name="email" type="email" required />
           </div>
-          <div className="flex gap-2">
-            <div className="flex-1 space-y-1">
-              <Label htmlFor={`pass-${tenant.id}`} className="text-xs">
-                Parolă
-              </Label>
-              <Input id={`pass-${tenant.id}`} name="password" type="text" minLength={8} required />
-            </div>
-            <div className="w-24 space-y-1">
-              <Label htmlFor={`adm-days-${tenant.id}`} className="text-xs">
-                Zile
-              </Label>
-              <Input id={`adm-days-${tenant.id}`} name="durationDays" type="number" min={1} max={3650} defaultValue={365} />
-            </div>
+          <div className="space-y-1">
+            <Label htmlFor={`pass-${tenant.id}`} className="text-xs">
+              Parolă
+            </Label>
+            <Input id={`pass-${tenant.id}`} name="password" type="text" minLength={8} required />
           </div>
+          <DurationPicker idPrefix={`adm-days-${tenant.id}`} name="durationDays" label="Durată acces" defaultDays={365} />
           <Button type="submit" disabled={disabled || pending} size="sm" className="bg-ink text-sea">
             Creează contul
           </Button>
         </form>
       </div>
 
-      <form onSubmit={renew} className="mt-4 flex items-end gap-2 rounded-lg border border-ink/10 p-4">
-        <div className="w-28 space-y-1">
-          <Label htmlFor={`renew-${tenant.id}`} className="text-xs">
-            Prelungește cu (zile)
-          </Label>
-          <Input id={`renew-${tenant.id}`} name="days" type="number" min={1} max={3650} defaultValue={365} />
-        </div>
+      <form onSubmit={renew} className="mt-4 space-y-3 rounded-lg border border-ink/10 p-4">
+        <DurationPicker idPrefix={`renew-${tenant.id}`} name="days" label="Prelungește cu" defaultDays={365} />
         <Button type="submit" variant="outline" size="sm" disabled={disabled || pending}>
           <RefreshCw aria-hidden="true" /> Prelungește
         </Button>
@@ -409,7 +501,7 @@ function TenantCard({
           <ul className="mt-3 space-y-1 text-xs text-ink/65">
             {tenant.keys.map((key) => (
               <li key={key.id} className="flex flex-wrap gap-x-3">
-                <span className="font-mono">{key.durationDays}z</span>
+                <span>{durationLabel(key.durationDays)}</span>
                 <span>{key.label ?? "fără etichetă"}</span>
                 <span>
                   {key.revokedAt

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ADMIN_DATA_EVENT, type AdminData } from "@/lib/admin-data";
+import { useAdminSlug } from "@/components/admin/admin-tenant";
 import { createBrowserSupabase, hasSupabaseBrowser } from "@/lib/supabase/browser";
 
 type AdminDataValue = {
@@ -23,6 +24,7 @@ export function useAdminData() {
 }
 
 export function AdminDataProvider({ children }: { children: React.ReactNode }) {
+  const slug = useAdminSlug();
   const router = useRouter();
   const [data, setData] = useState<AdminData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +39,9 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
 
     const request = (async () => {
       try {
-        const response = await fetch("/admin/bootstrap", { cache: "no-store" });
+        const response = await fetch(`/${slug}/admin/bootstrap`, { cache: "no-store" });
         if (response.status === 401) {
-          router.replace("/admin/login");
+          router.replace(`/${slug}/admin/login`);
           return;
         }
         if (!response.ok) throw new Error(String(response.status));
@@ -56,7 +58,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
 
     inFlight.current = request;
     return request;
-  }, [router]);
+  }, [router, slug]);
 
   // First load: one parallel request for every section.
   useEffect(() => {

@@ -4,13 +4,14 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { eventSettingsSchema } from "@/lib/event-settings";
-import { currentTenantId } from "@/lib/tenant-session";
+import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
 
 export async function saveSettings(formData: FormData) {
   const supabase = await createClient();
+  const base = await adminBasePath();
 
   const tenantId = await currentTenantId();
-  if (!tenantId) redirect("/admin/login");
+  if (!tenantId) redirect(`${base}/login`);
 
   const parsed = eventSettingsSchema.safeParse({
     partner_1: String(formData.get("partner_1") ?? ""),
@@ -25,13 +26,13 @@ export async function saveSettings(formData: FormData) {
     public_url: String(formData.get("public_url") ?? ""),
   });
 
-  if (!parsed.success) redirect("/admin/settings?error=validation");
+  if (!parsed.success) redirect(`${base}/settings?error=validation`);
 
   const { error } = await supabase.from("event_settings").update(parsed.data).eq("tenant_id", tenantId);
-  if (error) redirect("/admin/settings?error=save");
+  if (error) redirect(`${base}/settings?error=save`);
 
   revalidatePath("/");
-  revalidatePath("/admin", "layout");
-  revalidatePath("/admin/settings");
-  redirect("/admin/settings?saved=1");
+  revalidatePath(base, "layout");
+  revalidatePath(`${base}/settings`);
+  redirect(`${base}/settings?saved=1`);
 }

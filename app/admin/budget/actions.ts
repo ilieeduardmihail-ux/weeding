@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { currentTenantId } from "@/lib/tenant-session";
+import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
 import {
   categorySchema,
   expenseSchema,
@@ -38,7 +38,7 @@ export async function addExpense(input: ExpenseInput, id?: string): Promise<Resu
     notes: d.notes || null,
   });
   if (error) return { ok: false, error: "Nu am putut salva cheltuiala. Rulează migrarea v9 în Supabase." };
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }
 
@@ -56,7 +56,7 @@ export async function addPayment(input: PaymentInput): Promise<Result> {
       error: error.message.includes("paid_not_above_total") ? "Suma depășește restul de plătit." : "Nu am putut salva plata.",
     };
   }
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }
 
@@ -67,7 +67,7 @@ export async function deleteExpense(id: string): Promise<Result> {
   if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   const { error } = await supabase.from("expenses").delete().eq("id", id).eq("tenant_id", tenantId);
   if (error) return { ok: false, error: "Nu am putut șterge cheltuiala." };
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }
 
@@ -85,6 +85,6 @@ export async function updateExpenseCategory(id: string, category: string): Promi
   if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   const { error } = await supabase.from("expenses").update({ category: parsed.data }).eq("id", id).eq("tenant_id", tenantId);
   if (error) return { ok: false, error: "Nu am putut salva categoria." };
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }

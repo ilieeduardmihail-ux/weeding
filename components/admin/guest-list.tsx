@@ -3,6 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AdminRealtime } from "@/components/admin/admin-realtime";
+import { useAdminPath } from "@/components/admin/admin-tenant";
 import { Toast, useToast } from "@/components/ui/toast";
 import { mergeById } from "@/lib/merge-by-id";
 import { notifyAdminDataChanged } from "@/lib/admin-data";
@@ -55,6 +56,7 @@ const RowView = memo(function RowView({
   row: GuestRow;
   onDelete: (id: string) => void;
 }) {
+  const adminPath = useAdminPath();
   return (
     <tr className="border-b border-ink/10 align-top transition-colors duration-200 ease-out last:border-0 hover:bg-ink/5">
       <td className="py-3 pr-4">
@@ -77,7 +79,7 @@ const RowView = memo(function RowView({
       <td>
         <div className="flex items-center gap-1">
           <Button asChild variant="outline" size="sm">
-            <Link href={`/admin/rsvps/${row.id}/edit`}>Editează</Link>
+            <Link href={adminPath(`/rsvps/${row.id}/edit`)}>Editează</Link>
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={() => onDelete(row.id)}>
             Șterge

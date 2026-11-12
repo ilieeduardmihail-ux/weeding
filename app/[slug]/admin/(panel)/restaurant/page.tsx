@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { Download, FileText } from "lucide-react";
 import { useAdminData } from "@/components/admin/admin-data";
+import { useAdminPath } from "@/components/admin/admin-tenant";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
 import { Button } from "@/components/ui/button";
 import { buildRestaurantReport } from "@/lib/restaurant-report";
 
 export default function RestaurantPage() {
   const { data } = useAdminData();
+  const adminPath = useAdminPath();
   if (!data) return <AdminSectionSkeleton />;
 
   const report = buildRestaurantReport(data.report);
@@ -33,12 +35,12 @@ export default function RestaurantPage() {
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Button asChild className="bg-ink text-sea hover:bg-ink/85">
-          <a href="/admin/export/restaurant">
+          <a href={adminPath("/export/restaurant")}>
             <Download className="size-4" /> Descarcă Excel (.xlsx)
           </a>
         </Button>
         <Button asChild variant="outline">
-          <a href="/admin/export/restaurant?format=csv">
+          <a href={adminPath("/export/restaurant?format=csv")}>
             <FileText className="size-4" /> Descarcă CSV
           </a>
         </Button>
@@ -58,7 +60,7 @@ export default function RestaurantPage() {
         <p className="mt-6 rounded-lg border border-gold/35 bg-gold/10 p-4 text-sm text-ink/80">
           {unassigned} {unassigned === 1 ? "persoană nu are încă masă" : "persoane nu au încă masă"}.
           Lista poate fi descărcată și așa, dar localul are nevoie de mese complete.{" "}
-          <Link href="/admin/seating" className="text-gold underline decoration-gold/50 underline-offset-4">
+          <Link href={adminPath("/seating")} className="text-gold underline decoration-gold/50 underline-offset-4">
             Mergi la așezare
           </Link>
           .

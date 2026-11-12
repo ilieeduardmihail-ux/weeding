@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { signOut } from "@/app/admin/actions";
 import { useAdminData } from "@/components/admin/admin-data";
+import { useAdminPath } from "@/components/admin/admin-tenant";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
 import { GuestList, type GuestRow } from "@/components/admin/guest-list";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ function GuestListWithFeedback({ rows }: { rows: GuestRow[] }) {
 
 function Dashboard() {
   const { data, error, refresh } = useAdminData();
+  const adminPath = useAdminPath();
   if (!data) {
     return (
       <>
@@ -44,7 +46,7 @@ function Dashboard() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-display text-4xl">Lista invitaților</h1>
         <div className="flex gap-3">
-          <Button asChild variant="outline"><a href="/admin/export">Export CSV</a></Button>
+          <Button asChild variant="outline"><a href={adminPath("/export")}>Export CSV</a></Button>
           <form action={signOut}><Button variant="ghost">Ieși din cont</Button></form>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_TABLE_NUMBER, MAX_TABLE_CAPACITY, MIN_TABLE_CAPACITY } from "@/lib/seating";
-import { currentTenantId } from "@/lib/tenant-session";
+import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -39,7 +39,7 @@ export async function assignTable(kind: string, id: string, table: number | null
     if (message.includes("table missing")) return { ok: false, error: "Masa nu mai există." };
     return { ok: false, error: "Nu am putut salva modificarea. Rulează migrarea v9 în Supabase." };
   }
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }
 
@@ -50,7 +50,7 @@ export async function deleteGuest(id: string): Promise<Result> {
   if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
   const { error } = await supabase.from("guests").delete().eq("id", id).eq("tenant_id", tenantId);
   if (error) return { ok: false, error: "Nu am putut șterge invitatul." };
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }
 
@@ -82,7 +82,7 @@ export async function addTable(
     if (message.includes("no numbers left")) return { ok: false, error: "Nu mai există numere libere." };
     return { ok: false, error: "Nu am putut adăuga masa. Rulează migrarea v8 în Supabase." };
   }
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true, number: typeof data === "number" ? data : (number ?? undefined) };
 }
 
@@ -96,7 +96,7 @@ export async function deleteTable(number: number): Promise<Result> {
   if (error) {
     return { ok: false, error: "Nu am putut șterge masa. Rulează migrarea v8 în Supabase." };
   }
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }
 
@@ -121,6 +121,6 @@ export async function setTableCapacity(number: number, capacity: number): Promis
     }
     return { ok: false, error: "Nu am putut salva capacitatea." };
   }
-  revalidatePath("/admin", "layout");
+  revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
 }

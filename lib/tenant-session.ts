@@ -7,6 +7,7 @@
 import { cache } from "react";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { demoMode } from "@/lib/demo/mode";
 import { tenantIsAvailable } from "@/lib/tenants";
 
 export type ContextTenant = {
@@ -123,10 +124,43 @@ export async function adminBasePath(): Promise<string> {
   return slug ? `/${slug}/admin` : "/admin";
 }
 
+/**
+ * The wedding of the current admin request, resolved with ONE query.
+ *
+ * `tenant_admins` is protected by RLS that only exposes the caller's own rows,
+ * so filtering that join by slug is both the lookup and the authorization
+ * check. No `auth.getUser()` round trip, no membership list, no owner RPC: the
+ * panel bootstrap and every server action start from a single hop.
+ *
+ * A miss (no row, unexpected relationship, changed policy) is NOT treated as
+ * "access denied": it falls through to the full resolver below. So a schema
+ * change can only cost speed, never lock an admin out.
+ */
+export const getAdminTenant = cache(async (): Promise<ContextTenant | null> => {
+  const slug = await currentAdminSlug();
+  if (!slug) return (await getTenantContext()).tenant;
+  if (demoMode) return (await getTenantContextForSlug(slug)).tenant;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("tenant_admins")
+    .select("tenants!inner(id, slug, display_name, status, expires_at)")
+    .eq("tenants.slug", slug)
+    .limit(1);
+
+  // A wedding can have several admins, so this is a list even when RLS narrows
+  // it to the caller's own row(s).
+  const joined =
+    (data as { tenants?: ContextTenant | ContextTenant[] | null }[] | null)?.[0]?.tenants ?? null;
+  const fast = Array.isArray(joined) ? joined[0] ?? null : joined;
+
+  return fast ?? (await getTenantContextForSlug(slug)).tenant;
+});
+
 /** Convenience for the server actions: the tenant they may write to. An expired
  * or suspended wedding has no writable tenant, so every action fails closed. */
 export async function currentTenantId(): Promise<string | null> {
-  const context = await getTenantContext();
-  if (!context.tenant || !tenantIsAvailable(context.tenant)) return null;
-  return context.tenant.id;
+  const tenant = await getAdminTenant();
+  if (!tenant || !tenantIsAvailable(tenant)) return null;
+  return tenant.id;
 }

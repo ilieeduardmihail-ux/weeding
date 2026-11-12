@@ -36,6 +36,12 @@ export function Particles({ count = MAX_PARTICLES }: { count?: number }) {
     let frame = 0;
     let running = false;
     let inView = true;
+    let lastPaint = 0;
+
+    // The dust drifts slowly, so half the frames look exactly the same while
+    // leaving the main thread free for scrolling. 30 fps is deliberate.
+    const FRAME_MS = 1000 / 30;
+    const FRAME_S = 1 / 30;
 
     const make = (): Particle => ({
       x: Math.random() * width,
@@ -69,8 +75,8 @@ export function Particles({ count = MAX_PARTICLES }: { count?: number }) {
       ctx.clearRect(0, 0, width, height);
       for (const p of particles) {
         if (!reduced) {
-          p.y -= p.speed * (1 / 60);
-          p.x += Math.sin((time / 1000) * 0.35 + p.phase) * 0.1;
+          p.y -= p.speed * FRAME_S;
+          p.x += Math.sin((time / 1000) * 0.35 + p.phase) * 0.2;
           if (p.y < -6) {
             p.y = height + 6;
             p.x = Math.random() * width;
@@ -106,8 +112,12 @@ export function Particles({ count = MAX_PARTICLES }: { count?: number }) {
 
     const loop = (time: number) => {
       if (!running) return;
-      paint(time);
       frame = requestAnimationFrame(loop);
+      // Skip the frames we do not need: the canvas keeps up with a 60 Hz
+      // display without painting 60 times a second.
+      if (time - lastPaint < FRAME_MS) return;
+      lastPaint = time;
+      paint(time);
     };
 
     const start = () => {

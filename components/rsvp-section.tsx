@@ -111,13 +111,12 @@ function RsvpFlow({ tenantId, slug, initialName }: { tenantId: string; slug: str
 
   const clean = name.replace(/\s+/g, " ").trim();
 
-  const lookup = (who: string, afterSubmit: boolean) =>
+  const lookup = (who: string) =>
     start(async () => {
       setError(null);
       const r = await checkRsvpStatus(who, tenantId);
-      if (!r.ok) { setError(r.error); if (afterSubmit) setView("thanks"); return; }
+      if (!r.ok) { setError(r.error); return; }
       if (r.status) { setStatus(r.status); setNotFound(false); setView("card"); return; }
-      if (afterSubmit) { setView("thanks"); return; }
       setNotFound(true); // no reply under this name yet, so show the form
       setView("form");
     });
@@ -138,7 +137,7 @@ function RsvpFlow({ tenantId, slug, initialName }: { tenantId: string; slug: str
       {/* `key` restarts the fade whenever the step changes. */}
       <div key={view} className="animate-swap-in motion-reduce:animate-none">
         {view === "lookup" && (
-          <form onSubmit={(e) => { e.preventDefault(); lookup(clean, false); }} className="glass mt-8 space-y-4 rounded-xl p-5" noValidate>
+          <form onSubmit={(e) => { e.preventDefault(); lookup(clean); }} className="glass mt-8 space-y-4 rounded-xl p-5" noValidate>
             <div className="space-y-2">
               <Label htmlFor="lookup-name">Numele complet</Label>
               <Input id="lookup-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -152,7 +151,14 @@ function RsvpFlow({ tenantId, slug, initialName }: { tenantId: string; slug: str
 
         {view === "form" && (
           <>
-            <RsvpForm tenantId={tenantId} slug={slug} initialName={clean} onDone={(n) => { setName(n); lookup(n, true); }} />
+            <RsvpForm
+              tenantId={tenantId}
+              slug={slug}
+              initialName={clean}
+              // The server already confirmed the write, so the thank-you card
+              // shows at once instead of asking for the status a second time.
+              onDone={(n) => { setName(n); setStatus(null); setView("thanks"); }}
+            />
             <Button type="button" variant="ghost" className="mt-4" onClick={reset}>Folosește alt nume</Button>
           </>
         )}

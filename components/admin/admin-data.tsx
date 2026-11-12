@@ -32,6 +32,8 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
 
   const inFlight = useRef<Promise<void> | null>(null);
   const lastLoaded = useRef(0);
+  const lastPayload = useRef("");
+  const liveRef = useRef(false);
 
   const refresh = useCallback(async () => {
     // Several sections may ask at the same time; they share one request.
@@ -45,10 +47,15 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         if (!response.ok) throw new Error(String(response.status));
-        const payload = (await response.json()) as AdminData;
-        setData(payload);
-        setError(null);
+        // Realtime pushes and the fallback poll very often bring back exactly
+        // what is already on screen. Comparing the raw body first keeps big
+        // lists from re-rendering (and re-parsing) for nothing.
+        const body = await response.text();
         lastLoaded.current = Date.now();
+        setError(null);
+        if (body === lastPayload.current) return;
+        lastPayload.current = body;
+        setData(JSON.parse(body) as AdminData);
       } catch {
         setError("Nu am putut încărca datele. Verifică conexiunea și încearcă din nou.");
       } finally {
@@ -59,6 +66,10 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     inFlight.current = request;
     return request;
   }, [router, slug]);
+
+  useEffect(() => {
+    liveRef.current = live;
+  }, [live]);
 
   // First load: one parallel request for every section.
   useEffect(() => {
@@ -74,6 +85,8 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   // Coming back to the tab after a while gets fresh data; short switches do not.
+  // While the live socket is connected the slow poll is pointless, so it only
+  // runs as a fallback when realtime is down.
   useEffect(() => {
     const maybeRefresh = () => {
       if (document.visibilityState !== "visible") return;
@@ -83,7 +96,9 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     const onVisibility = () => maybeRefresh();
     window.addEventListener("focus", maybeRefresh);
     document.addEventListener("visibilitychange", onVisibility);
-    const poll = window.setInterval(maybeRefresh, 60_000);
+    const poll = window.setInterval(() => {
+      if (!liveRef.current) maybeRefresh();
+    }, 60_000);
     return () => {
       window.removeEventListener("focus", maybeRefresh);
       document.removeEventListener("visibilitychange", onVisibility);

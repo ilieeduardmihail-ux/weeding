@@ -4,7 +4,11 @@ import { DEMO_COOKIE, demoMode } from "@/lib/demo/mode";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 
 const PLATFORM_LOGIN = "/platform/login"; // platform owner
-const HOME = "/";                          // where everyone else is sent
+// The bare /admin is a resolver, not a panel: it reads the signed-in account's
+// own panels and forwards to the one it can actually use (a wedding's admin or
+// the platform). Sending a signed-in visitor there — instead of to the public
+// invitation — is what turns "wrong link" into "the panel you meant".
+const RESOLVER = "/admin";
 
 type JsonWebKeySet = {
   keys: { kty: string; key_ops: string[]; kid?: string; alg?: string }[];
@@ -45,6 +49,9 @@ export async function proxy(request: NextRequest) {
   const slug = adminSlugFromPath(pathname);
   const isPlatform = pathname === "/platform" || pathname.startsWith("/platform/");
   const onLogin = pathname === PLATFORM_LOGIN || pathname.endsWith("/admin/login");
+  // The resolver itself: it must stay reachable for a signed-in account that
+  // holds no role for the panel in the URL, otherwise it cannot forward them.
+  const onResolver = pathname === RESOLVER;
 
   // The panel URLs depend on the client. Used both for redirects and to stamp
   // the request so server actions resolve the same wedding as the page.
@@ -120,10 +127,16 @@ export async function proxy(request: NextRequest) {
   }
 
   // Signed in, but without the role for THIS panel: do not enter the panel and
-  // do not loop on a login form. The resolver picks a panel they can use.
+  // do not loop on a login form. Send them to the resolver, which forwards to
+  // the panel they can use — landing on the public invitation would look like a
+  // logout to a client who simply opened the wrong link.
   if (signedIn) {
+    if (onResolver) {
+      response.headers.set("Cache-Control", "private, no-store");
+      return withRefreshedCookies(response); // the resolver forwards onwards
+    }
     if (onLogin) return withRefreshedCookies(response); // let them sign in
-    return withRefreshedCookies(NextResponse.redirect(new URL(HOME, request.url)));
+    return withRefreshedCookies(NextResponse.redirect(new URL(RESOLVER, request.url)));
   }
 
   // Signed out, or the session expired: go to THIS panel's login — never the

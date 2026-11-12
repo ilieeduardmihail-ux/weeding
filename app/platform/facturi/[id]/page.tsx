@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { isOwnerRequest, platformIsConfigured } from "@/lib/platform";
 import { loadInvoice } from "@/lib/platform-data";
 import { formatMoney } from "@/lib/platform-types";
+import { EmailInvoice } from "./email-invoice";
 import { PrintButton } from "./print-button";
 
 export const instant = false;
@@ -40,6 +41,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         <ButtonLike />
         <PrintButton />
       </div>
+
+      <EmailInvoice invoice={invoice} issuer={issuer} />
 
       <article className="glass rounded-xl p-10 print:border-0 print:bg-white print:shadow-none">
         <header className="flex flex-wrap items-start justify-between gap-6 border-b border-ink/15 pb-6">

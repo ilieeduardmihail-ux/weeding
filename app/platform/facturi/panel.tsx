@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, FileText, Plus, Receipt, Trash2 } from "lucide-react";
+import { CheckCircle2, FileText, Mail, Plus, Receipt, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -168,6 +168,14 @@ export function InvoicesPanel({
                         <Button asChild variant="ghost" size="sm">
                           <Link href={`/platform/facturi/${invoice.id}`} aria-label="Deschide factura">
                             <FileText aria-hidden="true" />
+                          </Link>
+                        </Button>
+                        <Button asChild variant="ghost" size="sm">
+                          <Link
+                            href={`/platform/facturi/${invoice.id}#email`}
+                            aria-label="Trimite factura pe email"
+                          >
+                            <Mail aria-hidden="true" />
                           </Link>
                         </Button>
                         <Button

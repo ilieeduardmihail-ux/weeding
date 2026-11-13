@@ -51,8 +51,12 @@ Without `NEXT_PUBLIC_SUPABASE_URL`, the app runs in **demo mode**: everything wo
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    RATE_LIMIT_SALT=<long random string>
    NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   # Optional: the platform panel sends invoices from this Gmail account.
+   GMAIL_USER=<adresa>@gmail.com
+   GMAIL_APP_PASSWORD=<16 caractere, parolă de aplicație>
    ```
    Older projects can use the legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` instead of the publishable key.
+   The app password is generated at **Google Account → Security → App passwords** and needs 2-Step Verification; the account password never goes in an environment variable.
 6. Restart `npm run dev` and sign in at `/admin`.
 
 The `publishable`/`anon` key is public by design. Never put `sb_secret_...` or a `service_role` key in the site.
@@ -73,6 +77,7 @@ The `publishable`/`anon` key is public by design. Never put `sb_secret_...` or a
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
    - `RATE_LIMIT_SALT`
    - `NEXT_PUBLIC_SITE_URL=https://wedding-ro.vercel.app`
+   - `GMAIL_USER` and `GMAIL_APP_PASSWORD` (optional; without them the invoice page only offers the PDF download and the copy button)
 4. Deploy:
    ```bash
    npx vercel --prod
@@ -128,3 +133,4 @@ npm run build
 - `supabase/migration-v9-expense-currency-realtime.sql` adds `expenses.currency`, `unassign_table` and publishes `rsvps` / `rsvp_guests` for Realtime. The admin list refreshes instantly; a 15 s polling fallback covers projects where Realtime is not enabled.
 - The public site reads settings per request, so changes saved in `/admin` appear without a redeploy.
 - RSVP rate limiting hashes the client IP with `RATE_LIMIT_SALT`; it never stores the raw IP.
+- Invoice emails are sent from the platform panel through Gmail SMTP with the note attached as a PDF (`/platform/facturi/[id]/pdf`, owner only). `GMAIL_APP_PASSWORD` stays in the environment; with `GMAIL_USER` unset the panel falls back to the PDF download and the copy button. The recipient address is typed per send and never stored.

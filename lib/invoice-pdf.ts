@@ -197,8 +197,17 @@ export async function buildInvoicePdf(invoice: Invoice, issuer: IssuerSettings):
   // Total --------------------------------------------------------------------
   y -= 22;
   const totalLabel = "Total de plată";
-  text(totalLabel, right - 150, y + 2, 10, MUTED);
-  rightAligned(money, 14, "bold", y - 2);
+  const moneyWidth = strong.widthOfTextAtSize(money, 14);
+  // The label sits to the left of the amount, measured, so a long currency name
+  // or a big number can never run into it.
+  text(
+    totalLabel,
+    right - moneyWidth - 24 - font.widthOfTextAtSize(totalLabel, 10),
+    y,
+    10,
+    MUTED
+  );
+  rightAligned(money, 14, "bold", y);
 
   // Stare, note, subsol ------------------------------------------------------
   y -= 30;

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { DEMO_COOKIE, demoMode } from "@/lib/demo/mode";
+import { legacyRootPath } from "@/lib/routing";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 
 const PLATFORM_LOGIN = "/platform/login"; // platform owner
@@ -46,6 +47,19 @@ function adminSlugFromPath(pathname: string): string | null {
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  // Legacy invitation links (`/?nume=...`) predate the presentation page: send
+  // them to the same wedding, with the name still filled in. The fragment is
+  // kept by the browser, so `#rsvp` still lands on the form.
+  const legacy = legacyRootPath(pathname, request.nextUrl.searchParams.has("nume"));
+  if (legacy) {
+    const url = request.nextUrl.clone();
+    url.pathname = legacy;
+    return NextResponse.redirect(url);
+  }
+  // The presentation page is static and public: no session lookup below it.
+  if (pathname === "/") return NextResponse.next();
+
   const slug = adminSlugFromPath(pathname);
   const isPlatform = pathname === "/platform" || pathname.startsWith("/platform/");
   const onLogin = pathname === PLATFORM_LOGIN || pathname.endsWith("/admin/login");
@@ -147,4 +161,4 @@ export async function proxy(request: NextRequest) {
   return withRefreshedCookies(NextResponse.redirect(loginUrl));
 }
 
-export const config = { matcher: ["/admin/:path*", "/platform/:path*", "/:slug/admin/:path*"] };
+export const config = { matcher: ["/", "/admin/:path*", "/platform/:path*", "/:slug/admin/:path*"] };

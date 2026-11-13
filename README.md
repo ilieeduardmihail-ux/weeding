@@ -5,12 +5,13 @@ Romanian wedding invitation built with **Next.js 16** (App Router, Turbopack), *
 ## Features
 
 - Public page in Romanian: plum/gold design, animated hero, countdown, schedule with editable locations, public seating board and RSVP by name.
+- Presentation page at the root: screenshots of the invitation and the panel, themes, steps and contact (the only indexable page).
 - RSVP form with plus-ones, children, optional message, honeypot and server-side rate limiting.
 - Admin area: guest list, **edit any RSVP** (name, attendance, message, plus-ones, keeping assigned seats), seating board, venue report, budget, CSV/XLSX import and settings.
 - Editable event settings: names, date, time, city, timezone, RSVP cutoff, contact email and seating publication.
-- All-day **`.ics` calendar download** at `/calendar`.
+- All-day **`.ics` calendar download** at `/<slug>/calendar`.
 - Sticky **„Invitat”** button on mobile.
-- Privacy page at `/confidentialitate` with a contact email editable from admin.
+- Privacy note at `/confidentialitate` for the platform, plus one per wedding at `/<slug>/confidentialitate`.
 - **Vercel Analytics** (cookieless) in production.
 - Vitest tests for countdown, RSVP schemas, demo RSVP flow, event settings, locations and calendar.
 
@@ -94,19 +95,27 @@ The domain `wedding-ro.vercel.app` is attached to the project, so it follows eve
 
 | Route | What it does |
 |---|---|
-| `/` | Public invitation: hero + countdown, schedule, seating (when published), RSVP lookup/form, footer |
-| `/calendar` | Downloads an all-day `.ics` event for the wedding date |
-| `/confidentialitate` | Privacy note and contact email |
-| `/admin` | Guest list, stats, edit/delete RSVP, CSV export |
-| `/admin/rsvps/[id]/edit` | Edit one RSVP and its plus-ones, preserving assigned seats |
-| `/admin/seating` | Drag guests onto tables, add/remove tables, edit each capacity, unassign with one click |
-| `/admin/report` | Headcount, adults, children, grouped by table |
-| `/admin/budget` | Expenses with their own RON/EUR currency, payments, remaining budget per currency |
-| `/admin/import` | Bulk import guests from CSV/XLSX |
-| `/admin/locations` | Edit the church and reception venue |
-| `/admin/settings` | Names, date, time, city, timezone, contact email, RSVP cutoff, publish seating |
+| `/` | Presentation page: what the guest sees, what the panel does, themes, steps, price on request, FAQ, contact by email |
+| `/<slug>` | Public invitation of one wedding: hero + countdown, schedule, seating (when published), RSVP lookup/form |
+| `/demo` | Fictional demo wedding (Daria & Radu) used by the screenshots and linked from the presentation page |
+| `/calendar` | Permanent redirect to the first wedding's `/<slug>/calendar` (legacy link) |
+| `/invitatia-poza` | Permanent redirect to the first wedding's `/<slug>/invitatia-poza` (legacy link) |
+| `/<slug>/calendar` | Downloads an all-day `.ics` event for the wedding date |
+| `/confidentialitate` | Platform-level privacy note; each wedding has its own at `/<slug>/confidentialitate` |
+| `/<slug>/admin` | Guest list, stats, edit/delete RSVP, CSV export |
+| `/<slug>/admin/rsvps/[id]/edit` | Edit one RSVP and its plus-ones, preserving assigned seats |
+| `/<slug>/admin/seating` | Drag guests onto tables, add/remove tables, edit each capacity, unassign with one click |
+| `/<slug>/admin/report` | Headcount, adults, children, grouped by table |
+| `/<slug>/admin/budget` | Expenses with their own RON/EUR currency, payments, remaining budget per currency |
+| `/<slug>/admin/import` | Bulk import guests from CSV/XLSX |
+| `/<slug>/admin/locations` | Edit the church and reception venue |
+| `/<slug>/admin/settings` | Names, date, time, city, timezone, contact email, RSVP cutoff, publish seating |
 
-The public landing screen shows only the hero. The rest of the site is mounted and unlocked after **Deschide Invitația** is pressed; the landing is unmounted and replaced by the invitation, with no scrolling in between. Guest sections fade in on scroll, and a subtle particle layer sits under every page.
+Old invitation links of the form `/?nume=...` are redirected by the proxy to `/<first-slug>?nume=...`, so links already shared on WhatsApp keep working.
+
+Only `/` is indexable. Every wedding, panel and file response carries `X-Robots-Tag: noindex` and `robots.txt` allows exactly the homepage; `sitemap.xml` lists it alone.
+
+The public landing screen shows only the hero. The rest of the site is mounted and unlocked after **Deschide Invitația** is pressed; the landing is unmounted and replaced by the invitation, with no scrolling in between.
 
 ## Where the content lives
 
@@ -116,6 +125,12 @@ The public landing screen shows only the hero. The rest of the site is mounted a
 - **Expense currency** — stored per row in `expenses.currency`.
 - **Expense categories** — `lib/admin-config.ts` (code).
 - **Schedule structure and fallback locations** — `lib/config.ts` (code).
+
+## Demo wedding and screenshots
+
+`npm run seed-demo` rebuilds the fictional `/demo` wedding (Daria & Radu, Brașov 2027) from `scripts/seed-demo.mjs`; add `-- --reset` to delete and recreate it from scratch. It needs `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`, a local-only key that bypasses RLS.
+
+`npm run capture-previews` captures the real product with headless Chrome and writes AVIF/WebP files into `public/previews/`: the invitation (desktop and phone), the RSVP screen, and five panel sections. Re-run it after a UI change so the presentation page never shows an old design. It reads `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` from `.env.local` and takes an optional base URL: `npm run capture-previews -- http://localhost:3000`.
 
 ## Verify before deploying
 

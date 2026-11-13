@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "create-admin": "node scripts/create-admin.mjs"
+    "create-admin": "node scripts/create-admin.mjs",
+    "seed-demo": "node scripts/seed-demo.mjs",
+    "capture-previews": "node scripts/capture-previews.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

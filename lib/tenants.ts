@@ -4,12 +4,11 @@ import { demoMode } from "./demo/mode";
 import { SUPABASE_KEY, SUPABASE_URL } from "./supabase/env";
 
 /**
- * The wedding currently served at the root of the domain. After the multi-tenant
- * rollout every client has its own /<slug> site; the root keeps rendering this
- * one so links already shared on WhatsApp keep working.
+ * The wedding served at /<slug> for the couple who got the first site. Its links
+ * are still in circulation, so legacy root links are redirected to it.
  */
-export const DEFAULT_TENANT_SLUG =
-  process.env.NEXT_PUBLIC_DEFAULT_TENANT?.trim() || "ana-si-stefan";
+export { DEFAULT_TENANT_SLUG } from "./default-tenant";
+import { DEFAULT_TENANT_SLUG } from "./default-tenant";
 
 export type Tenant = {
   id: string;

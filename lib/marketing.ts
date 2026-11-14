@@ -6,7 +6,17 @@
 export const BRAND = "Ne căsătorim";
 export const CONTACT_EMAIL = "contact.necasatorim@gmail.com";
 export const CONTACT_SUBJECT = "Ofertă invitație digitală";
-export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(CONTACT_SUBJECT)}`;
+export const CONTACT_BODY =
+  "Bună ziua!\n\nNe căsătorim pe ___ la ___ și am vrea o ofertă pentru invitația digitală.\n\nMulțumim!";
+/**
+ * What contact links open. A mailto link with no mail app registered leaves the
+ * visitor on a blank tab, so the action opens the Gmail compose window instead —
+ * the address is a Gmail inbox, and the draft is already addressed and prefilled.
+ * The address itself is also shown as plain text, for anyone using another client.
+ */
+export const CONTACT_COMPOSE = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+  CONTACT_EMAIL
+)}&su=${encodeURIComponent(CONTACT_SUBJECT)}&body=${encodeURIComponent(CONTACT_BODY)}`;
 export const DEMO_PATH = "/demo";
 
 export const NAVIGATION = [

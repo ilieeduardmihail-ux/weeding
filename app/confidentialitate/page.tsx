@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BRAND, CONTACT_EMAIL, DEMO_PATH } from "@/lib/marketing";
+import { BRAND, CONTACT_COMPOSE, CONTACT_EMAIL, DEMO_PATH } from "@/lib/marketing";
 
 export const metadata: Metadata = {
   title: "Confidențialitate",
@@ -38,7 +38,9 @@ export default function PrivacyPage() {
             Platforma este administrată de echipa {BRAND}. Pentru orice întrebare despre date, scrie-ne
             la{" "}
             <a
-              href={`mailto:${CONTACT_EMAIL}`}
+              href={CONTACT_COMPOSE}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink"
             >
               {CONTACT_EMAIL}

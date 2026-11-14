@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { FLORAL_IMAGES, PALETTES, floralSrcSet } from "@/lib/theme";
 import {
   BRAND,
+  CONTACT_COMPOSE,
   CONTACT_EMAIL,
-  CONTACT_MAILTO,
   DEMO_PATH,
   FAQ,
   FOOTER_NOTE,
@@ -53,6 +53,17 @@ const linkUnderline =
   "underline decoration-gold/40 decoration-1 underline-offset-4 transition-colors hover:text-ink hover:decoration-gold";
 const floralPreview = ["photo-bujori", "photo-trandafiri", "photo-botanic", "photo-piersica"] as const;
 
+/**
+ * Opens Gmail with the address, subject and a short draft already filled in.
+ * A plain `mailto:` link is the standard, but on a machine with no mail app it
+ * only produces an empty tab — this always has somewhere to go.
+ */
+const contactLink = {
+  href: CONTACT_COMPOSE,
+  target: "_blank",
+  rel: "noopener noreferrer",
+} as const;
+
 export default function Home() {
   return (
     <div className="min-h-svh">
@@ -70,7 +81,7 @@ export default function Home() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <a href={CONTACT_MAILTO} className="hidden text-sm text-ink/70 transition-colors hover:text-ink sm:block">
+            <a {...contactLink} className="hidden text-sm text-ink/70 transition-colors hover:text-ink sm:block">
               Scrie-ne
             </a>
             <Button asChild size="sm">
@@ -344,7 +355,7 @@ export default function Home() {
             </ol>
             <p className="mt-10 text-sm text-ink/60">
               Detaliile le stabilim pe email, ca la orice eveniment important.{" "}
-              <a href={CONTACT_MAILTO} className={`text-ink ${linkUnderline}`}>
+              <a {...contactLink} className={`text-ink ${linkUnderline}`}>
                 {CONTACT_EMAIL}
               </a>
             </p>
@@ -361,7 +372,7 @@ export default function Home() {
                 <p className="mt-4 max-w-lg leading-relaxed text-ink/70">{PRICE.text}</p>
                 <div className="mt-8 flex flex-wrap items-center gap-4">
                   <Button asChild size="lg">
-                    <a href={CONTACT_MAILTO}>{PRICE.cta}</a>
+                    <a {...contactLink}>{PRICE.cta}</a>
                   </Button>
                   <span className="text-sm text-ink/55">{PRICE.note}</span>
                 </div>
@@ -421,12 +432,16 @@ export default function Home() {
             </h2>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button asChild size="lg" variant="secondary">
-                <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a>
+                <a {...contactLink}>Scrie-ne pe email</a>
               </Button>
               <Button asChild size="lg" variant="ghost" className="text-sea hover:bg-sea/10">
                 <Link href={DEMO_PATH}>Vezi invitația demo</Link>
               </Button>
             </div>
+            <p className="mt-5 text-sm text-sea/60">
+              Butonul deschide Gmail cu mesajul început. Ne poți scrie și direct la{" "}
+              <span className="select-all text-sea/85">{CONTACT_EMAIL}</span>.
+            </p>
           </div>
         </section>
       </main>
@@ -439,12 +454,16 @@ export default function Home() {
               <span className="text-gold">.</span>
             </p>
             <p className="mt-3 leading-relaxed">{FOOTER_NOTE}</p>
+            <p className="mt-4 leading-relaxed">
+              <span className="text-ink/45">Email:</span>{" "}
+              <span className="select-all text-ink/80">{CONTACT_EMAIL}</span>
+            </p>
           </div>
           <nav aria-label="Linkuri" className="flex flex-wrap gap-x-8 gap-y-3">
             <Link href={DEMO_PATH} className={linkUnderline}>
               Invitația demo
             </Link>
-            <a href={CONTACT_MAILTO} className={linkUnderline}>
+            <a {...contactLink} className={linkUnderline}>
               Contact
             </a>
             <Link href="/confidentialitate" className={linkUnderline}>

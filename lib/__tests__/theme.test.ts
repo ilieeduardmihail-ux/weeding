@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_THEME,
+  FLORAL_IMAGES,
   FLORAL_SETS,
   PALETTES,
   isHexColor,
@@ -40,9 +41,11 @@ describe("theme model", () => {
     expect(custom.cssVars["--color-mist"]).toBe(shade("#101820", -7));
   });
 
-  it("offers the promised variety: palettes and at least ten floral sets", () => {
+  it("offers the promised variety: palettes and picture-only floral sets", () => {
     expect(PALETTES.length).toBeGreaterThanOrEqual(6);
-    expect(FLORAL_SETS.length).toBeGreaterThanOrEqual(10);
+    expect(FLORAL_SETS.length).toBeGreaterThanOrEqual(5);
+    // The drawn vector sets were removed for good: every option is a picture.
+    for (const set of FLORAL_SETS) expect(FLORAL_IMAGES[set.id]).toBeDefined();
   });
 
   it("validates and shades hex colours safely", () => {

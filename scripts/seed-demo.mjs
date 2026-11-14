@@ -70,7 +70,7 @@ const settings = {
 const theme = {
   palette: "ivory",
   colors: {},
-  floral: { enabled: true, set: "watercolor", intensity: "medium", placement: "frame" },
+  floral: { enabled: true, set: "photo-bujori", intensity: "medium", placement: "frame" },
 };
 
 const locations = [

@@ -1,39 +1,23 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+
+import { useState } from "react";
+import { MapPin } from "lucide-react";
 
 /**
- * Mounts the Google Maps iframe only when the map is about to enter the
- * viewport. Two embeds on the landing flow are heavy, and none of them is
- * needed before the guest scrolls to the locations section.
+ * Google Maps, behind an explicit click.
+ *
+ * An auto-loading iframe would let Google read the visitor's device and set its
+ * cookies before any consent — the pattern ANSPDCP has been fining under
+ * Legea 506/2004, art. 4 alin. (5). Nothing leaves the browser until the guest
+ * presses the button; the address and the "Deschide în Maps" link next to this
+ * box still work without it.
  */
 export function LazyMap({ title, src }: { title: string; src: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  // Browsers without IntersectionObserver render the map immediately; modern
-  // ones keep it unmounted until it is about to scroll into view.
-  const [visible, setVisible] = useState(() => typeof IntersectionObserver === "undefined");
+  const [allowed, setAllowed] = useState(false);
 
-  useEffect(() => {
-    if (visible) return;
-    const node = ref.current;
-    if (!node) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "350px 0px" },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [visible]);
-
-  return (
-    <div ref={ref} className="h-64 w-full">
-      {visible ? (
+  if (allowed) {
+    return (
+      <div className="h-64 w-full">
         <iframe
           title={title}
           src={src}
@@ -41,11 +25,27 @@ export function LazyMap({ title, src }: { title: string; src: string }) {
           referrerPolicy="no-referrer-when-downgrade"
           className="h-64 w-full rounded-lg border-0"
         />
-      ) : (
-        <div className="grid h-64 w-full place-items-center rounded-lg bg-ink/5 text-xs text-ink/40" aria-hidden>
-          Harta se încarcă…
-        </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-64 w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-ink/15 bg-ink/[0.03] px-6 py-8 text-center">
+      <MapPin className="size-6 text-gold" aria-hidden />
+      <p className="max-w-sm text-sm leading-relaxed text-ink/70">
+        Harta este găzduită de Google Maps și se încarcă doar dacă apeși. Până atunci nu pleacă
+        nicio cerere către Google.
+      </p>
+      <button
+        type="button"
+        onClick={() => setAllowed(true)}
+        className="rounded-full bg-ink px-5 py-2 text-sm text-sea transition-[background-color,transform] duration-200 ease-out hover:bg-ink/85 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold motion-reduce:transition-none motion-reduce:active:scale-100"
+      >
+        Încarcă harta
+      </button>
+      <p className="text-xs text-ink/50">
+        Poți deschide harta și din linkul „Deschide în Maps” de mai sus, fără să încarci integrarea.
+      </p>
     </div>
   );
 }

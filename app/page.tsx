@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BrowserFrame, PhoneFrame, Screenshot } from "@/components/marketing/frames";
+import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { FLORAL_IMAGES, FLORAL_SETS, PALETTES, floralSrcSet } from "@/lib/theme";
 import {
@@ -66,7 +67,7 @@ const contactLink = {
 
 export default function Home() {
   return (
-    <div className="min-h-svh">
+    <div className="marketing min-h-svh bg-sea text-ink">
       <header className="sticky top-0 z-40 border-b border-ink/10 glass-bar">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
           <Link href="/" className="font-display text-lg tracking-wide text-ink">
@@ -81,6 +82,7 @@ export default function Home() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <a {...contactLink} className="hidden text-sm text-ink/70 transition-colors hover:text-ink sm:block">
               Scrie-ne
             </a>
@@ -326,11 +328,11 @@ export default function Home() {
               })}
               <div className="max-w-sm text-sm leading-relaxed text-ink/60">
                 <p>
-                  Decorul floral poate fi o acuarelă desenată sau o fotografie de buchet, în colțuri,
-                  pe margini sau ca un cadru întreg.
+                  Decorul floral este o fotografie de buchet, așezată în colțuri, pe margini sau ca
+                  un cadru întreg.
                 </p>
                 <p className="mt-2 font-display text-ink/75">
-                  Acuarelă · Botanic clasic · Eucalipt · Trandafiri · Flori de cireș · Iederă
+                  {FLORAL_SETS.map((set) => set.name.replace("Poză · ", "")).join(" · ")}
                 </p>
               </div>
             </div>
@@ -468,6 +470,15 @@ export default function Home() {
             </a>
             <Link href="/confidentialitate" className={linkUnderline}>
               Confidențialitate
+            </Link>
+            <Link href="/cookies" className={linkUnderline}>
+              Cookie-uri
+            </Link>
+            <Link href="/termeni" className={linkUnderline}>
+              Termeni
+            </Link>
+            <Link href="/subprocesatori" className={linkUnderline}>
+              Subprocesatori
             </Link>
           </nav>
         </div>

@@ -102,7 +102,6 @@ function Preview({
           set={resolved.floral.set}
           intensity={resolved.floral.intensity}
           placement={resolved.floral.placement}
-          id="flora-preview"
         />
       )}
       <div className="relative z-10 px-6 text-center">

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Figtree } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -21,10 +21,26 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// The browser chrome follows the theme too; both colours come from globals.css.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4ecdd" },
+    { media: "(prefers-color-scheme: dark)", color: "#15170f" },
+  ],
+};
+
+/**
+ * Runs before the page paints, so a visitor who chose dark never sees the light
+ * theme flash. It only writes a data attribute; the CSS decides what it means
+ * and only the marketing pages (`.marketing`) react to it.
+ */
+const THEME_SCRIPT = `(function(){try{var m=localStorage.getItem("theme");var d=window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=(m==="dark"||(m!=="light"&&d))?"dark":"light";}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ro" data-scroll-behavior="smooth" className={`${fraunces.variable} ${figtree.variable}`}>
       <body className="bg-sea font-sans text-ink antialiased">
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {children}
         <Analytics />
       </body>

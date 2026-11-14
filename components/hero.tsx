@@ -29,7 +29,6 @@ export function Hero({ names, displayDate, displayTime, eventAt, floral }: HeroP
           set={floral.set}
           intensity={floral.intensity}
           placement={floral.placement}
-          id="flora-hero"
         />
       )}
 

@@ -187,33 +187,20 @@ export function paletteById(id: string) {
 /* -------------------------------------------------------------- floral sets */
 
 export const FLORAL_SETS = [
-  { id: "watercolor", name: "Acuarelă" },
   { id: "photo-bujori", name: "Poză · bujori roz" },
   { id: "photo-trandafiri", name: "Poză · trandafiri de grădină" },
   { id: "photo-botanic", name: "Poză · botanic măsliniu" },
   { id: "photo-piersica", name: "Poză · piersică" },
   { id: "photo-delicata", name: "Poză · piersică delicată" },
-  { id: "photo-albastre", name: "Poză · flori albastre" },
-  { id: "botanical", name: "Botanic clasic" },
-  { id: "eucalyptus", name: "Eucalipt" },
-  { id: "roses", name: "Trandafiri" },
-  { id: "blossoms", name: "Flori de cireș" },
-  { id: "laurel", name: "Laurel" },
-  { id: "vine", name: "Iederă" },
-  { id: "hearts", name: "Inimi" },
-  { id: "sparkles", name: "Scânteieri" },
-  { id: "confetti", name: "Confetti" },
-  { id: "wildflowers", name: "Flori de câmp" },
-  { id: "arch", name: "Arc floral" },
 ] as const;
 
 /**
- * Floral sets that are real pictures rather than code-drawn vectors.
+ * Floral sets are real pictures, not code-drawn vectors.
  *
  * A `corner` picture is one bouquet drawn for the top-left corner and is
  * mirrored into the other corners; a `frame` picture already contains a
  * decoration in two opposite corners and covers the page as a whole. These
- * render at a fixed palette-free look, like the "Acuarelă" set.
+ * render at a fixed palette-free look.
  *
  * Each picture ships as AVIF and WebP at the two widths a corner can actually
  * use, not as the 1000px PNG master it was cut from: the corner is at most
@@ -238,7 +225,6 @@ export const FLORAL_IMAGES: Record<string, FloralImage> = {
   "photo-botanic": { src: "/florals/botanic-masliniu", kind: "corner", width: 1029, height: 1100, widths: [420, 760] },
   "photo-piersica": { src: "/florals/piersica-botanica", kind: "corner", width: 488, height: 566, widths: [420, 488] },
   "photo-delicata": { src: "/florals/piersica-delicata", kind: "corner", width: 516, height: 625, widths: [420, 516] },
-  "photo-albastre": { src: "/florals/flori-albastre", kind: "corner", width: 223, height: 333, widths: [223] },
 };
 
 /** `"/florals/bujori-420.avif 420w, /florals/bujori-760.avif 760w"` */
@@ -262,7 +248,7 @@ export const FLORAL_PLACEMENTS: { id: FloralPlacement; name: string }[] = [
 export const DEFAULT_THEME: Theme = {
   palette: "ivory",
   colors: {},
-  floral: { enabled: true, set: "watercolor", intensity: "medium", placement: "frame" },
+  floral: { enabled: true, set: "photo-bujori", intensity: "medium", placement: "frame" },
 };
 
 /* ------------------------------------------------------------------ helpers */

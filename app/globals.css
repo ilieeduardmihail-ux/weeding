@@ -293,3 +293,85 @@ body {
   .glass-soft { background-color: rgb(253 249 242 / 0.94); }
   .glass-bar { background-color: rgb(250 245 234 / 0.98); }
 }
+
+/* ---------------------------------------------------------------------------
+   Dark mode — only the marketing pages carry `.marketing`, so the wedding
+   invitations (which set their own palette on the wrapper) and the admin panels
+   keep their light look no matter what the visitor picked. The theme itself is
+   set on <html data-theme="…"> by the anti-flash script and the toggle; the
+   variables are scoped here so nothing else changes colour.
+   --------------------------------------------------------------------------- */
+
+/* The marketing wrapper paints its own paper — the same warm gradient as the
+   printed invitation — so the whole page (not just the body behind it) carries
+   the colour, and the dark variant can replace it without touching anything. */
+.marketing {
+  background-color: var(--color-sea);
+  background-image:
+    radial-gradient(55rem 38rem at 12% -8%, color-mix(in srgb, var(--color-sage) 16%, transparent), transparent 62%),
+    radial-gradient(48rem 34rem at 88% 6%, color-mix(in srgb, var(--color-rose) 30%, transparent), transparent 66%),
+    radial-gradient(60rem 45rem at 50% 110%, color-mix(in srgb, var(--color-gold) 16%, transparent), transparent 70%),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-sea) 55%, #ffffff) 0%,
+      var(--color-sea) 48%,
+      color-mix(in srgb, var(--color-sea) 85%, var(--color-gold)) 100%
+    );
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+:root[data-theme="dark"] .marketing {
+  color-scheme: dark;
+  /* Warm dark: near-black olive paper, ivory type, a lighter gold that still
+     clears 4.5:1 on the background, and the same sage/rose as the light theme
+     nudged brighter so the small accents stay readable. */
+  --color-sea: #15170f;
+  --color-mist: #1d2016;
+  --color-paper: #23261b;
+  --color-ink: #f2ead9;
+  --color-sage: #9fb17c;
+  --color-gold: #d9b877;
+  --color-rose: #d4a5ad;
+
+  background-color: var(--color-sea);
+  background-image:
+    radial-gradient(55rem 38rem at 12% -8%, rgb(159 177 124 / 0.10), transparent 62%),
+    radial-gradient(48rem 34rem at 88% 6%, rgb(212 165 173 / 0.12), transparent 66%),
+    radial-gradient(60rem 45rem at 50% 110%, rgb(217 184 119 / 0.10), transparent 70%),
+    linear-gradient(165deg, #191b12 0%, #14160f 48%, #101208 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* The letterbox above and below a short page follows the page colour. */
+:root[data-theme="dark"] body:has(.marketing) {
+  background-color: #101208;
+}
+
+/* Glass cards need their own opaque-enough values: the light theme's ivory at
+   60% over a dark page turns grey and washes the text out. */
+:root[data-theme="dark"] .marketing .glass {
+  background-color: rgb(35 38 27 / 0.74);
+  border-color: rgb(242 234 217 / 0.14);
+}
+
+:root[data-theme="dark"] .marketing .glass-soft {
+  background-color: rgb(35 38 27 / 0.55);
+  border-color: rgb(242 234 217 / 0.10);
+}
+
+:root[data-theme="dark"] .marketing .glass-bar {
+  background-color: rgb(21 23 15 / 0.86);
+}
+
+:root[data-theme="dark"] .marketing .card-hover:hover {
+  border-color: rgb(217 184 119 / 0.5);
+  box-shadow: 0 16px 36px -18px rgb(0 0 0 / 0.7);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-theme="dark"] .marketing .glass { background-color: rgb(35 38 27 / 0.98); }
+  :root[data-theme="dark"] .marketing .glass-soft { background-color: rgb(29 32 22 / 0.96); }
+  :root[data-theme="dark"] .marketing .glass-bar { background-color: rgb(21 23 15 / 0.98); }
+}

@@ -24,7 +24,8 @@ export function Schedule({
           ) : null}
           <h2 className="font-display text-4xl">Unde ne găsești</h2>
           <p className="mt-3 text-ink/70">
-            Biserica și locul petrecerii, cu adresele la zi. Apasă pe hartă pentru indicații.
+            Biserica și locul petrecerii, cu adresele la zi. Harta se încarcă doar dacă apeși pe
+            buton; linkul „Deschide în Maps” merge oricând.
           </p>
         </Reveal>
 

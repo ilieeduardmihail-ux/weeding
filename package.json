@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "create-admin": "node scripts/create-admin.mjs",
     "seed-demo": "node scripts/seed-demo.mjs",
-    "capture-previews": "node scripts/capture-previews.mjs"
+    "capture-previews": "node scripts/capture-previews.mjs",
+    "florals:build": "node scripts/build-florals.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

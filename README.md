@@ -132,6 +132,10 @@ The public landing screen shows only the hero. The rest of the site is mounted a
 
 `npm run capture-previews` captures the real product with headless Chrome and writes AVIF/WebP files into `public/previews/`: the invitation (desktop and phone), the RSVP screen, and five panel sections. Re-run it after a UI change so the presentation page never shows an old design. It reads `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` from `.env.local` and takes an optional base URL: `npm run capture-previews -- http://localhost:3000`.
 
+## Floral artwork
+
+New floral decor goes into `design/florals/` as a transparent PNG (one bouquet, trimmed, ~1000 px on the long side); artwork that already spans the page as a frame goes into `design/florals/cadru/`. The folder is gitignored — masters stay local. `npm run florals:build` trims the transparent border, writes AVIF + WebP at the two widths a corner can actually use into `public/florals/`, and prints the ready-to-paste `FLORAL_IMAGES` entry; the matching name is added to `FLORAL_SETS` in `lib/theme.ts`.
+
 ## Verify before deploying
 
 ```bash

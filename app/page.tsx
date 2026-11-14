@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrowserFrame, PhoneFrame, Screenshot } from "@/components/marketing/frames";
 import { Button } from "@/components/ui/button";
-import { FLORAL_IMAGES, PALETTES, floralSrcSet } from "@/lib/theme";
+import { FLORAL_IMAGES, FLORAL_SETS, PALETTES, floralSrcSet } from "@/lib/theme";
 import {
   BRAND,
   CONTACT_COMPOSE,
@@ -269,8 +269,8 @@ export default function Home() {
               <p className={eyebrow}>Teme</p>
               <h2 className={h2}>Alese de voi, nu impuse de noi.</h2>
               <p className={lead}>
-                Șapte palete de culori și 18 seturi de decor floral. Le puteți schimba oricând din
-                panou — linkul rămâne același.
+                {PALETTES.length} palete de culori și {FLORAL_SETS.length} seturi de decor floral.
+                Le puteți schimba oricând din panou — linkul rămâne același.
               </p>
             </div>
 

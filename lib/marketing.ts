@@ -9,14 +9,20 @@ export const CONTACT_SUBJECT = "Ofertă invitație digitală";
 export const CONTACT_BODY =
   "Bună ziua!\n\nNe căsătorim pe ___ la ___ și am vrea o ofertă pentru invitația digitală.\n\nMulțumim!";
 /**
- * What contact links open. A mailto link with no mail app registered leaves the
- * visitor on a blank tab, so the action opens the Gmail compose window instead —
- * the address is a Gmail inbox, and the draft is already addressed and prefilled.
- * The address itself is also shown as plain text, for anyone using another client.
+ * What contact links open. On a computer the Gmail compose window is the most
+ * reliable target: a mailto link with no mail app registered leaves the visitor
+ * on a blank tab. On a phone the Gmail link often lands in Gmail itself instead
+ * of a compose screen, so there the link is a mailto — the system offers the
+ * default mail app (Gmail, Outlook, Mail) with the draft already filled in.
+ * ContactLink picks between the two; the address is also shown as plain text.
  */
+const contactBody = `body=${encodeURIComponent(CONTACT_BODY)}`;
+const contactSubject = encodeURIComponent(CONTACT_SUBJECT);
+
 export const CONTACT_COMPOSE = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
   CONTACT_EMAIL
-)}&su=${encodeURIComponent(CONTACT_SUBJECT)}&body=${encodeURIComponent(CONTACT_BODY)}`;
+)}&su=${contactSubject}&${contactBody}`;
+export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}?subject=${contactSubject}&${contactBody}`;
 export const DEMO_PATH = "/demo";
 
 export const NAVIGATION = [

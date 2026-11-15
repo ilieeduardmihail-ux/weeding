@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalShell } from "@/components/marketing/legal-shell";
+import { ContactLink } from "@/components/marketing/contact-link";
 import { OPERATOR, TERMS_SECTIONS } from "@/lib/legal";
-import { BRAND, CONTACT_COMPOSE, CONTACT_EMAIL, PRICE } from "@/lib/marketing";
+import { BRAND, CONTACT_EMAIL, PRICE } from "@/lib/marketing";
 
 export const metadata: Metadata = {
   title: "Termeni și condiții",
@@ -38,14 +39,9 @@ export default function TermsPage() {
         <div className="mt-3 space-y-3 leading-relaxed">
           <p>
             Pentru ofertă, modificări sau orice nelămurire legată de acești termeni, scrie-ne la{" "}
-            <a
-              href={CONTACT_COMPOSE}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink"
-            >
+            <ContactLink className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink">
               {CONTACT_EMAIL}
-            </a>
+            </ContactLink>
             . Datele operatorului sunt {OPERATOR.name}, {OPERATOR.address}, CUI {OPERATOR.cui}.
           </p>
           <p>

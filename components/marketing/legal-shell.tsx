@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { ContactLink } from "@/components/marketing/contact-link";
 import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import { LEGAL_PAGES, LEGAL_UPDATED } from "@/lib/legal";
-import { BRAND, CONTACT_COMPOSE, CONTACT_EMAIL, DEMO_PATH } from "@/lib/marketing";
+import { BRAND, CONTACT_EMAIL, DEMO_PATH } from "@/lib/marketing";
 
 const navLink =
   "rounded-sm transition-colors duration-200 ease-out hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold";
@@ -74,14 +75,9 @@ export function LegalShell({
               {page.label}
             </Link>
           ))}
-          <a
-            href={CONTACT_COMPOSE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={footerLink}
-          >
+          <ContactLink className={footerLink}>
             {CONTACT_EMAIL}
-          </a>
+          </ContactLink>
         </nav>
         <p className="mt-6 text-xs text-ink/45">
           {BRAND} · invitații digitale pentru nuntă

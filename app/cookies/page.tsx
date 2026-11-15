@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalLink, LegalSection, LegalShell } from "@/components/marketing/legal-shell";
-import { BRAND, CONTACT_COMPOSE, CONTACT_EMAIL } from "@/lib/marketing";
+import { ContactLink } from "@/components/marketing/contact-link";
+import { BRAND, CONTACT_EMAIL } from "@/lib/marketing";
 
 export const metadata: Metadata = {
   title: "Cookie-uri",
@@ -126,14 +127,9 @@ export default function CookiesPage() {
             politica de confidențialitate
           </Link>
           . Pentru întrebări:{" "}
-          <a
-            href={CONTACT_COMPOSE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink"
-          >
+          <ContactLink className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink">
             {CONTACT_EMAIL}
-          </a>
+          </ContactLink>
           .
         </p>
       </LegalSection>

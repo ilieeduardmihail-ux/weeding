@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BrowserFrame, PhoneFrame, Screenshot } from "@/components/marketing/frames";
+import { ContactLink } from "@/components/marketing/contact-link";
 import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { FLORAL_IMAGES, FLORAL_SETS, PALETTES, floralSrcSet } from "@/lib/theme";
 import {
   BRAND,
-  CONTACT_COMPOSE,
   CONTACT_EMAIL,
   DEMO_PATH,
   FAQ,
@@ -20,9 +20,10 @@ import {
 } from "@/lib/marketing";
 
 /**
- * The presentation page. Deliberately static: no database read, no session, no
- * client JavaScript. Every wedding still lives at /<slug> and stays noindex;
- * this is the only page search engines are allowed to see.
+ * The presentation page. Deliberately static: no database read, no session. The
+ * only client code is the contact link, which picks Gmail on a computer and the
+ * system mail app on a phone. Every wedding still lives at /<slug> and stays
+ * noindex; this is the only page search engines are allowed to see.
  */
 export const metadata: Metadata = {
   title: { absolute: `${BRAND} — invitații digitale pentru nuntă` },
@@ -61,17 +62,6 @@ const floralPreview = [
   "photo-flori-mov",
 ] as const;
 
-/**
- * Opens Gmail with the address, subject and a short draft already filled in.
- * A plain `mailto:` link is the standard, but on a machine with no mail app it
- * only produces an empty tab — this always has somewhere to go.
- */
-const contactLink = {
-  href: CONTACT_COMPOSE,
-  target: "_blank",
-  rel: "noopener noreferrer",
-} as const;
-
 export default function Home() {
   return (
     <div className="marketing min-h-svh bg-sea text-ink">
@@ -90,9 +80,9 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <a {...contactLink} className="hidden text-sm text-ink/70 transition-colors hover:text-ink sm:block">
+            <ContactLink className="hidden text-sm text-ink/70 transition-colors hover:text-ink sm:block">
               Scrie-ne
-            </a>
+            </ContactLink>
             <Button asChild size="sm">
               <Link href={DEMO_PATH}>Vezi demo</Link>
             </Button>
@@ -364,9 +354,9 @@ export default function Home() {
             </ol>
             <p className="mt-10 text-sm text-ink/60">
               Detaliile le stabilim pe email, ca la orice eveniment important.{" "}
-              <a {...contactLink} className={`text-ink ${linkUnderline}`}>
+              <ContactLink className={`text-ink ${linkUnderline}`}>
                 {CONTACT_EMAIL}
-              </a>
+              </ContactLink>
             </p>
           </div>
         </section>
@@ -381,7 +371,7 @@ export default function Home() {
                 <p className="mt-4 max-w-lg leading-relaxed text-ink/70">{PRICE.text}</p>
                 <div className="mt-8 flex flex-wrap items-center gap-4">
                   <Button asChild size="lg">
-                    <a {...contactLink}>{PRICE.cta}</a>
+                    <ContactLink>{PRICE.cta}</ContactLink>
                   </Button>
                   <span className="text-sm text-ink/55">{PRICE.note}</span>
                 </div>
@@ -441,14 +431,14 @@ export default function Home() {
             </h2>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button asChild size="lg" variant="secondary">
-                <a {...contactLink}>Scrie-ne pe email</a>
+                <ContactLink>Scrie-ne pe email</ContactLink>
               </Button>
               <Button asChild size="lg" variant="ghost" className="text-sea hover:bg-sea/10">
                 <Link href={DEMO_PATH}>Vezi invitația demo</Link>
               </Button>
             </div>
             <p className="mt-5 text-sm text-sea/60">
-              Butonul deschide Gmail cu mesajul început. Ne poți scrie și direct la{" "}
+              Butonul deschide aplicația ta de email cu mesajul început. Ne poți scrie și direct la{" "}
               <span className="select-all text-sea/85">{CONTACT_EMAIL}</span>.
             </p>
           </div>
@@ -472,9 +462,9 @@ export default function Home() {
             <Link href={DEMO_PATH} className={linkUnderline}>
               Invitația demo
             </Link>
-            <a {...contactLink} className={linkUnderline}>
+            <ContactLink className={linkUnderline}>
               Contact
-            </a>
+            </ContactLink>
             <Link href="/confidentialitate" className={linkUnderline}>
               Confidențialitate
             </Link>

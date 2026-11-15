@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalLink, LegalSection, LegalShell } from "@/components/marketing/legal-shell";
+import { ContactLink } from "@/components/marketing/contact-link";
 import { ANSPDCP, OPERATOR, RETENTION, SUB_PROCESSORS } from "@/lib/legal";
-import { BRAND, CONTACT_COMPOSE, CONTACT_EMAIL, DEMO_PATH } from "@/lib/marketing";
+import { BRAND, CONTACT_EMAIL, DEMO_PATH } from "@/lib/marketing";
 
 export const metadata: Metadata = {
   title: "Confidențialitate",
@@ -40,14 +41,9 @@ export default function PrivacyPage() {
         </p>
         <p>
           Ne scrii despre date la{" "}
-          <a
-            href={CONTACT_COMPOSE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink"
-          >
+          <ContactLink className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink">
             {CONTACT_EMAIL}
-          </a>
+          </ContactLink>
           {OPERATOR.phone ? <> sau la {OPERATOR.phone}</> : null}. Răspundem în cel mult 30 de zile.
         </p>
       </LegalSection>
@@ -215,14 +211,9 @@ export default function PrivacyPage() {
         </ul>
         <p>
           Cererile sunt gratuite și se trimit la{" "}
-          <a
-            href={CONTACT_COMPOSE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink"
-          >
+          <ContactLink className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink">
             {CONTACT_EMAIL}
-          </a>
+          </ContactLink>
           . Dacă ești invitat, poți scrie și mirilor, care sunt operatorii confirmării tale.
         </p>
         <p>

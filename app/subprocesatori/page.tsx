@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalLink, LegalSection, LegalShell } from "@/components/marketing/legal-shell";
+import { ContactLink } from "@/components/marketing/contact-link";
 import { OPERATOR, SUB_PROCESSORS } from "@/lib/legal";
-import { CONTACT_COMPOSE, CONTACT_EMAIL } from "@/lib/marketing";
+import { CONTACT_EMAIL } from "@/lib/marketing";
 
 export const metadata: Metadata = {
   title: "Subprocesatori",
@@ -63,14 +64,9 @@ export default function SubProcessorsPage() {
         </p>
         <p>
           Întrebări despre un furnizor anume:{" "}
-          <a
-            href={CONTACT_COMPOSE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink"
-          >
+          <ContactLink className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink">
             {CONTACT_EMAIL}
-          </a>
+          </ContactLink>
           . Operator: {OPERATOR.name}, {OPERATOR.address}.
         </p>
         <p className="text-sm text-ink/55">

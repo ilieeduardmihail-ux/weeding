@@ -145,15 +145,15 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
 export const STEPS = [
   {
     title: "Ne scrieți câteva detalii",
-    text: "Ne spuneți data, orașul, numele voastre și cam câți invitați aveți. Un email e de ajuns.",
+    text: "Ne spuneți data, orașul și numele voastre. Un email e de ajuns.",
   },
   {
-    title: "Primiți invitația și panoul",
-    text: "Pregătim invitația cu tema aleasă și vă trimitem linkul, împreună cu accesul în panou.",
+    title: "Primiți cheia de acces",
+    text: "Vă trimitem cheia și linkul de activare. Cu ele vă creați contul în câteva minute și intrați direct în panou.",
   },
   {
-    title: "Trimiteți linkul pe WhatsApp",
-    text: "Fiecare invitat primește linkul lui. Răspunsurile se strâng singure, iar voi urmăriți totul din panou.",
+    title: "Completați totul în panou",
+    text: "Data, ora, locațiile, invitații, mesele și tema se fac acolo, în ritmul vostru. Apoi trimiteți linkul pe WhatsApp.",
   },
 ] as const;
 
@@ -161,18 +161,18 @@ export const PRICE = {
   eyebrow: "Preț",
   title: "Ofertă la cerere",
   text:
-    "Nicio nuntă nu seamănă cu alta, așa că nu punem un preț fix aici. Spuneți-ne câți invitați aveți și ce vă trebuie, iar noi vă trimitem o ofertă potrivită.",
+    "Nicio nuntă nu seamănă cu alta, așa că nu punem un preț fix aici. Spuneți-ne ce perioadă vă interesează, iar noi vă trimitem o ofertă potrivită.",
   included: [
     "Site public cu link propriu pentru nuntă",
     "Paletă de culori și decor floral ales de voi",
     "Confirmări, listă de invitați și însoțitori",
     "Așezare la mese și raport pentru restaurant",
-    "Buget pe categorii, în RON și EUR",
+    "Buget pe categorii, în lei și euro",
     "Mesaje gata de trimis pe WhatsApp",
     "Suport pe email, până după nuntă",
   ],
   cta: "Cere o ofertă",
-  note: "Fără abonament lunar. Plătiți o dată, pentru nunta voastră.",
+  note: "Pachete pe perioade definite: 6 luni, 1 an, 1 an și 6 luni sau 2 ani. Perioada începe din momentul activării.",
 } as const;
 
 export const FAQ = [
@@ -209,7 +209,7 @@ export const FAQ = [
   {
     question: "Cât timp rămâne site-ul online?",
     answer:
-      "Rămâne online și după nuntă, ca să puteți reveni la mesaje și la fotografii. Îl puteți păstra cât aveți nevoie; nu se șterge singur.",
+      "Rămâne online pe toată perioada pachetului ales. Perioada începe din momentul activării, iar la final o puteți prelungi, ca să păstrați invitația și mesajele.",
   },
 ] as const;
 

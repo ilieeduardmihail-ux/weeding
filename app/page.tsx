@@ -427,7 +427,7 @@ export default function Home() {
           <div className="mx-auto w-full max-w-6xl rounded-3xl bg-ink px-8 py-14 text-center text-sea sm:py-16">
             <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">Sunteți gata de nuntă?</p>
             <h2 className="mx-auto mt-4 max-w-2xl font-display text-3xl leading-tight sm:text-4xl">
-              Trimiteți-ne data și orașul. Restul îl punem noi la punct.
+              Trimiteți-ne data și orașul. Restul îl completați voi în panou, în ritmul vostru.
             </h2>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button asChild size="lg" variant="secondary">

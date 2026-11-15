@@ -12,6 +12,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "@/lib/supabase/env";
 import { SUPABASE_SERVICE_ROLE_KEY } from "@/lib/supabase/service-env";
+import { DEMO_SLUG } from "@/lib/marketing";
 import { demoMode } from "@/lib/demo/mode";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 
@@ -19,6 +20,7 @@ import { createClient as createSessionClient } from "@/lib/supabase/server";
 export const RESERVED_SLUGS = new Set([
   "admin",
   "platform",
+  DEMO_SLUG,
   "start",
   "api",
   "invitatia-poza",

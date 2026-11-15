@@ -3,6 +3,7 @@
  * Server only: it reads across every client, so it runs after an owner check
  * and through the service-role client (RLS would hide other tenants' rows).
  */
+import { DEMO_SLUG } from "@/lib/marketing";
 import { serviceClient } from "@/lib/platform";
 import type {
   Invoice,
@@ -23,6 +24,9 @@ export async function loadPlatformOverview(): Promise<PlatformOverview> {
     service
       .from("tenants")
       .select("id, slug, display_name, status, created_at, activated_at, expires_at")
+      // The demo is a real tenant, but not a client: it never belongs in the
+      // owner's list, its counts or the invoice client picker.
+      .neq("slug", DEMO_SLUG)
       .order("created_at", { ascending: true }),
     service.from("tenant_admins").select("tenant_id, email").order("email", { ascending: true }),
     service

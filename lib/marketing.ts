@@ -23,7 +23,8 @@ export const CONTACT_COMPOSE = `https://mail.google.com/mail/?view=cm&fs=1&to=${
   CONTACT_EMAIL
 )}&su=${contactSubject}&${contactBody}`;
 export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}?subject=${contactSubject}&${contactBody}`;
-export const DEMO_PATH = "/demo";
+export const DEMO_SLUG = "demo";
+export const DEMO_PATH = `/${DEMO_SLUG}`;
 
 export const NAVIGATION = [
   { label: "Invitația", href: "#invitatia" },
@@ -37,17 +38,17 @@ export const HERO = {
   eyebrow: "Invitații digitale pentru nuntă",
   title: "Invitația nunții voastre, într-un singur link.",
   lead:
-    "Program, locații pe hartă, confirmare de prezență și așezare la mese — un site pe care invitații îl deschid din WhatsApp, iar voi vedeți răspunsurile în timp real.",
+    "Programul, locurile pe hartă și confirmarea, toate într-un singur link pe care invitații îl deschid din WhatsApp. Voi vedeți cine vine, fără să întrebați pe rând.",
   primary: "Deschide invitația demo",
   secondary: "Cum funcționează",
-  note: "Fără aplicație de instalat. Fără cont pentru invitați.",
-  points: ["Link propriu, gata în câteva zile", "Merge pe orice telefon", "Datele rămân la voi"],
+  note: "Nu trebuie instalat nimic, iar invitații nu au nevoie de cont.",
+  points: ["Linkul vostru, gata în câteva zile", "Se deschide pe orice telefon", "Datele rămân la voi"],
 };
 
 export const GUEST_FEATURES = [
   {
     title: "Program și locații",
-    text: "Biserica și sala, cu orele și hărți care se deschid într-o singură atingere.",
+    text: "Biserica și sala, cu ora, adresa și harta care se deschide dintr-o atingere.",
   },
   {
     title: "Confirmare în 30 de secunde",
@@ -55,11 +56,11 @@ export const GUEST_FEATURES = [
   },
   {
     title: "Însoțitori și copii",
-    text: "Fiecare confirmare poate veni cu partenerul și copiii, numărați separat.",
+    text: "Fiecare confirmare poate veni cu partenerul și copiii, ca să știți exact câte locuri pregătiți.",
   },
   {
     title: "Locul la masă",
-    text: "După ce publicați așezarea, invitatul își găsește masa direct în invitație.",
+    text: "După ce publicați așezarea, fiecare invitat își găsește masa în invitație.",
   },
 ] as const;
 
@@ -80,9 +81,9 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
     title: "Lista completă, fără caiet și fără foi",
     text: "Toți invitații într-un singur loc, cu însoțitorii și copiii lor. Importați lista dintr-un fișier sau adăugați numele pe rând.",
     bullets: [
-      "Import dintr-un CSV sau adăugare manuală",
-      "Căutare instant și grupuri de invitați",
-      "Fiecare invitat are linkul lui, cu numele deja completat",
+      "Aduceți lista dintr-un fișier sau adăugați numele pe rând",
+      "Găsiți un invitat în câteva secunde, pe grupuri",
+      "Fiecare invitat primește linkul lui, cu numele deja completat",
     ],
     image: "panou-invitati",
     alt: "Lista invitaților din panou, cu răspunsuri, refuzuri, participanți și copii",
@@ -93,9 +94,9 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
     title: "Cine vine, cine nu, în timp real",
     text: "Răspunsurile apar pe măsură ce invitații completează formularul. Vedeți dintr-o privire câte persoane vin și ce mesaje au lăsat.",
     bullets: [
-      "Numărători live: participanți, copii, refuzuri",
+      "Câte persoane vin, câți copii și câți au refuzat, la un loc",
       "Mesajele invitaților, exact cum le-au scris",
-      "Editare și ștergere, dacă un răspuns se schimbă",
+      "Corectați un răspuns dacă se răzgândește cineva",
     ],
     image: "panou-confirmari",
     alt: "Pagina de confirmări din panou, cu numărul de răspunsuri și lista invitaților",
@@ -103,12 +104,12 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
   {
     id: "mese",
     eyebrow: "Mese",
-    title: "Așezarea la mese, rezolvată",
-    text: "Trageți numele dintr-o listă în mese și vedeți imediat câte locuri au rămas libere. Așezarea se publică în invitație doar când sunteți mulțumiți.",
+    title: "Locul fiecăruia la masă",
+    text: "Trageți numele dintr-o listă în mese și vedeți imediat câte locuri au rămas libere. Așezarea apare în invitație doar când sunteți mulțumiți.",
     bullets: [
-      "Mese cu număr de locuri configurabil",
+      "Stabiliți câte locuri are fiecare masă",
       "Însoțitorii se mută împreună cu invitatul",
-      "Raport pentru restaurant, gata de tipărit",
+      "Raportul pentru restaurant, gata de tipărit",
     ],
     image: "panou-mese",
     alt: "Planul meselor din panou, cu invitații așezați și locurile rămase libere",
@@ -116,12 +117,12 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
   {
     id: "buget",
     eyebrow: "Buget",
-    title: "Bugetul, pe categorii și pe monede",
-    text: "Fiecare cheltuială are costul total și plățile făcute până acum. Vedeți cât ați cheltuit și cât mai aveți de plătit, în lei sau în euro.",
+    title: "Cât ați dat și cât mai aveți de dat",
+    text: "Adăugați o cheltuială cu costul ei total și cu plățile făcute până acum. Vedeți oricând cât ați cheltuit și cât vă mai rămâne, în lei sau în euro.",
     bullets: [
       "Categorii de la locație la papetărie",
-      "Plăți parțiale, cu istoric",
-      "Totaluri separate pentru RON și EUR",
+      "Plătiți în etape și vedeți tot ce ați dat",
+      "Totaluri separate pentru lei și euro",
     ],
     image: "panou-buget",
     alt: "Pagina de buget din panou, cu totalurile în lei și euro și cheltuielile adăugate",
@@ -129,11 +130,11 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
   {
     id: "mesaje",
     eyebrow: "Mesaje",
-    title: "Invitațiile trimise pe WhatsApp",
+    title: "Mesajul scris o singură dată",
     text: "Scrieți mesajul o dată, cu numele și data completate automat, apoi trimiteți fiecărui invitat linkul lui. Fără copiat nume în 80 de conversații.",
     bullets: [
-      "Șablon editabil, cu variabile pentru nume și dată",
-      "Link personalizat pentru fiecare invitat",
+      "Scrieți mesajul o dată, cu numele și data completate automat",
+      "Fiecare invitat primește linkul lui",
       "Atașați și imaginea invitației, dacă o aveți",
     ],
     image: "panou-mesaje",
@@ -144,11 +145,11 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
 export const STEPS = [
   {
     title: "Ne scrieți câteva detalii",
-    text: "Data, orașul, numele voastre și un număr aproximativ de invitați. Trimiteți totul pe email.",
+    text: "Ne spuneți data, orașul, numele voastre și cam câți invitați aveți. Un email e de ajuns.",
   },
   {
     title: "Primiți invitația și panoul",
-    text: "Vă pregătim site-ul cu tema aleasă și vă trimitem linkul, împreună cu accesul în panou.",
+    text: "Pregătim invitația cu tema aleasă și vă trimitem linkul, împreună cu accesul în panou.",
   },
   {
     title: "Trimiteți linkul pe WhatsApp",
@@ -160,7 +161,7 @@ export const PRICE = {
   eyebrow: "Preț",
   title: "Ofertă la cerere",
   text:
-    "Fiecare nuntă are alt număr de invitați și alte nevoi, așa că nu punem un preț fix pe pagina asta. Scrieți-ne detaliile, iar noi vă răspundem cu o ofertă potrivită.",
+    "Nicio nuntă nu seamănă cu alta, așa că nu punem un preț fix aici. Spuneți-ne câți invitați aveți și ce vă trebuie, iar noi vă trimitem o ofertă potrivită.",
   included: [
     "Site public cu link propriu pentru nuntă",
     "Paletă de culori și decor floral ales de voi",
@@ -178,7 +179,7 @@ export const FAQ = [
   {
     question: "Trebuie să instaleze invitații ceva?",
     answer:
-      "Nu. Invitația este un site obișnuit: se deschide din link, în orice browser, pe telefon sau pe calculator. Nu cere cont și nu trimite notificări.",
+      "Nu. Invitația e un site simplu: se deschide din link, pe telefon sau pe calculator. Nu are nevoie de cont și nu trimite notificări.",
   },
   {
     question: "Pot trimite invitația pe WhatsApp?",
@@ -188,7 +189,7 @@ export const FAQ = [
   {
     question: "Cum arată pe telefon?",
     answer:
-      "Majoritatea invitaților o vor deschide de pe telefon, așa că fiecare pagină este gândită întâi pentru ecran mic: text lizibil fără zoom, butoane mari și hărți care se deschid în aplicația de hărți.",
+      "Aproape toți o vor deschide de pe telefon, așa că am făcut-o întâi pentru ecran mic: text pe care îl citești fără zoom, butoane mari și hărți care se deschid în aplicația de hărți.",
   },
   {
     question: "Pot schimba tema după ce am trimis linkul?",
@@ -198,7 +199,7 @@ export const FAQ = [
   {
     question: "Cum știu cine vine și cu cine?",
     answer:
-      "Fiecare confirmare intră în lista de invitați împreună cu însoțitorii și copiii. Panoul arată numărătorile pe loc, iar așezarea la mese vă ajută să îi distribuiți fără suprapuneri.",
+      "Fiecare confirmare ajunge în listă cu însoțitorii și copiii. Panoul vă arată imediat câți sunteți, iar la mese îi puteți așeza fără să vă bată capul.",
   },
   {
     question: "Ce se întâmplă cu datele invitaților?",

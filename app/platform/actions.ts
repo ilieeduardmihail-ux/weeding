@@ -13,6 +13,7 @@ import {
   serviceClient,
   slugProblem,
 } from "@/lib/platform";
+import { DEMO_SLUG } from "@/lib/marketing";
 import { DEFAULT_TENANT_SLUG } from "@/lib/tenants";
 import { loadInvoice } from "@/lib/platform-data";
 import { buildInvoicePdf, invoicePdfFileName } from "@/lib/invoice-pdf";
@@ -439,6 +440,11 @@ export async function deleteTenant(input: z.infer<typeof deleteSchema>): Promise
   // The root wedding keeps every link already sent to guests working.
   if (tenant.slug === DEFAULT_TENANT_SLUG) {
     return { ok: false, error: "Nunta de la rădăcina domeniului nu poate fi ștearsă." };
+  }
+  // The demo is not a client: it is hidden from the panel and managed only by
+  // `npm run seed-demo`, so it must never be deleted from here.
+  if (tenant.slug === DEMO_SLUG) {
+    return { ok: false, error: "Nunta demo nu poate fi ștearsă din panou." };
   }
   if (parsed.data.confirmSlug.toLowerCase() !== tenant.slug) {
     return { ok: false, error: `Scrie adresa clientului (${tenant.slug}) pentru a confirma.` };

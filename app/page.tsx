@@ -268,8 +268,8 @@ export default function Home() {
               <p className={eyebrow}>Teme</p>
               <h2 className={h2}>Alese de voi, nu impuse de noi.</h2>
               <p className={lead}>
-                {PALETTES.length} palete de culori și {FLORAL_SETS.length} seturi de decor floral.
-                Le puteți schimba oricând din panou — linkul rămâne același.
+                Aveți de ales între {PALETTES.length} palete de culori și {FLORAL_SETS.length} decoruri
+                florale. Le schimbați oricând din panou, iar linkul rămâne același.
               </p>
             </div>
 
@@ -325,7 +325,7 @@ export default function Home() {
               })}
               <div className="max-w-sm text-sm leading-relaxed text-ink/60">
                 <p>
-                  Decorul floral este o fotografie de buchet, așezată în colțuri, pe margini sau ca
+                  Decorurile sunt fotografii de buchete adevărate, puse în colțuri, pe margini sau ca
                   un cadru întreg.
                 </p>
                 <p className="mt-2 font-display text-ink/75">
@@ -353,7 +353,7 @@ export default function Home() {
               ))}
             </ol>
             <p className="mt-10 text-sm text-ink/60">
-              Detaliile le stabilim pe email, ca la orice eveniment important.{" "}
+              Restul detaliilor le lămurim pe email, fără grabă.{" "}
               <ContactLink className={`text-ink ${linkUnderline}`}>
                 {CONTACT_EMAIL}
               </ContactLink>
@@ -425,7 +425,7 @@ export default function Home() {
         {/* ------------------------------------------------------------- final */}
         <section className="px-6 pb-24">
           <div className="mx-auto w-full max-w-6xl rounded-3xl bg-ink px-8 py-14 text-center text-sea sm:py-16">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">Pregătită de nuntă?</p>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">Sunteți gata de nuntă?</p>
             <h2 className="mx-auto mt-4 max-w-2xl font-display text-3xl leading-tight sm:text-4xl">
               Trimiteți-ne data și orașul. Restul îl punem noi la punct.
             </h2>
@@ -438,7 +438,8 @@ export default function Home() {
               </Button>
             </div>
             <p className="mt-5 text-sm text-sea/60">
-              Butonul deschide aplicația ta de email cu mesajul început. Ne poți scrie și direct la{" "}
+              Butonul deschide aplicația voastră de email, cu mesajul deja început. Ne puteți
+              scrie și direct la{" "}
               <span className="select-all text-sea/85">{CONTACT_EMAIL}</span>.
             </p>
           </div>

@@ -192,6 +192,11 @@ export const FLORAL_SETS = [
   { id: "photo-botanic", name: "Poză · botanic măsliniu" },
   { id: "photo-piersica", name: "Poză · piersică" },
   { id: "photo-delicata", name: "Poză · piersică delicată" },
+  { id: "photo-bujori-si-trandafiri", name: "Poză · bujori și trandafiri" },
+  { id: "photo-bordo-si-aur", name: "Poză · bordo și aur" },
+  { id: "photo-trandafiri-vintage", name: "Poză · trandafiri vintage" },
+  { id: "photo-hortensie-albastra", name: "Poză · hortensie albastră" },
+  { id: "photo-flori-mov", name: "Poză · flori mov" },
 ] as const;
 
 /**
@@ -225,6 +230,35 @@ export const FLORAL_IMAGES: Record<string, FloralImage> = {
   "photo-botanic": { src: "/florals/botanic-masliniu", kind: "corner", width: 1029, height: 1100, widths: [420, 760] },
   "photo-piersica": { src: "/florals/piersica-botanica", kind: "corner", width: 488, height: 566, widths: [420, 488] },
   "photo-delicata": { src: "/florals/piersica-delicata", kind: "corner", width: 516, height: 625, widths: [420, 516] },
+  "photo-bujori-si-trandafiri": {
+    src: "/florals/bujori-si-trandafiri",
+    kind: "corner",
+    width: 783,
+    height: 1060,
+    widths: [420, 760],
+  },
+  "photo-bordo-si-aur": {
+    src: "/florals/bordo-si-aur",
+    kind: "corner",
+    width: 305,
+    height: 311,
+    widths: [305],
+  },
+  "photo-trandafiri-vintage": {
+    src: "/florals/trandafiri-vintage",
+    kind: "corner",
+    width: 718,
+    height: 724,
+    widths: [420, 718],
+  },
+  "photo-hortensie-albastra": {
+    src: "/florals/hortensie-albastra",
+    kind: "corner",
+    width: 1721,
+    height: 1882,
+    widths: [420, 760],
+  },
+  "photo-flori-mov": { src: "/florals/flori-mov", kind: "corner", width: 1366, height: 1858, widths: [420, 760] },
 };
 
 /** `"/florals/bujori-420.avif 420w, /florals/bujori-760.avif 760w"` */

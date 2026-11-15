@@ -13,4 +13,6 @@ update public.tenants
        ),
        updated_at = now()
  where coalesce(theme #>> '{floral,set}', '') not in
-       ('photo-bujori', 'photo-trandafiri', 'photo-botanic', 'photo-piersica', 'photo-delicata');
+       ('photo-bujori', 'photo-trandafiri', 'photo-botanic', 'photo-piersica', 'photo-delicata',
+        'photo-bujori-si-trandafiri', 'photo-bordo-si-aur', 'photo-trandafiri-vintage',
+        'photo-hortensie-albastra', 'photo-flori-mov');

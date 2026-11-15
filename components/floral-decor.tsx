@@ -17,12 +17,17 @@ const OPACITY: Record<FloralIntensity, number> = { subtle: 0.45, medium: 0.7, ri
 
 /**
  * How big a corner decoration is. It starts in the corner and reaches about a
- * quarter of the screen, never more: the width is the smaller of 25% of the
- * viewport width and 40% of its height, and the height is capped as well, so
- * four corners never meet in the middle.
+ * quarter of the screen, never more: the slot is a box whose width is the
+ * smaller of 25% of the viewport width and 40% of its height, and whose height
+ * is 40% of the viewport, so four corners never meet in the middle. The picture
+ * is contained in that box rather than stretched, which keeps tall bouquets
+ * from being squashed.
  */
-const CORNER = "w-[clamp(7rem,min(25vw,40vh),22rem)] max-h-[40vh]";
-const CORNER_SM = "w-[clamp(5.5rem,min(18vw,30vh),16rem)] max-h-[30vh]";
+const CORNER = "w-[clamp(7rem,min(25vw,40vh),22rem)] h-[40vh]";
+const CORNER_SM = "w-[clamp(5.5rem,min(18vw,30vh),16rem)] h-[30vh]";
+
+/** Pinned to the corner the slot occupies; the mirroring moves it to the rest. */
+const CORNER_IMAGE = "h-full w-full object-contain object-left-top";
 
 type Slot = { cls: string; flip?: string; size: string; hide?: string };
 
@@ -127,10 +132,15 @@ export function FloralDecor({
       {slots.map((slot) => (
         <div
           key={slot.cls}
-          className={`absolute ${slot.cls} ${slot.hide ?? ""} ${slot.flip ?? ""}`}
+          className={`absolute ${slot.cls} ${slot.hide ?? ""} ${slot.size} ${slot.flip ?? ""}`}
           style={{ opacity }}
         >
-          <FloralPhoto photo={photo} className={`block h-auto ${slot.size}`} sizes={PHOTO_SIZES} />
+          <FloralPhoto
+            photo={photo}
+            className={CORNER_IMAGE}
+            sizes={PHOTO_SIZES}
+            pictureClassName="block h-full w-full"
+          />
         </div>
       ))}
     </div>

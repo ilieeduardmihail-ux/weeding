@@ -52,7 +52,14 @@ const h2 = "mt-3 font-display text-3xl leading-tight text-ink sm:text-4xl";
 const lead = "mt-4 max-w-2xl text-base leading-relaxed text-ink/70 sm:text-lg";
 const linkUnderline =
   "underline decoration-gold/40 decoration-1 underline-offset-4 transition-colors hover:text-ink hover:decoration-gold";
-const floralPreview = ["photo-bujori", "photo-trandafiri", "photo-botanic", "photo-piersica"] as const;
+const floralPreview = [
+  "photo-bujori",
+  "photo-bujori-si-trandafiri",
+  "photo-trandafiri-vintage",
+  "photo-bordo-si-aur",
+  "photo-hortensie-albastra",
+  "photo-flori-mov",
+] as const;
 
 /**
  * Opens Gmail with the address, subject and a short draft already filled in.
@@ -312,8 +319,8 @@ export default function Home() {
                 if (!image) return null;
                 return (
                   <picture key={id} className="block">
-                    <source type="image/avif" srcSet={floralSrcSet(image, "avif")} />
-                    <source type="image/webp" srcSet={floralSrcSet(image, "webp")} />
+                    <source type="image/avif" srcSet={floralSrcSet(image, "avif")} sizes="96px" />
+                    <source type="image/webp" srcSet={floralSrcSet(image, "webp")} sizes="96px" />
                     <img
                       src={`${image.src}-${image.widths[0]}.webp`}
                       alt=""

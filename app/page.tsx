@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrowserFrame, PhoneFrame, Screenshot } from "@/components/marketing/frames";
 import { ContactLink } from "@/components/marketing/contact-link";
+import { ContactForm } from "@/components/marketing/contact-form";
 import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { FLORAL_IMAGES, FLORAL_SETS, PALETTES, floralSrcSet } from "@/lib/theme";
@@ -80,9 +81,12 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <ContactLink className="hidden text-sm text-ink/70 transition-colors hover:text-ink sm:block">
+            <a
+              href="#contact"
+              className="hidden text-sm text-ink/70 transition-colors hover:text-ink sm:block"
+            >
               Scrie-ne
-            </ContactLink>
+            </a>
             <Button asChild size="sm">
               <Link href={DEMO_PATH}>Vezi demo</Link>
             </Button>
@@ -371,7 +375,7 @@ export default function Home() {
                 <p className="mt-4 max-w-lg leading-relaxed text-ink/70">{PRICE.text}</p>
                 <div className="mt-8 flex flex-wrap items-center gap-4">
                   <Button asChild size="lg">
-                    <ContactLink>{PRICE.cta}</ContactLink>
+                    <a href="#contact">{PRICE.cta}</a>
                   </Button>
                   <span className="text-sm text-ink/55">{PRICE.note}</span>
                 </div>
@@ -400,7 +404,11 @@ export default function Home() {
               <p className={eyebrow}>Întrebări</p>
               <h2 className={h2}>Ce ne întreabă mirii cel mai des.</h2>
               <p className="mt-4 text-sm leading-relaxed text-ink/60">
-                Nu găsiți răspunsul? Scrieți-ne și vă răspundem noi.
+                Nu găsiți răspunsul?{" "}
+                <a href="#contact" className={`text-ink ${linkUnderline}`}>
+                  Scrieți-ne
+                </a>
+                .
               </p>
             </div>
             <div className="divide-y divide-ink/10 border-y border-ink/10">
@@ -423,25 +431,33 @@ export default function Home() {
         </section>
 
         {/* ------------------------------------------------------------- final */}
-        <section className="px-6 pb-24">
-          <div className="mx-auto w-full max-w-6xl rounded-3xl bg-ink px-8 py-14 text-center text-sea sm:py-16">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">Sunteți gata de nuntă?</p>
-            <h2 className="mx-auto mt-4 max-w-2xl font-display text-3xl leading-tight sm:text-4xl">
-              Trimiteți-ne data și orașul. Restul îl completați voi în panou, în ritmul vostru.
-            </h2>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Button asChild size="lg" variant="secondary">
-                <ContactLink>Scrie-ne pe email</ContactLink>
-              </Button>
-              <Button asChild size="lg" variant="ghost" className="text-sea hover:bg-sea/10">
-                <Link href={DEMO_PATH}>Vezi invitația demo</Link>
-              </Button>
+        <section id="contact" className="scroll-mt-24 px-6 pb-24">
+          <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl bg-ink px-6 py-12 text-sea sm:px-10 sm:py-14">
+            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-14">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">
+                  Sunteți gata de nuntă?
+                </p>
+                <h2 className="mt-4 max-w-xl font-display text-3xl leading-tight sm:text-4xl">
+                  Spuneți-ne ce invitație aveți în minte. Restul îl completați voi în panou, în
+                  ritmul vostru.
+                </h2>
+                <p className="mt-5 max-w-md text-sm leading-relaxed text-sea/65">
+                  Scrieți-ne în câteva rânduri ce vă doriți și ce perioadă vă interesează. Vă
+                  răspundem pe email, de obicei în aceeași zi lucrătoare.
+                </p>
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <Button asChild size="lg" variant="secondary">
+                    <Link href={DEMO_PATH}>Vezi invitația demo</Link>
+                  </Button>
+                </div>
+                <p className="mt-6 text-sm text-sea/55">
+                  Preferați emailul?{" "}
+                  <span className="select-all text-sea/85">{CONTACT_EMAIL}</span>
+                </p>
+              </div>
+              <ContactForm />
             </div>
-            <p className="mt-5 text-sm text-sea/60">
-              Butonul deschide aplicația voastră de email, cu mesajul deja început. Ne puteți
-              scrie și direct la{" "}
-              <span className="select-all text-sea/85">{CONTACT_EMAIL}</span>.
-            </p>
           </div>
         </section>
       </main>

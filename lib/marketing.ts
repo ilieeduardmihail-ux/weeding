@@ -144,8 +144,8 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
 
 export const STEPS = [
   {
-    title: "Ne scrieți câteva detalii",
-    text: "Ne spuneți data, orașul și numele voastre. Un email e de ajuns.",
+    title: "Ne spuneți ce vă doriți",
+    text: "Ne scrieți ce invitație aveți în minte și ce perioadă vă interesează. Vă răspundem cu o ofertă potrivită.",
   },
   {
     title: "Primiți cheia de acces",
@@ -153,7 +153,7 @@ export const STEPS = [
   },
   {
     title: "Completați totul în panou",
-    text: "Data, ora, locațiile, invitații, mesele și tema se fac acolo, în ritmul vostru. Apoi trimiteți linkul pe WhatsApp.",
+    text: "Data, ora, locațiile, mesele și tema se fac acolo, în ritmul vostru. Apoi trimiteți linkul pe WhatsApp.",
   },
 ] as const;
 
@@ -161,7 +161,7 @@ export const PRICE = {
   eyebrow: "Preț",
   title: "Ofertă la cerere",
   text:
-    "Nicio nuntă nu seamănă cu alta, așa că nu punem un preț fix aici. Spuneți-ne ce perioadă vă interesează, iar noi vă trimitem o ofertă potrivită.",
+    "Spuneți-ne ce perioadă vă interesează și ce vă doriți, iar noi vă trimitem o ofertă potrivită.",
   included: [
     "Site public cu link propriu pentru nuntă",
     "Paletă de culori și decor floral ales de voi",
@@ -177,7 +177,7 @@ export const PRICE = {
 
 export const FAQ = [
   {
-    question: "Trebuie să instaleze invitații ceva?",
+    question: "Trebuie să instaleze invitații?",
     answer:
       "Nu. Invitația e un site simplu: se deschide din link, pe telefon sau pe calculator. Nu are nevoie de cont și nu trimite notificări.",
   },
@@ -214,4 +214,4 @@ export const FAQ = [
 ] as const;
 
 export const FOOTER_NOTE =
-  "Invitații digitale pentru nunți, făcute cu grijă în România. Numele, locurile și sumele din demo sunt fictive.";
+  "Invitații digitale pentru nunți. Numele, locurile și sumele din demo sunt fictive.";

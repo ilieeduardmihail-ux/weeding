@@ -51,6 +51,25 @@ export type InvoiceMail = {
   attachment: { filename: string; content: Buffer };
 };
 
+export type TextMail = {
+  to: string;
+  subject: string;
+  text: string;
+  fromName: string;
+  replyTo?: string;
+};
+
+/** A plain-text message: used by the offer form, where there is nothing to attach. */
+export async function sendTextMail(mail: TextMail): Promise<void> {
+  await transport().sendMail({
+    from: { name: mail.fromName, address: USER },
+    to: mail.to,
+    replyTo: mail.replyTo || undefined,
+    subject: mail.subject,
+    text: mail.text,
+  });
+}
+
 export async function sendInvoiceMail(mail: InvoiceMail): Promise<void> {
   await transport().sendMail({
     from: { name: mail.fromName, address: USER },

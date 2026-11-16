@@ -61,6 +61,11 @@ export default function PrivacyPage() {
             momentul trimiterii și versiunea politicii acceptate.
           </li>
           <li>
+            <strong className="text-ink">Cereri de ofertă trimise din site:</strong> numele, adresa
+            de email, numărul de telefon (dacă îl lași), perioada care te interesează și mesajul
+            tău. Le folosim doar ca să îți răspundem și nu le trimitem nimănui altcuiva.
+          </li>
+          <li>
             <strong className="text-ink">Clienți (miri):</strong> numele, adresa de email, datele
             nunții (data, locațiile, numărul de invitați), datele de facturare și corespondența.
           </li>
@@ -166,7 +171,7 @@ export default function PrivacyPage() {
                 <td className="py-3">cât timp există contractul, apoi ștergere</td>
               </tr>
               <tr className="border-b border-ink/10">
-                <td className="py-3 pr-4">Corespondență fără contract</td>
+                <td className="py-3 pr-4">Cereri de ofertă și corespondență fără contract</td>
                 <td className="py-3">{RETENTION.contactYears} ani</td>
               </tr>
               <tr className="border-b border-ink/10">

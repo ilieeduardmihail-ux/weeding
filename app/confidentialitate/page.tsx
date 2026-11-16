@@ -52,8 +52,11 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-3 pl-5">
           <li>
             <strong className="text-ink">Vizitatori ai invitațiilor:</strong> adresa IP, tipul de
-            dispozitiv și paginile cerute, în jurnalele tehnice ale găzduirii. Nu creăm profiluri și
-            nu te urmărim pe alte site-uri.
+            dispozitiv și paginile cerute, în jurnalele tehnice ale găzduirii. Numărăm și câte
+            persoane deschid pagina, ca să știm dacă invitația ajunge la oameni: fără cookie-uri,
+            doar cu un identificator anonim derivat din IP și browser, păstrat{" "}
+            {RETENTION.visitsDays} de zile și folosit exclusiv în statistici agregate. Nu creăm
+            profiluri și nu te urmărim pe alte site-uri.
           </li>
           <li>
             <strong className="text-ink">Invitați care confirmă prezența:</strong> numele, dacă
@@ -177,6 +180,10 @@ export default function PrivacyPage() {
               <tr className="border-b border-ink/10">
                 <td className="py-3 pr-4">Facturi și documente contabile</td>
                 <td className="py-3">{RETENTION.invoicesYears} ani, obligație legală</td>
+              </tr>
+              <tr className="border-b border-ink/10">
+                <td className="py-3 pr-4">Statistici de vizite, fără cookie-uri</td>
+                <td className="py-3">{RETENTION.visitsDays} zile</td>
               </tr>
               <tr>
                 <td className="py-3 pr-4">Jurnale tehnice</td>

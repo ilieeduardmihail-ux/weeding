@@ -3,7 +3,8 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isOwnerRequest, platformIsConfigured } from "@/lib/platform";
-import { loadPlatformOverview } from "@/lib/platform-data";
+import { loadPlatformOverview, loadVisitStats } from "@/lib/platform-data";
+import { EMPTY_VISITS } from "@/lib/platform-types";
 import { requestNow } from "@/lib/request-now";
 import { PlatformDashboard } from "./dashboard";
 
@@ -28,6 +29,9 @@ export default async function PlatformPage() {
   const overview = configured
     ? await loadPlatformOverview()
     : { tenants: [], owners: [] };
+  const activity = configured
+    ? await loadVisitStats()
+    : { marketing: EMPTY_VISITS, invites: EMPTY_VISITS, hourly: [] };
 
   return (
     <PlatformDashboard
@@ -35,6 +39,7 @@ export default async function PlatformPage() {
       ownerEmail={email ?? ""}
       configured={configured}
       now={requestNow()}
+      activity={activity}
     />
   );
 }

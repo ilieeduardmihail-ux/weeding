@@ -32,6 +32,39 @@ export type PlatformOverview = {
   owners: string[];
 };
 
+/** One counter in the activity card: presentation page or all invitations. */
+export type VisitCounter = {
+  total: number;
+  h24: number;
+  d7: number;
+  u24: number;
+  u7: number;
+};
+
+export type VisitHour = { hour: string; marketing: number; invites: number };
+
+export type VisitStats = {
+  marketing: VisitCounter;
+  invites: VisitCounter;
+  hourly: VisitHour[];
+};
+
+export const EMPTY_VISITS: VisitCounter = { total: 0, h24: 0, d7: 0, u24: 0, u7: 0 };
+
+/** A sent email, without its text: who, what, when and whether it left. */
+export type MailEntry = {
+  id: string;
+  at: string;
+  kind: "oferta" | "factura" | "cheie";
+  to: string;
+  subject: string;
+  replyTo: string | null;
+  tenantSlug: string | null;
+  tenantName: string | null;
+  ok: boolean;
+  error: string | null;
+};
+
 /** A simple payment note: no VAT, the amount is entered freely per invoice. */
 export type Invoice = {
   id: string;

@@ -4,6 +4,7 @@ import { BrowserFrame, PhoneFrame, Screenshot } from "@/components/marketing/fra
 import { ContactLink } from "@/components/marketing/contact-link";
 import { ContactForm } from "@/components/marketing/contact-form";
 import { ThemeToggle } from "@/components/marketing/theme-toggle";
+import { VisitBeacon } from "@/components/visit-beacon";
 import { Button } from "@/components/ui/button";
 import { FLORAL_IMAGES, FLORAL_SETS, PALETTES, floralSrcSet } from "@/lib/theme";
 import {
@@ -66,6 +67,7 @@ const floralPreview = [
 export default function Home() {
   return (
     <div className="marketing min-h-svh bg-sea text-ink">
+      <VisitBeacon path="/" />
       <header className="sticky top-0 z-40 border-b border-ink/10 glass-bar">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
           <Link href="/" className="font-display text-lg tracking-wide text-ink">

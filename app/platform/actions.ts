@@ -353,6 +353,8 @@ export async function sendInvoiceEmail(input: z.infer<typeof sendInvoiceSchema>)
       text: invoiceEmailBody(invoice, issuer, { attachment: true }),
       fromName: issuer.issuerName.trim() || "Ne căsătorim",
       replyTo: issuer.issuerEmail.trim() || undefined,
+      kind: "factura",
+      tenantId: invoice.tenantId,
       attachment: { filename: invoicePdfFileName(invoice), content: Buffer.from(pdf) },
     });
   } catch (error) {

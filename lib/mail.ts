@@ -1,5 +1,6 @@
 import "server-only";
 import nodemailer, { type Transporter } from "nodemailer";
+import { recordMail, type MailKind } from "@/lib/mail-log";
 
 /**
  * Outgoing mail, from the platform's own Gmail account.
@@ -8,6 +9,10 @@ import nodemailer, { type Transporter } from "nodemailer";
  * 16-character token that can be revoked on its own, and it is the only thing
  * stored. Sending happens from `GMAIL_USER`, so the client sees an address the
  * owner controls and replies come back to them.
+ *
+ * Every send is also written to `mail_log` (metadata only), so the platform
+ * panel can answer "did the offer request / invoice actually go out?" without
+ * opening Gmail.
  *
  * Nothing here is imported by the browser: this module lives on the server and
  * the password never leaves it.
@@ -42,26 +47,27 @@ function transport(): Transporter {
   return cached;
 }
 
-export type InvoiceMail = {
+type MailBase = {
   to: string;
   subject: string;
   text: string;
   fromName: string;
   replyTo?: string;
+  /** What the message is, for the panel's log. */
+  kind?: MailKind;
+  /** The wedding the message belongs to, when it belongs to one. */
+  tenantId?: string | null;
+};
+
+export type InvoiceMail = MailBase & {
   attachment: { filename: string; content: Buffer };
 };
 
-export type TextMail = {
-  to: string;
-  subject: string;
-  text: string;
-  fromName: string;
-  replyTo?: string;
-};
+export type TextMail = MailBase;
 
 /** A plain-text message: used by the offer form, where there is nothing to attach. */
 export async function sendTextMail(mail: TextMail): Promise<void> {
-  await transport().sendMail({
+  await send(mail, {
     from: { name: mail.fromName, address: USER },
     to: mail.to,
     replyTo: mail.replyTo || undefined,
@@ -71,7 +77,7 @@ export async function sendTextMail(mail: TextMail): Promise<void> {
 }
 
 export async function sendInvoiceMail(mail: InvoiceMail): Promise<void> {
-  await transport().sendMail({
+  await send(mail, {
     from: { name: mail.fromName, address: USER },
     to: mail.to,
     replyTo: mail.replyTo || undefined,
@@ -85,6 +91,38 @@ export async function sendInvoiceMail(mail: InvoiceMail): Promise<void> {
       },
     ],
   });
+}
+
+type Message = Parameters<Transporter["sendMail"]>[0];
+
+/**
+ * Sends once and records the outcome. The log is best effort: a missing table
+ * or a failed insert must never turn a delivered email into an error.
+ */
+async function send(mail: MailBase, message: Message) {
+  try {
+    const info = await transport().sendMail(message);
+    await recordMail({
+      kind: mail.kind ?? "oferta",
+      to: mail.to,
+      subject: mail.subject,
+      replyTo: mail.replyTo,
+      tenantId: mail.tenantId,
+      ok: true,
+      messageId: typeof info?.messageId === "string" ? info.messageId : null,
+    });
+  } catch (error) {
+    await recordMail({
+      kind: mail.kind ?? "oferta",
+      to: mail.to,
+      subject: mail.subject,
+      replyTo: mail.replyTo,
+      tenantId: mail.tenantId,
+      ok: false,
+      error: mailError(error),
+    });
+    throw error;
+  }
 }
 
 /** Turns a nodemailer error into a sentence the owner can act on. */

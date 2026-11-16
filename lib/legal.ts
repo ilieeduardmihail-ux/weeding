@@ -27,7 +27,7 @@ export const OPERATOR = {
 export const OPERATOR_IS_PLACEHOLDER = OPERATOR.name.startsWith("[");
 
 /** The day the privacy policy, terms and cookie list last changed. */
-export const LEGAL_UPDATED = "14 noiembrie 2026";
+export const LEGAL_UPDATED = "16 noiembrie 2026";
 
 /** Autoritatea de supraveghere din România. */
 export const ANSPDCP = {
@@ -51,6 +51,8 @@ export const RETENTION = {
   invoicesYears: 10,
   /** Jurnale tehnice ale platformei. */
   logsDays: 30,
+  /** Statistici de vizite anonime (fără cookie-uri). */
+  visitsDays: 90,
 } as const;
 
 export type SubProcessor = {

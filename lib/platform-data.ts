@@ -8,12 +8,15 @@ import { serviceClient } from "@/lib/platform";
 import type {
   Invoice,
   IssuerSettings,
+  MailEntry,
   PlatformAdmin,
   PlatformKey,
   PlatformTenant,
   PlatformOverview,
+  VisitCounter,
+  VisitStats,
 } from "@/lib/platform-types";
-import { EMPTY_ISSUER } from "@/lib/platform-types";
+import { EMPTY_ISSUER, EMPTY_VISITS } from "@/lib/platform-types";
 
 export type { PlatformAdmin, PlatformKey, PlatformTenant, PlatformOverview } from "@/lib/platform-types";
 
@@ -151,4 +154,69 @@ export async function loadInvoice(
     invoice: toInvoice(invoiceResult.data as Record<string, unknown>),
     issuer: toIssuer(settingsResult.data as Record<string, unknown> | null),
   };
+}
+
+function toCounter(value: unknown): VisitCounter {
+  const row = (value ?? {}) as Record<string, unknown>;
+  const num = (key: string) => {
+    const parsed = Number(row[key]);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
+  };
+  return { total: num("total"), h24: num("h24"), d7: num("d7"), u24: num("u24"), u7: num("u7") };
+}
+
+/**
+ * Anonymous visit counters. Returns zeros when the table or function is not
+ * deployed yet, so the panel works before the migration is run.
+ */
+export async function loadVisitStats(): Promise<VisitStats> {
+  const empty: VisitStats = { marketing: EMPTY_VISITS, invites: EMPTY_VISITS, hourly: [] };
+  try {
+    const { data, error } = await serviceClient().rpc("visit_stats");
+    if (error || !data) return empty;
+    const raw = data as Record<string, unknown>;
+    return {
+      marketing: toCounter(raw.marketing),
+      invites: toCounter(raw.invites),
+      hourly: Array.isArray(raw.hourly)
+        ? (raw.hourly as Record<string, unknown>[]).map((row) => ({
+            hour: String(row.hour ?? ""),
+            marketing: Number(row.marketing) || 0,
+            invites: Number(row.invites) || 0,
+          }))
+        : [],
+    };
+  } catch {
+    return empty;
+  }
+}
+
+/** Metadata of the emails the app sent, newest first. Empty before migration. */
+export async function loadMailLog(limit = 200): Promise<MailEntry[]> {
+  try {
+    const { data, error } = await serviceClient()
+      .from("mail_log")
+      .select("id, at, kind, to_address, subject, reply_to, ok, error, tenants(slug, display_name)")
+      .order("at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+
+    return (data as Record<string, unknown>[]).map((row) => {
+      const tenant = (row.tenants ?? null) as { slug?: string; display_name?: string } | null;
+      return {
+        id: String(row.id),
+        at: String(row.at),
+        kind: (row.kind === "factura" || row.kind === "cheie" ? row.kind : "oferta") as MailEntry["kind"],
+        to: String(row.to_address ?? ""),
+        subject: String(row.subject ?? ""),
+        replyTo: typeof row.reply_to === "string" ? row.reply_to : null,
+        tenantSlug: tenant?.slug ? String(tenant.slug) : null,
+        tenantName: tenant?.display_name ? String(tenant.display_name) : null,
+        ok: row.ok === true,
+        error: typeof row.error === "string" ? row.error : null,
+      };
+    });
+  } catch {
+    return [];
+  }
 }

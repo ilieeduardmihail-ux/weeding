@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { WeddingSite } from "@/components/wedding-site";
+import { VisitBeacon } from "@/components/visit-beacon";
 import { loadPublicPage } from "@/lib/public-page";
 import { weddingMetadata } from "@/lib/wedding-metadata";
 
@@ -25,5 +26,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function TenantHome({ params, searchParams }: Props) {
   await connection();
   const { slug } = await params;
-  return <WeddingSite slug={slug} searchParams={searchParams} />;
+  return (
+    <>
+      <VisitBeacon path={`/${slug}`} />
+      <WeddingSite slug={slug} searchParams={searchParams} />
+    </>
+  );
 }

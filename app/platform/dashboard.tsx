@@ -18,7 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toast, useToast } from "@/components/ui/toast";
-import { tenantHealth, type PlatformTenant, type PlatformOverview } from "@/lib/platform-types";
+import { tenantHealth, type PlatformTenant, type PlatformOverview, type VisitStats } from "@/lib/platform-types";
+import { ActivityCard } from "@/components/platform/activity-card";
 import {
   createAdminAccount,
   createTenant,
@@ -142,12 +143,14 @@ export function PlatformDashboard({
   ownerEmail,
   configured,
   now,
+  activity,
 }: {
   overview: PlatformOverview;
   ownerEmail: string;
   configured: boolean;
   /** Server render time: expiry is decided there, so the cards stay pure. */
   now: number;
+  activity: VisitStats;
 }) {
   const { toast, show, dismiss } = useToast();
 
@@ -165,6 +168,9 @@ export function PlatformDashboard({
         <div className="flex items-center gap-2">
           <Button asChild variant="outline">
             <Link href="/platform/facturi">Facturi</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/platform/emailuri">Emailuri</Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/platform/documente">Documente</Link>
@@ -186,6 +192,8 @@ export function PlatformDashboard({
           conturi sau chei. Adaugă variabila în proiect și redeploy.
         </p>
       )}
+
+      <ActivityCard initial={activity} />
 
       <NewClientForm disabled={!configured} onError={(m) => show(m)} />
 

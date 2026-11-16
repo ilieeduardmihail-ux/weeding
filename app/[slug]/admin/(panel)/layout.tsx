@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { LogOut } from "lucide-react";
 import { AdminDataProvider } from "@/components/admin/admin-data";
+import { AdminDataStatus } from "@/components/admin/admin-data-status";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { AdminTenantProvider } from "@/components/admin/admin-tenant";
 import { PasswordChangeNotice } from "@/components/admin/password-change-notice";
@@ -27,7 +28,7 @@ export default async function AdminPanelLayout({
   await connection();
 
   const { slug } = await params;
-  const { email, needsPassword, tenant } = await getTenantContextForSlug(slug);
+  const { email, needsPassword, tenant, viaOwner } = await getTenantContextForSlug(slug);
 
   // Signed out: to this wedding's login. Signed in but not a member: to a panel
   // they may actually use (the /admin resolver picks one).
@@ -60,6 +61,16 @@ export default async function AdminPanelLayout({
             </form>
           </div>
         </header>
+        {viaOwner && (
+          <p
+            role="status"
+            className="mx-auto mt-4 max-w-6xl rounded-lg border border-sky-700/30 bg-sky-700/10 px-4 py-3 text-sm text-sky-900"
+          >
+            Vezi această nuntă ca proprietar al platformei, nu ca administrator al ei.
+            Modificările pe care le faci aici intră direct în datele clientului.
+          </p>
+        )}
+        <AdminDataStatus />
         {/* Only the active-link state needs the pathname; keeping that tiny
             boundary isolated lets the page content itself prefetch fully. */}
         <Suspense

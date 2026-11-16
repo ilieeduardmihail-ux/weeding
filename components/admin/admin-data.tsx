@@ -46,6 +46,12 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
           router.replace(`/${slug}/admin/login`);
           return;
         }
+        // 403 means the wedding is suspended or the access ran out: the section
+        // skeletons would never fill, so send the couple to the explainer.
+        if (response.status === 403) {
+          router.replace(`/${slug}/admin/expired`);
+          return;
+        }
         if (!response.ok) throw new Error(String(response.status));
         // Realtime pushes and the fallback poll very often bring back exactly
         // what is already on screen. Comparing the raw body first keeps big

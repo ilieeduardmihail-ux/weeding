@@ -24,11 +24,19 @@ type BaseContext = {
   isOwner: boolean;
   /** Every wedding this account may manage, oldest first. */
   tenants: ContextTenant[];
+  /**
+   * The weddings where this account is listed in `tenant_admins`. The owner may
+   * reach every wedding, but only these are "his" — the panel says so when the
+   * access comes from owning the platform instead of a membership.
+   */
+  memberTenantIds: string[];
 };
 
 export type TenantContext = BaseContext & {
-  /** The wedding selected by the current admin URL, if the caller is a member. */
+  /** The wedding selected by the current admin URL, if the caller may manage it. */
   tenant: ContextTenant | null;
+  /** True when the panel is open as platform owner, without a membership. */
+  viaOwner: boolean;
 };
 
 /**
@@ -41,19 +49,22 @@ const loadBaseContext = cache(async (): Promise<BaseContext> => {
   const { data } = await supabase.auth.getUser();
   const user = data?.user ?? null;
   if (!user) {
-    return { email: null, needsPassword: false, isOwner: false, tenants: [] };
+    return { email: null, needsPassword: false, isOwner: false, tenants: [], memberTenantIds: [] };
   }
 
   const [membershipsResult, ownerResult] = await Promise.all([
-    supabase.from("tenant_admins").select("tenant_id").order("tenant_id", { ascending: true }),
+    supabase.from("tenant_admins").select("tenant_id, email").order("tenant_id", { ascending: true }),
     supabase.rpc("is_platform_owner"),
   ]);
 
-  const tenantIds = [
-    ...new Set(
-      ((membershipsResult?.data ?? []) as { tenant_id: string }[]).map((row) => String(row.tenant_id))
-    ),
-  ];
+  const email = (user.email ?? "").toLowerCase();
+  const rows = (membershipsResult?.data ?? []) as { tenant_id: string; email?: string }[];
+  // RLS narrows a normal admin to their own rows. The owner sees every row, so
+  // the address has to be compared here to know which weddings are really his.
+  const mine = rows.filter((row) => !row.email || row.email.toLowerCase() === email);
+
+  const tenantIds = [...new Set(rows.map((row) => String(row.tenant_id)))];
+  const memberTenantIds = [...new Set(mine.map((row) => String(row.tenant_id)))];
 
   let tenants: ContextTenant[] = [];
   if (tenantIds.length > 0) {
@@ -70,6 +81,7 @@ const loadBaseContext = cache(async (): Promise<BaseContext> => {
     needsPassword: user.user_metadata?.must_change_password === true,
     isOwner: ownerResult?.data === true,
     tenants,
+    memberTenantIds,
   };
 });
 
@@ -107,7 +119,7 @@ export async function getTenantContextForSlug(slug: string): Promise<TenantConte
   const base = await loadBaseContext();
   const clean = slug?.trim().toLowerCase();
   const tenant = clean ? base.tenants.find((row) => row.slug === clean) ?? null : null;
-  return { ...base, tenant };
+  return { ...base, tenant, viaOwner: Boolean(tenant && !base.memberTenantIds.includes(tenant.id)) };
 }
 
 /** The wedding for the current admin request; a bare `/admin` falls back to the first. */
@@ -115,7 +127,7 @@ export const getTenantContext = cache(async (): Promise<TenantContext> => {
   const base = await loadBaseContext();
   const slug = await currentAdminSlug();
   const tenant = (slug && base.tenants.find((row) => row.slug === slug)) || base.tenants[0] || null;
-  return { ...base, tenant };
+  return { ...base, tenant, viaOwner: Boolean(tenant && !base.memberTenantIds.includes(tenant.id)) };
 });
 
 /** Base URL of the panel the current request belongs to, e.g. "/ana-si-stefan/admin". */

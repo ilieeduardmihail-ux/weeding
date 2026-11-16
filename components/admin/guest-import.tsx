@@ -5,6 +5,7 @@ import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { correctName, nameKey, type NameFix, type Status } from "@/lib/fuzzy";
+import { ignoredNamesNote } from "@/lib/import-names";
 import { parseFile, parseText } from "@/lib/parse-guests";
 import { importGuests } from "@/app/admin/import/actions";
 import { useAdminPath } from "@/components/admin/admin-tenant";
@@ -114,7 +115,11 @@ export function GuestImport({ existing }: { existing: string[] }) {
     start(async () => {
       const r = await importGuests({ names: stats.chosen.map((x) => x.value.trim()) });
       if (r.ok) {
-        setDone(`Am importat ${r.inserted} invitați${r.skipped ? `, am sărit ${r.skipped} deja aflați în listă` : ""}.`);
+        const dupes = r.skipped ? `, ${r.skipped} ${r.skipped === 1 ? "era deja" : "erau deja"} în listă` : "";
+        const ignored = ignoredNamesNote({ valid: [], tooLong: r.tooLong, tooShort: r.tooShort });
+        setDone(
+          `Am importat ${r.inserted} ${r.inserted === 1 ? "invitat" : "invitați"}${dupes}.${ignored ? ` ${ignored}` : ""}`
+        );
         setRows(null); setText("");
         notifyAdminDataChanged();
       } else setError(r.error);

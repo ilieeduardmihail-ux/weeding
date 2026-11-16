@@ -171,7 +171,6 @@ export const PRICE = {
     "Mesaje gata de trimis pe WhatsApp",
     "Suport pe email, până după nuntă",
   ],
-  cta: "Cere o ofertă",
   note: "Pachete pe perioade definite: 6 luni, 1 an, 1 an și 6 luni sau 2 ani. Perioada începe din momentul activării.",
 } as const;
 

@@ -365,24 +365,18 @@ export default function Home() {
           </div>
         </section>
 
-        {/* -------------------------------------------------------------- preț */}
+        {/* ------------------------------------------------------ preț + contact */}
         <section id="pret" className="scroll-mt-24 px-6 pb-20 sm:pb-28">
-          <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl border border-gold/25 bg-paper/60">
-            <div className="grid gap-10 p-8 sm:p-12 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+          <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl bg-ink px-6 py-12 text-sea sm:px-10 sm:py-14">
+            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-14">
               <div>
-                <p className={eyebrow}>{PRICE.eyebrow}</p>
-                <h2 className="mt-3 font-display text-3xl leading-tight text-ink sm:text-4xl">{PRICE.title}</h2>
-                <p className="mt-4 max-w-lg leading-relaxed text-ink/70">{PRICE.text}</p>
-                <div className="mt-8 flex flex-wrap items-center gap-4">
-                  <Button asChild size="lg">
-                    <a href="#contact">{PRICE.cta}</a>
-                  </Button>
-                  <span className="text-sm text-ink/55">{PRICE.note}</span>
-                </div>
-              </div>
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-ink/45">Ce include</p>
-                <ul className="mt-4 grid gap-2.5 text-sm text-ink/75">
+                <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">{PRICE.eyebrow}</p>
+                <h2 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">{PRICE.title}</h2>
+                <p className="mt-4 max-w-lg leading-relaxed text-sea/70">{PRICE.text}</p>
+                <p className="mt-4 max-w-lg text-sm leading-relaxed text-sea/60">{PRICE.note}</p>
+
+                <p className="mt-8 text-[11px] uppercase tracking-[0.3em] text-sea/45">Ce include</p>
+                <ul className="mt-4 grid gap-2.5 text-sm text-sea/75">
                   {PRICE.included.map((item) => (
                     <li key={item} className="flex gap-3">
                       <span aria-hidden className="mt-1.5 text-gold">
@@ -392,6 +386,10 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
+              </div>
+
+              <div id="contact" className="scroll-mt-28">
+                <ContactForm />
               </div>
             </div>
           </div>
@@ -426,37 +424,6 @@ export default function Home() {
                   <p className="mt-3 max-w-2xl pr-8 text-sm leading-relaxed text-ink/65">{item.answer}</p>
                 </details>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ------------------------------------------------------------- final */}
-        <section id="contact" className="scroll-mt-24 px-6 pb-24">
-          <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl bg-ink px-6 py-12 text-sea sm:px-10 sm:py-14">
-            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-14">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">
-                  Sunteți gata de nuntă?
-                </p>
-                <h2 className="mt-4 max-w-xl font-display text-3xl leading-tight sm:text-4xl">
-                  Spuneți-ne ce invitație aveți în minte. Restul îl completați voi în panou, în
-                  ritmul vostru.
-                </h2>
-                <p className="mt-5 max-w-md text-sm leading-relaxed text-sea/65">
-                  Scrieți-ne în câteva rânduri ce vă doriți și ce perioadă vă interesează. Vă
-                  răspundem pe email, de obicei în aceeași zi lucrătoare.
-                </p>
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <Button asChild size="lg" variant="secondary">
-                    <Link href={DEMO_PATH}>Vezi invitația demo</Link>
-                  </Button>
-                </div>
-                <p className="mt-6 text-sm text-sea/55">
-                  Preferați emailul?{" "}
-                  <span className="select-all text-sea/85">{CONTACT_EMAIL}</span>
-                </p>
-              </div>
-              <ContactForm />
             </div>
           </div>
         </section>

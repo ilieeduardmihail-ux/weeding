@@ -159,9 +159,9 @@ export const STEPS = [
 
 export const PRICE = {
   eyebrow: "Preț",
-  title: "Ofertă la cerere",
+  title: "Spuneți-ne ce invitație aveți în minte.",
   text:
-    "Spuneți-ne ce perioadă vă interesează și ce vă doriți, iar noi vă trimitem o ofertă potrivită.",
+    "Alegeți perioada care vi se potrivește și scrieți-ne în câteva rânduri ce vă doriți. Vă răspundem cu o ofertă potrivită.",
   included: [
     "Site public cu link propriu pentru nuntă",
     "Paletă de culori și decor floral ales de voi",

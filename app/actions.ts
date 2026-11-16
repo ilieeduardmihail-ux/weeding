@@ -32,24 +32,53 @@ async function publicClient() {
   }
 }
 
+/**
+ * A dropped submission used to leave no trace anywhere: the guest saw the thank
+ * you screen and the admin saw nothing. The reason is now written to `rsvp_log`
+ * with `drop_reason`, so "am completat formularul și nu apare" can be checked.
+ */
+async function logDrop(reason: "honeypot" | "too_fast", tenantId: string, d: RsvpInput) {
+  try {
+    const supabase = await publicClient();
+    if (!supabase) return;
+    await supabase.from("rsvp_log").insert({
+      tenant_id: tenantId,
+      name: d.name.slice(0, 120),
+      attending: d.attending === "yes",
+      guests: d.guests,
+      ip_hash: await clientKey(),
+      drop_reason: reason,
+    });
+  } catch {
+    // A diagnostic must never turn into a user-facing failure.
+  }
+}
+
 export async function submitRsvp(input: RsvpInput, token: string): Promise<SubmitResult> {
   const parsed = rsvpSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Verifică câmpurile marcate și încearcă din nou." };
   const d = parsed.data;
 
-  if (d.website) return { ok: true }; // honeypot filled: pretend it worked, save nothing
-  // Time trap: dropped as silently as the honeypot. A real person needs far
-  // more than 2.5s to pick attendance and type names.
-  if (d.elapsedMs !== undefined && d.elapsedMs < 2500) return { ok: true };
+  // The wedding comes from a token this server signed, never from the request.
+  const tenantId = readTenantToken(token);
+  if (!tenantId) return { ok: false, error: UNAVAILABLE };
+
+  if (d.website) {
+    await logDrop("honeypot", tenantId, d);
+    return { ok: true }; // honeypot filled: pretend it worked, save nothing
+  }
+  // Time trap: an instant post is a bot, but 2.5s was short enough to catch a
+  // person who only had to tap "Vin" on an already-filled form. 1.5s stops the
+  // same bots and the drop is recorded either way.
+  if (d.elapsedMs !== undefined && d.elapsedMs < 1500) {
+    await logDrop("too_fast", tenantId, d);
+    return { ok: true };
+  }
   // Consent is required to store the reply at all (GDPR). The form sends the
   // checkbox value; older cached pages that omit it are refused, not stored.
   if (d.consent !== true) {
     return { ok: false, error: "Bifează acordul pentru prelucrarea datelor ca să trimitem răspunsul." };
   }
-
-  // The wedding comes from a token this server signed, never from the request.
-  const tenantId = readTenantToken(token);
-  if (!tenantId) return { ok: false, error: UNAVAILABLE };
 
   const supabase = await publicClient();
   if (!supabase) return { ok: false, error: UNAVAILABLE };

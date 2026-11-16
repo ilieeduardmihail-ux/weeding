@@ -84,9 +84,19 @@ export function RsvpForm({ token, slug, initialName = "", onDone }: { token: str
 
   return (
     <form onSubmit={onSubmit} className="glass mt-8 space-y-6 rounded-xl p-5" noValidate>
-      {/* Honeypot: off-screen, skipped by keyboards and screen readers, still visible to bots */}
+      {/* Honeypot: off-screen, skipped by keyboards and screen readers, still visible to bots.
+          The field is named for a company site so a browser autofill does not
+          mistake it for a contact field and swallow a real reply. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
-        <label>Website <input ref={website} type="text" tabIndex={-1} autoComplete="off" /></label>
+        <label htmlFor="company-site">Site firmă</label>
+        <input
+          ref={website}
+          id="company-site"
+          name="company-site"
+          type="text"
+          tabIndex={-1}
+          autoComplete="new-password"
+        />
       </div>
 
       <div className="space-y-2">

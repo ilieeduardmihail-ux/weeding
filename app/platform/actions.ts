@@ -18,7 +18,7 @@ import { DEFAULT_TENANT_SLUG } from "@/lib/tenants";
 import { loadInvoice } from "@/lib/platform-data";
 import { buildInvoicePdf, invoicePdfFileName } from "@/lib/invoice-pdf";
 import { invoiceEmailBody, invoiceEmailSubject } from "@/lib/invoice-email";
-import { keyMail, accessBlock, cleanName, durationDaysFromPeriod, withAccessBlock } from "@/lib/mail-templates";
+import { keyMail, cleanName, durationDaysFromPeriod } from "@/lib/mail-templates";
 import { PUBLIC_SITE_URL } from "@/lib/message-template";
 import { mailConfigured, mailError, sendInvoiceMail, sendTextMail } from "@/lib/mail";
 
@@ -165,6 +165,36 @@ const keySchema = z.object({
   sendTo: z.union([z.literal(""), emailSchema]).optional(),
 });
 
+/**
+ * Writes one working key for a wedding and hands back the plain code. Any unused
+ * key of that wedding is revoked first, so a client never holds two codes that
+ * both work — the newest one is always the current one.
+ */
+async function issueAccessKey(
+  service: Service,
+  tenantId: string,
+  days: number,
+  label: string
+): Promise<{ code: string } | { error: string }> {
+  await service
+    .from("access_keys")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("tenant_id", tenantId)
+    .is("used_at", null)
+    .is("revoked_at", null);
+
+  const code = generateAccessKey();
+  const { error } = await service.from("access_keys").insert({
+    tenant_id: tenantId,
+    duration_days: days,
+    label: label || null,
+    code_hash: hashAccessKey(code),
+  });
+  if (error) return { error: "Nu am putut genera cheia." };
+
+  return { code };
+}
+
 export async function generateKey(input: z.infer<typeof keySchema>): Promise<KeyResult> {
   if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
   if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
@@ -173,21 +203,14 @@ export async function generateKey(input: z.infer<typeof keySchema>): Promise<Key
   if (!parsed.success) return { ok: false, error: "Durata trebuie să fie între 1 și 3650 de zile." };
 
   const service = serviceClient();
-  const { data: tenant } = await service
-    .from("tenants")
-    .select("slug")
-    .eq("id", parsed.data.tenantId)
-    .maybeSingle();
-  if (!tenant) return { ok: false, error: "Clientul nu există." };
-
-  const code = generateAccessKey();
-  const { error } = await service.from("access_keys").insert({
-    tenant_id: parsed.data.tenantId,
-    duration_days: parsed.data.durationDays,
-    label: parsed.data.label || null,
-    code_hash: hashAccessKey(code),
-  });
-  if (error) return { ok: false, error: "Nu am putut genera cheia." };
+  const issued = await issueAccessKey(
+    service,
+    parsed.data.tenantId,
+    parsed.data.durationDays,
+    parsed.data.label ?? ""
+  );
+  if ("error" in issued) return { ok: false, error: issued.error };
+  const code = issued.code;
 
   revalidatePath("/platform");
 
@@ -204,7 +227,6 @@ export async function generateKey(input: z.infer<typeof keySchema>): Promise<Key
         code,
         days: parsed.data.durationDays,
         siteUrl: PUBLIC_SITE_URL,
-        slug: String(tenant.slug),
       });
       await sendTextMail({
         to: sendTo,
@@ -646,16 +668,7 @@ const replySchema = z.object({
   id: z.string().uuid(),
   subject: z.string().trim().min(1, "Scrie un subiect.").max(200),
   text: z.string().trim().min(10, "Mesajul este prea scurt.").max(8000),
-  /** Hands the client a key in the same email, creating the wedding if needed. */
-  withKey: z.boolean().optional(),
-  durationDays: z.number().int().min(1).max(3650).optional(),
-  /** The name the client's wedding gets; defaults to the name in the request. */
-  displayName: z.string().trim().max(120).optional(),
 });
-
-export type ReplyResult =
-  | { ok: true; code?: string; slug?: string }
-  | { ok: false; error: string; code?: string; slug?: string };
 
 type OfferRequestRow = {
   id: string;
@@ -668,7 +681,7 @@ type OfferRequestRow = {
 };
 
 /**
- * The wedding a reply writes to. An earlier run of the same request wins, then
+ * The wedding a request writes to. An earlier run of the same request wins, then
  * an account that already administers a wedding with this email, and only then
  * a new client — so answering twice never leaves two weddings behind.
  */
@@ -716,15 +729,10 @@ async function tenantForRequest(
 /**
  * Answers an offer request from the panel. The reply goes out from the same
  * Gmail account and carries `In-Reply-To`, so the client sees it in the thread
- * they started instead of a separate email.
- *
- * With `withKey`, the same email also hands over an access key: the client is
- * found or created, any unused key of theirs is revoked, the new key is written
- * down before the send, and the activation steps are inserted before the
- * signature. A failed send does not throw the key away — it comes back to the
- * panel, where the owner can copy it and send it by hand.
+ * they started instead of a separate email. Only the text written in the panel
+ * is sent: the key has its own email and its own action.
  */
-export async function replyToOffer(input: z.infer<typeof replySchema>): Promise<ReplyResult> {
+export async function replyToOffer(input: z.infer<typeof replySchema>): Promise<Result> {
   if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
   if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
   if (!mailConfigured()) {
@@ -737,81 +745,29 @@ export async function replyToOffer(input: z.infer<typeof replySchema>): Promise<
   }
 
   const service = serviceClient();
-  const { data } = await service
+  const { data: request } = await service
     .from("offer_requests")
-    .select("id, name, email, period, mail_message_id, reply_count, tenant_id")
+    .select("id, email, mail_message_id, reply_count")
     .eq("id", parsed.data.id)
     .maybeSingle();
-  if (!data) return { ok: false, error: "Cererea nu mai există." };
-  const request = data as OfferRequestRow;
-
-  const withKey = parsed.data.withKey === true;
-  const durationDays = parsed.data.durationDays ?? durationDaysFromPeriod(request.period);
-  let code: string | null = null;
-  let slug: string | null = null;
-  let tenantId: string | null = null;
-
-  if (withKey) {
-    const target = await tenantForRequest(service, request, parsed.data.displayName);
-    if ("error" in target) return { ok: false, error: target.error };
-    tenantId = target.id;
-    slug = target.slug;
-
-    // Remembered before the send, so a retry or a failed email never creates a
-    // second wedding for the same request.
-    await service.from("offer_requests").update({ tenant_id: tenantId }).eq("id", request.id);
-
-    // One working code at a time: an unused key the client may already hold is
-    // replaced, so there is never a doubt about which one is current.
-    await service
-      .from("access_keys")
-      .update({ revoked_at: new Date().toISOString() })
-      .eq("tenant_id", tenantId)
-      .is("used_at", null)
-      .is("revoked_at", null);
-
-    code = generateAccessKey();
-    const { error: keyError } = await service.from("access_keys").insert({
-      tenant_id: tenantId,
-      duration_days: durationDays,
-      label: "Trimisă cu răspunsul",
-      code_hash: hashAccessKey(code),
-    });
-    if (keyError) return { ok: false, error: "Nu am putut genera cheia." };
-  }
+  if (!request) return { ok: false, error: "Cererea nu mai există." };
 
   const subject = /^re:/i.test(parsed.data.subject)
     ? parsed.data.subject
     : `Re: ${parsed.data.subject}`;
 
-  const body =
-    code && slug
-      ? withAccessBlock(
-          parsed.data.text,
-          accessBlock({ code, days: durationDays, siteUrl: PUBLIC_SITE_URL, slug })
-        )
-      : parsed.data.text;
-
   try {
     await sendTextMail({
       to: String(request.email),
       subject,
-      text: body,
+      text: parsed.data.text,
       fromName: BRAND,
       replyTo: CONTACT_EMAIL,
       kind: "raspuns",
-      tenantId,
       inReplyTo: typeof request.mail_message_id === "string" ? request.mail_message_id : null,
     });
   } catch (error) {
-    return code
-      ? {
-          ok: false,
-          error: `Emailul nu a plecat: ${mailError(error)} Cheia a fost creată și o vedeți mai jos, ca să o puteți trimite manual.`,
-          code,
-          slug: slug ?? undefined,
-        }
-      : { ok: false, error: mailError(error) };
+    return { ok: false, error: mailError(error) };
   }
 
   await service
@@ -820,14 +776,100 @@ export async function replyToOffer(input: z.infer<typeof replySchema>): Promise<
       status: "raspuns",
       replied_at: new Date().toISOString(),
       reply_count: (Number(request.reply_count) || 0) + 1,
-      ...(tenantId && code ? { key_sent_at: new Date().toISOString() } : {}),
+    })
+    .eq("id", parsed.data.id);
+
+  revalidatePath("/platform/mesaje");
+  revalidatePath("/platform/emailuri");
+  revalidatePath("/platform");
+  return { ok: true };
+}
+
+const offerKeySchema = z.object({
+  id: z.string().uuid(),
+  /** The name the client's wedding gets; defaults to the name in the request. */
+  displayName: z.string().trim().max(120).optional(),
+  durationDays: z.number().int().min(1).max(3650).optional(),
+});
+
+export type OfferKeyResult =
+  | { ok: true; code: string; slug: string }
+  | { ok: false; error: string; code?: string; slug?: string };
+
+/**
+ * Sends the access key as its own email, in the same thread as the request. The
+ * client is found by email or created from the request, unused keys are revoked,
+ * and the new key is written down before the send — so a failed email still
+ * leaves a working code in the panel, ready to copy and send by hand.
+ */
+export async function sendOfferKey(input: z.infer<typeof offerKeySchema>): Promise<OfferKeyResult> {
+  if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
+  if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
+  if (!mailConfigured()) {
+    return { ok: false, error: "Trimiterea pe email nu este configurată (GMAIL_USER / GMAIL_APP_PASSWORD)." };
+  }
+
+  const parsed = offerKeySchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Verifică datele cheii." };
+  }
+
+  const service = serviceClient();
+  const { data } = await service
+    .from("offer_requests")
+    .select("id, name, email, period, mail_message_id, reply_count, tenant_id")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  if (!data) return { ok: false, error: "Cererea nu mai există." };
+  const request = data as OfferRequestRow;
+
+  const days = parsed.data.durationDays ?? durationDaysFromPeriod(request.period);
+  const target = await tenantForRequest(service, request, parsed.data.displayName);
+  if ("error" in target) return { ok: false, error: target.error };
+
+  // Remembered before the send, so a retry or a failed email never creates a
+  // second wedding for the same request.
+  await service.from("offer_requests").update({ tenant_id: target.id }).eq("id", request.id);
+
+  const issued = await issueAccessKey(service, target.id, days, "Trimisă din mesaje");
+  if ("error" in issued) return { ok: false, error: issued.error };
+
+  const mail = keyMail({ code: issued.code, days, siteUrl: PUBLIC_SITE_URL });
+
+  try {
+    await sendTextMail({
+      to: String(request.email),
+      subject: mail.subject,
+      text: mail.text,
+      fromName: BRAND,
+      replyTo: CONTACT_EMAIL,
+      kind: "cheie",
+      tenantId: target.id,
+      inReplyTo: typeof request.mail_message_id === "string" ? request.mail_message_id : null,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: `Emailul nu a plecat: ${mailError(error)} Cheia a fost creată și o vedeți mai jos, ca să o puteți trimite manual.`,
+      code: issued.code,
+      slug: target.slug,
+    };
+  }
+
+  await service
+    .from("offer_requests")
+    .update({
+      status: "raspuns",
+      replied_at: new Date().toISOString(),
+      reply_count: (Number(request.reply_count) || 0) + 1,
+      key_sent_at: new Date().toISOString(),
     })
     .eq("id", request.id);
 
   revalidatePath("/platform/mesaje");
   revalidatePath("/platform/emailuri");
   revalidatePath("/platform");
-  return { ok: true, code: code ?? undefined, slug: slug ?? undefined };
+  return { ok: true, code: issued.code, slug: target.slug };
 }
 
 const offerStatusSchema = z.object({

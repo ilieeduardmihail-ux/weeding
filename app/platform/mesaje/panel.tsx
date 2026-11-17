@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toast, useToast } from "@/components/ui/toast";
+import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import {
   OFFER_STATUS_LABEL,
   type OfferRequest,
@@ -26,12 +27,13 @@ import {
   ACCESS_DURATIONS,
   REPLY_TEMPLATES,
   durationDaysFromPeriod,
+  keyMail,
   type ReplyContext,
   type ReplyTemplate,
 } from "@/lib/mail-templates";
 import { PUBLIC_SITE_URL } from "@/lib/message-template";
 import { normalizeSlug } from "@/lib/slug";
-import { replyToOffer, setOfferStatus } from "@/app/platform/actions";
+import { replyToOffer, sendOfferKey, setOfferStatus } from "@/app/platform/actions";
 
 const dateFmt = new Intl.DateTimeFormat("ro-RO", {
   timeZone: "Europe/Bucharest",
@@ -53,7 +55,7 @@ const fieldClass =
 
 function statusChip(status: OfferStatus) {
   if (status === "nou") return "border-gold/50 bg-gold/15 text-ink";
-  if (status === "raspuns") return "border-emerald-700/30 bg-emerald-700/10 text-emerald-900";
+  if (status === "raspuns") return "border-ok/30 bg-ok/10 text-ok";
   return "border-ink/20 bg-ink/5 text-ink/60";
 }
 
@@ -79,21 +81,30 @@ function ReplyForm({
   onSent: (item: OfferRequest) => void;
   show: (message: string, tone?: "error" | "success") => void;
 }) {
+  const [tab, setTab] = useState<"raspuns" | "cheie">("raspuns");
   const [templateId, setTemplateId] = useState<ReplyTemplate["id"]>("oferta");
   const [price, setPrice] = useState("");
   const [subject, setSubject] = useState(() => findTemplate("oferta").subject(contextFor(item, "")));
   const [text, setText] = useState(() => findTemplate("oferta").body(contextFor(item, "")));
   const [touched, setTouched] = useState(false);
-  const [withKey, setWithKey] = useState(false);
-  const [duration, setDuration] = useState(() => durationDaysFromPeriod(item.period));
-  const [displayName, setDisplayName] = useState(item.name);
-  const [code, setCode] = useState<string | null>(null);
-  const [slug, setSlug] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  const [displayName, setDisplayName] = useState(item.name);
+  const [duration, setDuration] = useState(() => durationDaysFromPeriod(item.period));
+  const [code, setCode] = useState<string | null>(null);
+  const [slug, setSlug] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [keyPending, startKey] = useTransition();
+
   const slugPreview = normalizeSlug(displayName) || "client";
+  // The owner sees the exact letter before sending; only the code is a stand-in.
+  const preview = keyMail({
+    code: "WED-XXXX-XXXX-XXXX-XXXX",
+    days: duration,
+    siteUrl: PUBLIC_SITE_URL,
+  });
 
   const copyCode = () => {
     if (!code) return;
@@ -113,16 +124,31 @@ function ReplyForm({
 
   const send = () => {
     start(async () => {
-      const result = await replyToOffer({
-        id: item.id,
-        subject,
-        text,
-        withKey,
-        durationDays: withKey ? duration : undefined,
-        displayName: withKey ? displayName.trim() : undefined,
-      });
+      const result = await replyToOffer({ id: item.id, subject, text });
       if (!result.ok) {
         setError(result.error);
+        return;
+      }
+      setError(null);
+      show("Răspuns trimis. Intră în același fir la client și apare în Emailuri.", "success");
+      onSent({
+        ...item,
+        status: "raspuns",
+        repliedAt: new Date().toISOString(),
+        replyCount: item.replyCount + 1,
+      });
+    });
+  };
+
+  const sendKey = () => {
+    startKey(async () => {
+      const result = await sendOfferKey({
+        id: item.id,
+        displayName: displayName.trim(),
+        durationDays: duration,
+      });
+      if (!result.ok) {
+        setKeyError(result.error);
         // A key that exists but did not reach the client is not lost: the owner
         // copies it from here and sends it by hand.
         if (result.code) {
@@ -131,13 +157,11 @@ function ReplyForm({
         }
         return;
       }
-      setError(null);
-      setCode(result.code ?? null);
-      setSlug(result.slug ?? null);
+      setKeyError(null);
+      setCode(result.code);
+      setSlug(result.slug);
       show(
-        result.code
-          ? "Răspuns trimis, cu cheia de acces în el. O vezi mai jos, dacă vrei să o copiezi."
-          : "Răspuns trimis. Intră în același fir la client și apare în Emailuri.",
+        "Cheia a plecat pe email, în același fir. O vezi mai jos, dacă vrei să o copiezi.",
         "success"
       );
       onSent({
@@ -145,105 +169,140 @@ function ReplyForm({
         status: "raspuns",
         repliedAt: new Date().toISOString(),
         replyCount: item.replyCount + 1,
-        keySentAt: result.code ? new Date().toISOString() : item.keySentAt,
+        keySentAt: new Date().toISOString(),
       });
     });
   };
 
   return (
     <div className="mt-4 space-y-3 rounded-lg border border-ink/15 bg-ink/5 p-4">
-      <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
-        <div className="space-y-1">
-          <Label htmlFor={`template-${item.id}`} className="text-xs">
-            Șablon
-          </Label>
-          <select
-            id={`template-${item.id}`}
-            value={templateId}
-            onChange={(event) => {
-              const next = event.target.value as ReplyTemplate["id"];
-              setTemplateId(next);
-              apply(next, price);
-            }}
-            className={`${fieldClass} h-10`}
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Răspuns sau cheie">
+        {(
+          [
+            ["raspuns", "Răspuns"],
+            ["cheie", "Cheie de acces"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => setTab(id)}
+            className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
+              tab === id ? "border-ink bg-ink text-sea" : "border-ink/25 hover:bg-ink/10"
+            }`}
           >
-            {REPLY_TEMPLATES.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-ink/55">{findTemplate(templateId).hint}</p>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "raspuns" && (
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
+            <div className="space-y-1">
+              <Label htmlFor={`template-${item.id}`} className="text-xs">
+                Șablon
+              </Label>
+              <select
+                id={`template-${item.id}`}
+                value={templateId}
+                onChange={(event) => {
+                  const next = event.target.value as ReplyTemplate["id"];
+                  setTemplateId(next);
+                  apply(next, price);
+                }}
+                className={`${fieldClass} h-10`}
+              >
+                {REPLY_TEMPLATES.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-ink/55">{findTemplate(templateId).hint}</p>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor={`price-${item.id}`} className="text-xs">
+                Preț (lei, opțional)
+              </Label>
+              <Input
+                id={`price-${item.id}`}
+                value={price}
+                onChange={(event) => {
+                  setPrice(event.target.value);
+                  if (!touched) apply(templateId, event.target.value);
+                }}
+                placeholder="1.200"
+                inputMode="numeric"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor={`subject-${item.id}`} className="text-xs">
+              Subiect
+            </Label>
+            <Input
+              id={`subject-${item.id}`}
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+              maxLength={200}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor={`text-${item.id}`} className="text-xs">
+              Mesaj
+            </Label>
+            <textarea
+              id={`text-${item.id}`}
+              value={text}
+              onChange={(event) => {
+                setText(event.target.value);
+                setTouched(true);
+              }}
+              rows={16}
+              maxLength={8000}
+              className={fieldClass}
+            />
+            <p className="text-xs text-ink/55">
+              Textul se poate modifica liber. Schimbarea prețului rescrie mesajul doar dacă nu l-ai
+              atins.
+            </p>
+          </div>
+
+          {error && (
+            <p role="alert" className="rounded-md border border-danger/35 bg-danger/10 p-3 text-sm text-danger">
+              {error}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              onClick={send}
+              disabled={pending || text.trim().length < 10}
+              className="bg-ink text-sea"
+            >
+              <Send aria-hidden="true" /> {pending ? "Se trimite…" : "Trimite răspunsul"}
+            </Button>
+            <p className="text-xs text-ink/55">
+              Pleacă de pe același Gmail, către {item.email}.
+            </p>
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor={`price-${item.id}`} className="text-xs">
-            Preț (lei, opțional)
-          </Label>
-          <Input
-            id={`price-${item.id}`}
-            value={price}
-            onChange={(event) => {
-              setPrice(event.target.value);
-              if (!touched) apply(templateId, event.target.value);
-            }}
-            placeholder="1.200"
-            inputMode="numeric"
-          />
-        </div>
-      </div>
+      )}
 
-      <div className="space-y-1">
-        <Label htmlFor={`subject-${item.id}`} className="text-xs">
-          Subiect
-        </Label>
-        <Input
-          id={`subject-${item.id}`}
-          value={subject}
-          onChange={(event) => setSubject(event.target.value)}
-          maxLength={200}
-        />
-      </div>
+      {tab === "cheie" && (
+        <div className="space-y-3">
+          <p className="text-xs text-ink/55">
+            Pleacă un email separat, în același fir, doar cu cheia și pașii de activare. Textul este
+            fix, ca pașii să nu se strice.
+          </p>
 
-      <div className="space-y-1">
-        <Label htmlFor={`text-${item.id}`} className="text-xs">
-          Mesaj
-        </Label>
-        <textarea
-          id={`text-${item.id}`}
-          value={text}
-          onChange={(event) => {
-            setText(event.target.value);
-            setTouched(true);
-          }}
-          rows={16}
-          maxLength={8000}
-          className={fieldClass}
-        />
-        <p className="text-xs text-ink/55">
-          Textul se poate modifica liber. Schimbarea prețului rescrie mesajul doar dacă nu l-ai
-          atins.
-        </p>
-      </div>
-
-      <div className="rounded-lg border border-ink/15 bg-ink/5 p-3">
-        <label className="flex items-start gap-2">
-          <input
-            type="checkbox"
-            checked={withKey}
-            onChange={(event) => setWithKey(event.target.checked)}
-            className="mt-1 size-4 accent-ink"
-          />
-          <span>
-            <span className="block text-sm font-medium">Trimite și cheia de acces</span>
-            <span className="block text-xs text-ink/55">
-              Adaugă în email cheia, pașii de activare și linkurile utile. Dacă cererea nu are
-              încă un client, îl creez acum, cu numele de mai jos.
-            </span>
-          </span>
-        </label>
-
-        {withKey && (
-          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_10rem]">
+          <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
             <div className="space-y-1">
               <Label htmlFor={`display-${item.id}`} className="text-xs">
                 Numele clientului
@@ -273,45 +332,53 @@ function ReplyForm({
                 ))}
               </select>
             </div>
-            <p className="text-xs text-ink/55 sm:col-span-2">
-              Cheia apare aici cu „Copiază” după trimitere. Dacă emailul nu pleacă, rămâne
-              validă și o poți trimite manual.
-            </p>
           </div>
-        )}
-      </div>
 
-      {code && (
-        <div className="rounded-lg border border-gold/50 bg-gold/10 p-3">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink/50">Cheia trimisă</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <code className="font-mono text-sm">{code}</code>
-            <Button type="button" size="sm" variant="outline" onClick={copyCode}>
-              {copied ? "Copiat" : "Copiază"}
+          {item.keySentAt && !code && (
+            <p className="rounded-md border border-ink/15 bg-ink/5 p-3 text-xs text-ink/65">
+              Cererea are deja o cheie trimisă. Dacă trimiți alta, cheia veche nefolosită este
+              revocată.
+            </p>
+          )}
+
+          <details className="rounded-lg border border-ink/15 bg-ink/5 p-3">
+            <summary className="cursor-pointer text-sm font-medium">Vezi emailul care pleacă</summary>
+            <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-ink/80">
+              {preview.text}
+            </pre>
+          </details>
+
+          {code && (
+            <div className="rounded-lg border border-gold/50 bg-gold/10 p-3">
+              <p className="text-xs uppercase tracking-[0.2em] text-ink/50">Cheia trimisă</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <code className="font-mono text-sm">{code}</code>
+                <Button type="button" size="sm" variant="outline" onClick={copyCode}>
+                  {copied ? "Copiat" : "Copiază"}
+                </Button>
+                {slug && <span className="text-xs text-ink/55">Client: /{slug}</span>}
+              </div>
+              <p className="mt-1 text-xs text-ink/55">
+                Nu se mai poate vedea după ce închizi cererea. Clientul o activează o singură dată,
+                la /start.
+              </p>
+            </div>
+          )}
+
+          {keyError && (
+            <p role="alert" className="rounded-md border border-danger/35 bg-danger/10 p-3 text-sm text-danger">
+              {keyError}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" onClick={sendKey} disabled={keyPending} className="bg-ink text-sea">
+              <KeyRound aria-hidden="true" /> {keyPending ? "Se trimite…" : "Trimite cheia"}
             </Button>
-            {slug && <span className="text-xs text-ink/55">Client: /{slug}</span>}
+            <p className="text-xs text-ink/55">Către {item.email}, de pe același Gmail.</p>
           </div>
-          <p className="mt-1 text-xs text-ink/55">
-            Nu se mai poate vedea după ce închizi cererea. Clientul o activează o singură dată, la
-            /start.
-          </p>
         </div>
       )}
-
-      {error && (
-        <p role="alert" className="rounded-md border border-red-700/35 bg-red-700/10 p-3 text-sm text-red-800">
-          {error}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" onClick={send} disabled={pending || text.trim().length < 10} className="bg-ink text-sea">
-          <Send aria-hidden="true" /> {pending ? "Se trimite…" : "Trimite răspunsul"}
-        </Button>
-        <p className="text-xs text-ink/55">
-          Pleacă de pe același Gmail, către {item.email}.
-        </p>
-      </div>
     </div>
   );
 }
@@ -364,6 +431,7 @@ export function OffersPanel({ requests, configured }: { requests: OfferRequest[]
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <ThemeToggle />
           <Button asChild variant="outline">
             <Link href="/platform/emailuri">Emailuri</Link>
           </Button>
@@ -376,7 +444,7 @@ export function OffersPanel({ requests, configured }: { requests: OfferRequest[]
       {!configured && (
         <p
           role="alert"
-          className="glass mb-8 rounded-xl border border-amber-600/40 p-4 text-sm text-amber-900"
+          className="glass mb-8 rounded-xl border border-warn/40 p-4 text-sm text-warn"
         >
           Cheia de service nu este configurată, așa că mesajele nu pot fi citite sau trimise.
         </p>
@@ -452,7 +520,7 @@ export function OffersPanel({ requests, configured }: { requests: OfferRequest[]
                           </span>
                         )}
                         {item.keySentAt && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-700/30 bg-emerald-700/10 px-2 py-0.5 text-xs text-emerald-900">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-ok/30 bg-ok/10 px-2 py-0.5 text-xs text-ok">
                             <KeyRound aria-hidden="true" className="size-3" />
                             Cheie trimisă
                           </span>
@@ -474,7 +542,7 @@ export function OffersPanel({ requests, configured }: { requests: OfferRequest[]
                           </span>
                         )}
                         {item.replyCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-emerald-800">
+                          <span className="inline-flex items-center gap-1 text-ok">
                             <CheckCircle2 aria-hidden="true" className="size-3.5" />
                             {item.replyCount} {item.replyCount === 1 ? "răspuns" : "răspunsuri"}
                           </span>

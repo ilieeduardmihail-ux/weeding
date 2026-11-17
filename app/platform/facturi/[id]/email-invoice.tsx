@@ -106,13 +106,13 @@ export function EmailInvoice({
       )}
 
       {error && (
-        <p id="invoice-email-error" role="alert" className="mt-2 text-sm text-red-800">
+        <p id="invoice-email-error" role="alert" className="mt-2 text-sm text-danger">
           {error}
         </p>
       )}
 
       {sentTo && (
-        <p role="status" className="mt-2 flex items-center gap-2 text-sm text-emerald-800">
+        <p role="status" className="mt-2 flex items-center gap-2 text-sm text-ok">
           <Check className="size-4" aria-hidden="true" /> Trimis către {sentTo}.
         </p>
       )}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isOwnerRequest } from "@/lib/platform";
 import { LEGAL_DOCUMENTS } from "@/lib/legal-documents";
+import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import { DocumentCard } from "./document-card";
 
 export const instant = false;
@@ -34,12 +35,15 @@ export default async function DocumentsPage() {
             platforma.
           </p>
         </div>
-        <Link
-          href="/platform"
-          className="text-sm text-ink/70 underline-offset-4 transition-colors hover:text-ink hover:underline"
-        >
-          ← Înapoi la clienți
-        </Link>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <Link
+            href="/platform"
+            className="text-sm text-ink/70 underline-offset-4 transition-colors hover:text-ink hover:underline"
+          >
+            ← Înapoi la clienți
+          </Link>
+        </div>
       </header>
 
       <div className="space-y-8">

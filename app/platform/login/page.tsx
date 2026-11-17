@@ -3,6 +3,7 @@ import { signInOwner } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ThemeToggle } from "@/components/marketing/theme-toggle";
 
 export const instant = false;
 
@@ -19,9 +20,12 @@ export default async function PlatformLogin({
   const { error, redirect: next } = await searchParams;
   return (
     <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 px-6">
-      <div>
-        <p className="text-xs uppercase tracking-[0.25em] text-ink/50">Platformă</p>
-        <h1 className="font-display text-3xl">Cont de administrator</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-ink/50">Platformă</p>
+          <h1 className="font-display text-3xl">Cont de administrator</h1>
+        </div>
+        <ThemeToggle />
       </div>
       <form action={signInOwner} className="glass space-y-4 rounded-xl p-6">
         {/* Where the middleware caught the owner, so signing back in returns there. */}
@@ -41,7 +45,7 @@ export default async function PlatformLogin({
           />
         </div>
         {error && (
-          <p role="alert" className="text-red-700">
+          <p role="alert" className="text-danger">
             Email sau parolă greșită.
           </p>
         )}

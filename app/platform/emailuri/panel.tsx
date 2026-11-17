@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertCircle, CheckCircle2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import type { MailEntry } from "@/lib/platform-types";
 
 const dateFmt = new Intl.DateTimeFormat("ro-RO", {
@@ -63,15 +64,18 @@ export function MailPanel({ mails, configured }: { mails: MailEntry[]; configure
             Doar mesajele trimise din platformă, cu metadate. Conținutul rămâne în Gmail.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/platform">Clienți</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ThemeToggle />
+          <Button asChild variant="outline">
+            <Link href="/platform">Clienți</Link>
+          </Button>
+        </div>
       </header>
 
       {!configured && (
         <p
           role="alert"
-          className="glass mb-8 rounded-xl border border-amber-600/40 p-4 text-sm text-amber-900"
+          className="glass mb-8 rounded-xl border border-warn/40 p-4 text-sm text-warn"
         >
           Cheia de service nu este configurată, așa că jurnalul nu poate fi citit.
         </p>
@@ -150,11 +154,11 @@ export function MailPanel({ mails, configured }: { mails: MailEntry[]; configure
                   <td className="pr-3 text-ink/70">{mail.tenantName ?? "—"}</td>
                   <td>
                     {mail.ok ? (
-                      <span className="inline-flex items-center gap-1.5 text-emerald-800">
+                      <span className="inline-flex items-center gap-1.5 text-ok">
                         <CheckCircle2 aria-hidden className="size-4" /> trimis
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-red-800" title={mail.error ?? undefined}>
+                      <span className="inline-flex items-center gap-1.5 text-danger" title={mail.error ?? undefined}>
                         <AlertCircle aria-hidden className="size-4" /> eșuat
                         {mail.error && <span className="text-xs text-ink/55">({mail.error})</span>}
                       </span>

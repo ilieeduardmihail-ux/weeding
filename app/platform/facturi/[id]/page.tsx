@@ -49,7 +49,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         sender={mailConfigured() ? mailFrom() : null}
       />
 
-      <article className="glass rounded-xl p-10 print:border-0 print:bg-white print:shadow-none">
+      <article className="folio glass rounded-xl p-10 print:border-0 print:bg-white print:shadow-none">
         <header className="flex flex-wrap items-start justify-between gap-6 border-b border-ink/15 pb-6">
           <div>
             <p className="font-display text-3xl">Notă de plată</p>

@@ -6,7 +6,6 @@ import {
   durationDaysFromPeriod,
   durationLabel,
   keyMail,
-  withAccessBlock,
 } from "../mail-templates";
 
 const ctx = {
@@ -105,26 +104,28 @@ describe("REPLY_TEMPLATES", () => {
 
 describe("accessBlock", () => {
   const siteUrl = "https://wedding-ro.vercel.app";
-  const ctx = { code: "WED-TEST", days: 365, siteUrl, slug: "ana-marin" };
+  const ctx = { code: "WED-TEST", days: 365, siteUrl };
 
-  it("has the code, the four activation steps and the public link", () => {
+  it("has the code and the four activation steps", () => {
     const block = accessBlock(ctx);
     expect(block).toContain("WED-TEST");
     expect(block).toContain(`${siteUrl}/start`);
-    expect(block).toContain(`${siteUrl}/ana-marin`);
     expect(block).toContain("4. Apăsați „Activez contul”.");
     expect(block).toContain("din momentul activării");
   });
 
-  it("lists the links worth keeping", () => {
+  it("lists only the links worth keeping", () => {
     const block = accessBlock(ctx);
     expect(block).toContain(`${siteUrl}/termeni`);
     expect(block).toContain(`${siteUrl}/confidentialitate`);
     expect(block).toContain("contact.necasatorim@gmail.com");
   });
 
-  it("drops the public line when the slug is not known", () => {
-    expect(accessBlock({ ...ctx, slug: undefined })).not.toContain("/ana-marin");
+  it("stays short: no tour of the panel and no public address", () => {
+    const block = accessBlock(ctx);
+    expect(block).not.toContain("În panou puteți schimba");
+    expect(block).not.toContain("Invitația publică");
+    expect(block).not.toContain("ana-marin");
   });
 
   it("tolerates a trailing slash in the address", () => {
@@ -134,36 +135,21 @@ describe("accessBlock", () => {
   });
 });
 
-describe("withAccessBlock", () => {
-  it("puts the block before the signature", () => {
-    const body = "Bună ziua,\n\nMesaj.\n\nCu drag,\nNe căsătorim";
-    const joined = withAccessBlock(body, "BLOC");
-    expect(joined.indexOf("BLOC")).toBeLessThan(joined.indexOf("Cu drag,"));
-    expect(joined).toContain("Mesaj.");
-    expect(joined).toContain("Cu drag,\nNe căsătorim");
-  });
-
-  it("appends the block when the body has no signature", () => {
-    expect(withAccessBlock("Mesaj scurt.", "BLOC")).toBe("Mesaj scurt.\n\nBLOC");
-  });
-
-  it("never rewrites the text before the block", () => {
-    const body = "Bună ziua,\n\nCu drag,\nNe căsătorim";
-    const joined = withAccessBlock(body, "BLOC");
-    expect(joined.startsWith("Bună ziua,\n\nBLOC")).toBe(true);
-  });
-});
-
 describe("keyMail", () => {
   const siteUrl = "https://wedding-ro.vercel.app";
 
-  it("carries the code, the duration, the start link and the wedding address", () => {
-    const mail = keyMail({ code: "ABC-123", days: 365, siteUrl, slug: "ana-marin" });
+  it("carries the code, the duration and the start link", () => {
+    const mail = keyMail({ code: "ABC-123", days: 365, siteUrl });
     expect(mail.text).toContain("ABC-123");
     expect(mail.text).toContain("Perioada de 1 an");
     expect(mail.text).toContain(`${siteUrl}/start`);
-    expect(mail.text).toContain(`${siteUrl}/ana-marin`);
     expect(mail.text).toContain("o singură dată");
+  });
+
+  it("drops the panel paragraph and the public-link line", () => {
+    const mail = keyMail({ code: "ABC-123", days: 365, siteUrl });
+    expect(mail.text).not.toContain("În panou puteți schimba");
+    expect(mail.text).not.toContain("Invitația publică");
   });
 
   it("uses the custom duration when it is not a preset", () => {
@@ -172,7 +158,7 @@ describe("keyMail", () => {
   });
 
   it("still reads as a letter, not a dump of instructions", () => {
-    const mail = keyMail({ code: "X", days: 180, siteUrl, slug: "ana-marin" });
+    const mail = keyMail({ code: "X", days: 180, siteUrl });
     expect(mail.text.startsWith("Bună ziua,")).toBe(true);
     expect(mail.text.trimEnd().endsWith("Ne căsătorim")).toBe(true);
   });

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toast, useToast } from "@/components/ui/toast";
+import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import { formatMoney, invoiceTotals, type Invoice, type IssuerSettings } from "@/lib/platform-types";
 import {
   createInvoice,
@@ -79,7 +80,8 @@ export function InvoicesPanel({
             Note de plată simple, fără TVA. Suma se scrie liber pe fiecare factură.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ThemeToggle />
           <Button asChild variant="outline">
             <Link href="/platform">Clienți</Link>
           </Button>
@@ -89,7 +91,7 @@ export function InvoicesPanel({
       {!configured && (
         <p
           role="alert"
-          className="glass mb-8 rounded-xl border border-amber-600/40 p-4 text-sm text-amber-900"
+          className="glass mb-8 rounded-xl border border-warn/40 p-4 text-sm text-warn"
         >
           Cheia de service (SUPABASE_SERVICE_ROLE_KEY) nu este configurată, așa că facturile nu pot
           fi salvate.
@@ -156,11 +158,11 @@ export function InvoicesPanel({
                     </td>
                     <td className="px-4 py-3">
                       {invoice.paid ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-800">
+                        <span className="inline-flex items-center gap-1 text-ok">
                           <CheckCircle2 className="size-3.5" aria-hidden="true" /> Plătită
                         </span>
                       ) : (
-                        <span className="text-amber-800">Neplătită</span>
+                        <span className="text-warn">Neplătită</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -198,7 +200,7 @@ export function InvoicesPanel({
                           size="sm"
                           disabled={pending}
                           aria-label="Șterge factura"
-                          className="text-red-800 hover:bg-red-700/10"
+                          className="text-danger hover:bg-danger/10"
                           onClick={() => {
                             if (!window.confirm(`Ștergi factura #${invoice.number}?`)) return;
                             run(() => deleteInvoice({ id: invoice.id }), "Factură ștearsă.");

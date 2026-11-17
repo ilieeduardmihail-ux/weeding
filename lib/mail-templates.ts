@@ -160,22 +160,19 @@ export function keyMail({
   code,
   days,
   siteUrl,
-  slug,
 }: {
   code: string;
   days: number;
   siteUrl: string;
-  /** The wedding's public address. The line is skipped when it is not known. */
-  slug?: string;
 }): { subject: string; text: string } {
   return {
     subject: "Cheia de acces pentru invitația voastră",
     text: [
       "Bună ziua,",
       "",
-      `Contul pentru invitația voastră este pregătit.`,
+      "Contul pentru invitația voastră este pregătit.",
       "",
-      accessBlock({ code, days, siteUrl, slug }),
+      accessBlock({ code, days, siteUrl }),
       "",
       signature(),
     ].join("\n"),
@@ -186,19 +183,17 @@ export type AccessContext = {
   code: string;
   days: number;
   siteUrl: string;
-  /** The wedding's public address; the line is skipped when it is empty. */
-  slug?: string;
 };
 
 /**
  * The part of a message that hands over the key: the code, the four steps to
- * activation, what the panel can do, and the links worth keeping. Plain text on
- * purpose — it is read in Gmail, where every URL is clickable anyway.
+ * activation and the links worth keeping. Plain text on purpose — it is read in
+ * Gmail, where every URL is clickable anyway. The whole key email is built from
+ * this block, so the panel preview and the sent message cannot drift apart.
  */
-export function accessBlock({ code, days, siteUrl, slug }: AccessContext) {
+export function accessBlock({ code, days, siteUrl }: AccessContext) {
   const site = siteUrl.replace(/\/+$/, "");
   const startUrl = `${site}/start`;
-  const publicUrl = slug ? `${site}/${slug}` : null;
 
   return [
     "Cheia dumneavoastră de acces:",
@@ -210,11 +205,6 @@ export function accessBlock({ code, days, siteUrl, slug }: AccessContext) {
     "3. Lipiți cheia de mai sus.",
     "4. Apăsați „Activez contul”. Intrați direct în panoul nunții.",
     "",
-    "În panou puteți schimba numele mirilor, data și locațiile, alegeți paleta și decorul floral, adăugați fotografii, lista de invitați și așezarea la mese.",
-    ...(publicUrl
-      ? [`Invitația publică rămâne la ${publicUrl} — linkul pe care îl trimiteți invitaților.`]
-      : []),
-    "",
     "Linkuri utile:",
     `• Activare: ${startUrl}`,
     `• Termeni: ${site}/termeni`,
@@ -224,16 +214,4 @@ export function accessBlock({ code, days, siteUrl, slug }: AccessContext) {
     `Perioada de ${durationLabel(days)} începe din momentul activării, nu de acum.`,
     "Cheia se folosește o singură dată. Dacă nu mai merge, îmi scrieți și vă trimit alta.",
   ].join("\n");
-}
-
-/**
- * Puts the access block before the signature, where it reads as part of the
- * letter rather than an appendix. Every reply template ends with the signature;
- * a body without one gets the block at the end.
- */
-export function withAccessBlock(body: string, block: string) {
-  const marker = `\n\n${signature()}`;
-  const at = body.lastIndexOf(marker);
-  if (at === -1) return `${body.trimEnd()}\n\n${block}`;
-  return `${body.slice(0, at)}\n\n${block}${body.slice(at)}`;
 }

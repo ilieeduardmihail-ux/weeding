@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Toast, useToast } from "@/components/ui/toast";
 import { tenantHealth, type PlatformTenant, type PlatformOverview, type VisitStats } from "@/lib/platform-types";
 import { ActivityCard } from "@/components/platform/activity-card";
+import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import {
   createAdminAccount,
   createTenant,
@@ -123,9 +124,9 @@ function DurationPicker({
 }
 
 const TONE: Record<string, string> = {
-  active: "border-emerald-700/40 bg-emerald-700/10 text-emerald-800",
-  pending: "border-amber-600/40 bg-amber-500/10 text-amber-800",
-  expired: "border-red-700/40 bg-red-700/10 text-red-800",
+  active: "border-ok/40 bg-ok/10 text-ok",
+  pending: "border-warn/40 bg-warn/10 text-warn",
+  expired: "border-danger/40 bg-danger/10 text-danger",
   suspended: "border-ink/30 bg-ink/10 text-ink/70",
 };
 
@@ -188,6 +189,7 @@ export function PlatformDashboard({
           <Button asChild variant="outline">
             <Link href="/platform/documente">Documente</Link>
           </Button>
+          <ThemeToggle />
           <form action={signOutOwner}>
             <Button type="submit" variant="outline">
               <LogOut aria-hidden="true" /> Ieși ({ownerEmail})
@@ -199,7 +201,7 @@ export function PlatformDashboard({
       {!configured && (
         <p
           role="alert"
-          className="glass mb-8 rounded-xl border border-amber-600/40 p-4 text-sm text-amber-900"
+          className="glass mb-8 rounded-xl border border-warn/40 p-4 text-sm text-warn"
         >
           Cheia de service (SUPABASE_SERVICE_ROLE_KEY) nu este configurată, așa că nu se pot crea
           conturi sau chei. Adaugă variabila în proiect și redeploy.
@@ -473,7 +475,7 @@ function TenantCard({
       {isExpired && (
         <p
           role="alert"
-          className="mt-4 rounded-lg border border-red-700/40 bg-red-700/10 p-3 text-sm text-red-800"
+          className="mt-4 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger"
         >
           <strong>Expirat.</strong> Site-ul public și panoul clientului afișează „Invitația nu este
           disponibilă”. Folosește <strong>„Prelungește”</strong> (mai jos) ca să reactivezi accesul.
@@ -586,8 +588,8 @@ function TenantCard({
         </details>
       )}
 
-      <details className="mt-4 rounded-lg border border-red-700/30 bg-red-700/5 p-4 text-sm">
-        <summary className="cursor-pointer font-medium text-red-800">Șterge clientul</summary>
+      <details className="mt-4 rounded-lg border border-danger/30 bg-danger/5 p-4 text-sm">
+        <summary className="cursor-pointer font-medium text-danger">Șterge clientul</summary>
         <p className="mt-2 text-ink/70">
           Șterge definitiv nunta „{tenant.displayName}”: confirmările, invitații, mesele, bugetul,
           poza invitației, cheile nefolosite și conturile care aparțin doar acestei nunți.
@@ -612,7 +614,7 @@ function TenantCard({
             variant="outline"
             size="sm"
             disabled={disabled || pending || confirmSlug.trim().toLowerCase() !== tenant.slug}
-            className="border-red-700/50 text-red-800 hover:bg-red-700/10"
+            className="border-danger/50 text-danger hover:bg-danger/10"
           >
             <Trash2 aria-hidden="true" /> Șterge definitiv
           </Button>

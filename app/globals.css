@@ -140,6 +140,9 @@
   --color-sage: #6b7a4e;     /* the olive base colour */
   --color-gold: #a9853f;     /* antique gold foil */
   --color-rose: #b07984;     /* dusty rose */
+  --color-ok: #3f6b46;       /* confirmations, paid invoices */
+  --color-warn: #8a611c;     /* warnings, unpaid invoices */
+  --color-danger: #9c3a34;   /* errors, destructive actions */
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-figtree), system-ui, sans-serif;
 }
@@ -374,4 +377,116 @@ body {
   :root[data-theme="dark"] .marketing .glass { background-color: rgb(35 38 27 / 0.98); }
   :root[data-theme="dark"] .marketing .glass-soft { background-color: rgb(29 32 22 / 0.96); }
   :root[data-theme="dark"] .marketing .glass-bar { background-color: rgb(21 23 15 / 0.98); }
+}
+
+/* ---------------------------------------------------------------------------
+   The platform (/platform/*) follows the same theme switch as the marketing
+   pages, but keeps its own wrapper: the public invitations and the client admin
+   paint their palettes from `tenants.theme`, so they must never inherit this.
+   `app/platform/layout.tsx` puts `.platform` around every panel page; the
+   toggle in the headers writes <html data-theme="…"> like the site one does.
+   --------------------------------------------------------------------------- */
+
+.platform {
+  background-color: var(--color-sea);
+  background-image:
+    radial-gradient(55rem 38rem at 12% -8%, color-mix(in srgb, var(--color-sage) 16%, transparent), transparent 62%),
+    radial-gradient(48rem 34rem at 88% 6%, color-mix(in srgb, var(--color-rose) 30%, transparent), transparent 66%),
+    radial-gradient(60rem 45rem at 50% 110%, color-mix(in srgb, var(--color-gold) 16%, transparent), transparent 70%),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-sea) 55%, #ffffff) 0%,
+      var(--color-sea) 48%,
+      color-mix(in srgb, var(--color-sea) 85%, var(--color-gold)) 100%
+    );
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+:root[data-theme="dark"] .platform {
+  color-scheme: dark;
+  /* Same warm dark as the site, plus lighter semantic colours: the light-theme
+     reds and greens would sink into the olive paper. */
+  --color-sea: #15170f;
+  --color-mist: #1d2016;
+  --color-paper: #23261b;
+  --color-ink: #f2ead9;
+  --color-sage: #9fb17c;
+  --color-gold: #d9b877;
+  --color-rose: #d4a5ad;
+  --color-ok: #9ed3a3;
+  --color-warn: #e5c07b;
+  --color-danger: #f0a6a0;
+
+  background-color: var(--color-sea);
+  background-image:
+    radial-gradient(55rem 38rem at 12% -8%, rgb(159 177 124 / 0.10), transparent 62%),
+    radial-gradient(48rem 34rem at 88% 6%, rgb(212 165 173 / 0.12), transparent 66%),
+    radial-gradient(60rem 45rem at 50% 110%, rgb(217 184 119 / 0.10), transparent 70%),
+    linear-gradient(165deg, #191b12 0%, #14160f 48%, #101208 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* The letterbox above and below a short panel follows the page colour. */
+:root[data-theme="dark"] body:has(.platform) {
+  background-color: #101208;
+}
+
+:root[data-theme="dark"] .platform .glass {
+  background-color: rgb(35 38 27 / 0.76);
+  border-color: rgb(242 234 217 / 0.14);
+}
+
+:root[data-theme="dark"] .platform .glass-soft {
+  background-color: rgb(35 38 27 / 0.58);
+  border-color: rgb(242 234 217 / 0.10);
+}
+
+:root[data-theme="dark"] .platform .glass-bar {
+  background-color: rgb(21 23 15 / 0.86);
+}
+
+:root[data-theme="dark"] .platform .card-hover:hover {
+  border-color: rgb(217 184 119 / 0.5);
+  box-shadow: 0 16px 36px -18px rgb(0 0 0 / 0.7);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-theme="dark"] .platform .glass { background-color: rgb(35 38 27 / 0.98); }
+  :root[data-theme="dark"] .platform .glass-soft { background-color: rgb(29 32 22 / 0.96); }
+  :root[data-theme="dark"] .platform .glass-bar { background-color: rgb(21 23 15 / 0.98); }
+}
+
+/* The invoice is a document, not a surface: it keeps the light palette even
+   when the panel is dark, so printing never lays ivory type on white paper. */
+.platform .folio {
+  color-scheme: light;
+  --color-sea: #f4ecdd;
+  --color-mist: #e9dcc5;
+  --color-paper: #fbf6ec;
+  --color-ink: #2c3325;
+  --color-sage: #6b7a4e;
+  --color-gold: #a9853f;
+  --color-rose: #b07984;
+  --color-ok: #3f6b46;
+  --color-warn: #8a611c;
+  --color-danger: #9c3a34;
+}
+
+@media print {
+  :root .platform .folio .glass,
+  :root .platform .folio.glass {
+    background-color: #ffffff;
+    border-color: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* A document stays paper-coloured inside a dark panel; its own text follows the
+   light palette reset above, and the card keeps the ivory surface. */
+:root[data-theme="dark"] .platform .folio.glass {
+  background-color: rgb(251 246 236 / 0.92);
+  border-color: rgb(44 51 37 / 0.14);
 }

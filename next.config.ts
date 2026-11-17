@@ -81,6 +81,9 @@ const nextConfig: NextConfig = {
     "/platform/facturi/[id]/pdf": ["./assets/fonts/**"],
   },
   experimental: {
+    // Marks which kind of automated upgrade produced this tree. Set by the
+    // security upgrade from 16.4.3 to 16.4.6; it does not change runtime.
+    agentUpgrade: "security",
     // Prefetched admin sections stay usable in the client router for a while,
     // so going back to a section never starts a fresh server request.
     staleTimes: {

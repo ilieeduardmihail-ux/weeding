@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isOwnerRequest, platformIsConfigured } from "@/lib/platform";
-import { loadPlatformOverview, loadVisitStats } from "@/lib/platform-data";
+import { loadPlatformOverview, loadVisitStats, countNewOfferRequests } from "@/lib/platform-data";
 import { EMPTY_VISITS } from "@/lib/platform-types";
 import { requestNow } from "@/lib/request-now";
 import { PlatformDashboard } from "./dashboard";
@@ -32,6 +32,7 @@ export default async function PlatformPage() {
   const activity = configured
     ? await loadVisitStats()
     : { marketing: EMPTY_VISITS, invites: EMPTY_VISITS, hourly: [] };
+  const newRequests = configured ? await countNewOfferRequests() : 0;
 
   return (
     <PlatformDashboard
@@ -40,6 +41,7 @@ export default async function PlatformPage() {
       configured={configured}
       now={requestNow()}
       activity={activity}
+      newRequests={newRequests}
     />
   );
 }

@@ -66,7 +66,8 @@ export default function PrivacyPage() {
           <li>
             <strong className="text-ink">Cereri de ofertă trimise din site:</strong> numele, adresa
             de email, numărul de telefon (dacă îl lași), perioada care te interesează și mesajul
-            tău. Le folosim doar ca să îți răspundem și nu le trimitem nimănui altcuiva.
+            tău. Le păstrăm în platformă, ca să îți putem răspunde din același loc, și le folosim
+            doar ca să îți răspundem. Nu le trimitem nimănui altcuiva.
           </li>
           <li>
             <strong className="text-ink">Clienți (miri):</strong> numele, adresa de email, datele

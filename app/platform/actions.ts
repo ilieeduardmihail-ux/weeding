@@ -13,15 +13,19 @@ import {
   serviceClient,
   slugProblem,
 } from "@/lib/platform";
-import { DEMO_SLUG } from "@/lib/marketing";
+import { BRAND, CONTACT_EMAIL, DEMO_SLUG } from "@/lib/marketing";
 import { DEFAULT_TENANT_SLUG } from "@/lib/tenants";
 import { loadInvoice } from "@/lib/platform-data";
 import { buildInvoicePdf, invoicePdfFileName } from "@/lib/invoice-pdf";
 import { invoiceEmailBody, invoiceEmailSubject } from "@/lib/invoice-email";
-import { mailConfigured, mailError, sendInvoiceMail } from "@/lib/mail";
+import { keyMail } from "@/lib/mail-templates";
+import { PUBLIC_SITE_URL } from "@/lib/message-template";
+import { mailConfigured, mailError, sendInvoiceMail, sendTextMail } from "@/lib/mail";
 
 export type Result = { ok: true } | { ok: false; error: string };
-export type KeyResult = { ok: true; code: string } | { ok: false; error: string };
+export type KeyResult =
+  | { ok: true; code: string; mailError?: string }
+  | { ok: false; error: string };
 
 const emailSchema = z.string().trim().toLowerCase().email("Adresa de email nu pare validă.");
 
@@ -119,6 +123,8 @@ const keySchema = z.object({
   tenantId: z.string().uuid(),
   durationDays: z.number().int().min(1).max(3650),
   label: z.string().trim().max(120).optional(),
+  /** Optional: send the key straight to the client instead of copying it by hand. */
+  sendTo: z.union([z.literal(""), emailSchema]).optional(),
 });
 
 export async function generateKey(input: z.infer<typeof keySchema>): Promise<KeyResult> {
@@ -139,6 +145,34 @@ export async function generateKey(input: z.infer<typeof keySchema>): Promise<Key
   if (error) return { ok: false, error: "Nu am putut genera cheia." };
 
   revalidatePath("/platform");
+
+  // The plain code exists only right now, so the email has to go out here. A
+  // failed send does not lose the key: it is still shown on screen, and the
+  // owner sees it as a warning instead of an error.
+  const sendTo = parsed.data.sendTo?.trim();
+  if (sendTo) {
+    if (!mailConfigured()) {
+      return { ok: true, code, mailError: "Trimiterea pe email nu este configurată (GMAIL_USER / GMAIL_APP_PASSWORD)." };
+    }
+    try {
+      const mail = keyMail({
+        code,
+        days: parsed.data.durationDays,
+        startUrl: `${PUBLIC_SITE_URL}/start`,
+      });
+      await sendTextMail({
+        to: sendTo,
+        subject: mail.subject,
+        text: mail.text,
+        fromName: BRAND,
+        kind: "cheie",
+        tenantId: parsed.data.tenantId,
+      });
+    } catch (error) {
+      return { ok: true, code, mailError: mailError(error) };
+    }
+  }
+
   return { ok: true, code };
 }
 
@@ -558,4 +592,94 @@ async function activateTenant(
       expires_at: new Date(from + days * 86_400_000).toISOString(),
     })
     .eq("id", tenantId);
+}
+
+/* ------------------------------------------------------------------ mesaje */
+
+const replySchema = z.object({
+  id: z.string().uuid(),
+  subject: z.string().trim().min(1, "Scrie un subiect.").max(200),
+  text: z.string().trim().min(10, "Mesajul este prea scurt.").max(8000),
+});
+
+/**
+ * Answers an offer request from the panel. The reply goes out from the same
+ * Gmail account and carries `In-Reply-To`, so the client sees it in the thread
+ * they started instead of a separate email. The request is marked as answered.
+ */
+export async function replyToOffer(input: z.infer<typeof replySchema>): Promise<Result> {
+  if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
+  if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
+  if (!mailConfigured()) {
+    return { ok: false, error: "Trimiterea pe email nu este configurată (GMAIL_USER / GMAIL_APP_PASSWORD)." };
+  }
+
+  const parsed = replySchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Verifică mesajul." };
+  }
+
+  const service = serviceClient();
+  const { data: request } = await service
+    .from("offer_requests")
+    .select("id, email, mail_message_id, reply_count")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  if (!request) return { ok: false, error: "Cererea nu mai există." };
+
+  const subject = /^re:/i.test(parsed.data.subject)
+    ? parsed.data.subject
+    : `Re: ${parsed.data.subject}`;
+
+  try {
+    await sendTextMail({
+      to: String(request.email),
+      subject,
+      text: parsed.data.text,
+      fromName: BRAND,
+      replyTo: CONTACT_EMAIL,
+      kind: "raspuns",
+      inReplyTo: typeof request.mail_message_id === "string" ? request.mail_message_id : null,
+    });
+  } catch (error) {
+    return { ok: false, error: mailError(error) };
+  }
+
+  await service
+    .from("offer_requests")
+    .update({
+      status: "raspuns",
+      replied_at: new Date().toISOString(),
+      reply_count: (Number(request.reply_count) || 0) + 1,
+    })
+    .eq("id", parsed.data.id);
+
+  revalidatePath("/platform/mesaje");
+  revalidatePath("/platform/emailuri");
+  revalidatePath("/platform");
+  return { ok: true };
+}
+
+const offerStatusSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["nou", "raspuns", "inchis"]),
+});
+
+/** Moves a request between "nou", "răspuns trimis" and "închis". */
+export async function setOfferStatus(input: z.infer<typeof offerStatusSchema>): Promise<Result> {
+  if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
+  if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
+
+  const parsed = offerStatusSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Cerere invalidă." };
+
+  const { error } = await serviceClient()
+    .from("offer_requests")
+    .update({ status: parsed.data.status })
+    .eq("id", parsed.data.id);
+  if (error) return { ok: false, error: "Nu am putut schimba starea." };
+
+  revalidatePath("/platform/mesaje");
+  revalidatePath("/platform");
+  return { ok: true };
 }

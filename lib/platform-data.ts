@@ -4,11 +4,14 @@
  * and through the service-role client (RLS would hide other tenants' rows).
  */
 import { DEMO_SLUG } from "@/lib/marketing";
+import { RETENTION } from "@/lib/legal";
 import { serviceClient } from "@/lib/platform";
 import type {
   Invoice,
   IssuerSettings,
   MailEntry,
+  OfferRequest,
+  OfferStatus,
   PlatformAdmin,
   PlatformKey,
   PlatformTenant,
@@ -206,7 +209,9 @@ export async function loadMailLog(limit = 200): Promise<MailEntry[]> {
       return {
         id: String(row.id),
         at: String(row.at),
-        kind: (row.kind === "factura" || row.kind === "cheie" ? row.kind : "oferta") as MailEntry["kind"],
+        kind: (row.kind === "factura" || row.kind === "cheie" || row.kind === "raspuns"
+          ? row.kind
+          : "oferta") as MailEntry["kind"],
         to: String(row.to_address ?? ""),
         subject: String(row.subject ?? ""),
         replyTo: typeof row.reply_to === "string" ? row.reply_to : null,
@@ -218,5 +223,58 @@ export async function loadMailLog(limit = 200): Promise<MailEntry[]> {
     });
   } catch {
     return [];
+  }
+}
+
+function toOfferStatus(value: unknown): OfferStatus {
+  return value === "raspuns" || value === "inchis" ? value : "nou";
+}
+
+/** Requests from the offer form, newest first. Empty before the migration. */
+export async function loadOfferRequests(limit = 200): Promise<OfferRequest[]> {
+  try {
+    const service = serviceClient();
+
+    // The privacy page promises contact correspondence is kept for
+    // `RETENTION.contactYears`; there is no cron, so the cleanup runs here.
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - RETENTION.contactYears);
+    await service.from("offer_requests").delete().lt("at", cutoff.toISOString());
+
+    const { data, error } = await service
+      .from("offer_requests")
+      .select("id, at, name, email, phone, period, message, status, replied_at, reply_count")
+      .order("at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+
+    return (data as Record<string, unknown>[]).map((row) => ({
+      id: String(row.id),
+      at: String(row.at),
+      name: String(row.name ?? ""),
+      email: String(row.email ?? ""),
+      phone: typeof row.phone === "string" && row.phone.trim() ? row.phone : null,
+      period: typeof row.period === "string" && row.period.trim() ? row.period : null,
+      message: String(row.message ?? ""),
+      status: toOfferStatus(row.status),
+      repliedAt: typeof row.replied_at === "string" ? row.replied_at : null,
+      replyCount: Number(row.reply_count) || 0,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** How many requests are still waiting for an answer, for the dashboard badge. */
+export async function countNewOfferRequests(): Promise<number> {
+  try {
+    const { count, error } = await serviceClient()
+      .from("offer_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "nou");
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
   }
 }

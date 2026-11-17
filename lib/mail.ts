@@ -57,6 +57,11 @@ type MailBase = {
   kind?: MailKind;
   /** The wedding the message belongs to, when it belongs to one. */
   tenantId?: string | null;
+  /**
+   * Message-ID of the message this one answers. Gmail files the reply in the
+   * same thread instead of starting a new conversation.
+   */
+  inReplyTo?: string | null;
 };
 
 export type InvoiceMail = MailBase & {
@@ -65,15 +70,19 @@ export type InvoiceMail = MailBase & {
 
 export type TextMail = MailBase;
 
-/** A plain-text message: used by the offer form, where there is nothing to attach. */
-export async function sendTextMail(mail: TextMail): Promise<void> {
-  await send(mail, {
+/** A plain-text message: used by the offer form and panel replies. */
+export async function sendTextMail(mail: TextMail): Promise<string | null> {
+  const info = await send(mail, {
     from: { name: mail.fromName, address: USER },
     to: mail.to,
     replyTo: mail.replyTo || undefined,
     subject: mail.subject,
     text: mail.text,
+    headers: mail.inReplyTo
+      ? { "In-Reply-To": mail.inReplyTo, References: mail.inReplyTo }
+      : undefined,
   });
+  return typeof info?.messageId === "string" ? info.messageId : null;
 }
 
 export async function sendInvoiceMail(mail: InvoiceMail): Promise<void> {
@@ -111,6 +120,7 @@ async function send(mail: MailBase, message: Message) {
       ok: true,
       messageId: typeof info?.messageId === "string" ? info.messageId : null,
     });
+    return info;
   } catch (error) {
     await recordMail({
       kind: mail.kind ?? "oferta",

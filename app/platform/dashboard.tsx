@@ -144,6 +144,7 @@ export function PlatformDashboard({
   configured,
   now,
   activity,
+  newRequests,
 }: {
   overview: PlatformOverview;
   ownerEmail: string;
@@ -151,6 +152,8 @@ export function PlatformDashboard({
   /** Server render time: expiry is decided there, so the cards stay pure. */
   now: number;
   activity: VisitStats;
+  /** Offer requests still waiting for an answer, for the „Mesaje" badge. */
+  newRequests: number;
 }) {
   const { toast, show, dismiss } = useToast();
 
@@ -165,7 +168,17 @@ export function PlatformDashboard({
             {overview.owners.length === 1 ? "" : "i"} de platformă
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/platform/mesaje" className="relative">
+              Mesaje
+              {newRequests > 0 && (
+                <span className="ml-1 rounded-full bg-gold px-1.5 py-0.5 text-[10px] font-medium leading-none text-ink">
+                  {newRequests}
+                </span>
+              )}
+            </Link>
+          </Button>
           <Button asChild variant="outline">
             <Link href="/platform/facturi">Facturi</Link>
           </Button>
@@ -318,7 +331,7 @@ function TenantCard({
   // then „Reactivează" alone would not bring the site back.
   const isExpired = Boolean(tenant.expiresAt && new Date(tenant.expiresAt).getTime() <= now);
 
-  type RunResult = { ok: boolean; error?: string; code?: string };
+  type RunResult = { ok: boolean; error?: string; code?: string; mailError?: string };
   const run = (task: () => Promise<RunResult>, after?: (result: RunResult) => void) =>
     start(async () => {
       const result = await task();
@@ -339,11 +352,18 @@ function TenantCard({
           tenantId: tenant.id,
           durationDays: Number(data.get("durationDays")) || 365,
           label: String(data.get("label") ?? "").trim() || undefined,
+          sendTo: String(data.get("sendTo") ?? "").trim(),
         }),
       (result) => {
         setGeneratedKey(result.code ?? null);
         setCopied(false);
-        onSuccess("Cheie generată. Copiaz-o acum — nu se mai poate vedea.");
+        onSuccess(
+          result.mailError
+            ? `Cheie generată, dar emailul nu a plecat: ${result.mailError} Copiaz-o acum.`
+            : data.get("sendTo")
+              ? "Cheie generată și trimisă clientului. Copiaz-o și aici — nu se mai poate vedea."
+              : "Cheie generată. Copiaz-o acum — nu se mai poate vedea."
+        );
       }
     );
   };
@@ -483,6 +503,22 @@ function TenantCard({
               Etichetă (opțional)
             </Label>
             <Input id={`label-${tenant.id}`} name="label" maxLength={120} placeholder="Ana & Stefan" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`send-${tenant.id}`} className="text-xs">
+              Trimite cheia pe email (opțional)
+            </Label>
+            <Input
+              id={`send-${tenant.id}`}
+              name="sendTo"
+              type="email"
+              maxLength={160}
+              defaultValue={tenant.admins[0]?.email ?? ""}
+              placeholder="emailul clientului"
+            />
+            <p className="text-xs text-ink/55">
+              Dacă lași o adresă, cheia pleacă imediat, cu durata și linkul de activare.
+            </p>
           </div>
           <Button type="submit" disabled={disabled || pending} size="sm" className="bg-ink text-sea">
             Generează cheia

@@ -51,11 +51,33 @@ export type VisitStats = {
 
 export const EMPTY_VISITS: VisitCounter = { total: 0, h24: 0, d7: 0, u24: 0, u7: 0 };
 
+/** A request sent from the offer form on the presentation page. */
+export type OfferStatus = "nou" | "raspuns" | "inchis";
+
+export type OfferRequest = {
+  id: string;
+  at: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  period: string | null;
+  message: string;
+  status: OfferStatus;
+  repliedAt: string | null;
+  replyCount: number;
+};
+
+export const OFFER_STATUS_LABEL: Record<OfferStatus, string> = {
+  nou: "Nou",
+  raspuns: "Răspuns trimis",
+  inchis: "Închis",
+};
+
 /** A sent email, without its text: who, what, when and whether it left. */
 export type MailEntry = {
   id: string;
   at: string;
-  kind: "oferta" | "factura" | "cheie";
+  kind: "oferta" | "factura" | "cheie" | "raspuns";
   to: string;
   subject: string;
   replyTo: string | null;

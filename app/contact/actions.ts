@@ -4,6 +4,7 @@ import { z } from "zod";
 import { clientKey } from "@/lib/client-key";
 import { contactBody, contactPeriod, contactSubject } from "@/lib/contact-message";
 import { mailConfigured, mailError, sendTextMail } from "@/lib/mail";
+import { serviceClient } from "@/lib/platform";
 import { BRAND, CONTACT_EMAIL } from "@/lib/marketing";
 
 export type ContactResult = { ok: true } | { ok: false; error: string };
@@ -90,14 +91,44 @@ export async function sendContactRequest(
     message: parsed.data.message,
   };
 
+  // The request is written down before the notification is sent. If the email
+  // fails, the message is not lost: the owner still finds it in /platform/mesaje
+  // and can answer from there. The table is optional until the migration runs.
+  let stored: { id: string } | null = null;
+  let service: ReturnType<typeof serviceClient> | null = null;
   try {
-    await sendTextMail({
+    service = serviceClient();
+    const { data } = await service
+      .from("offer_requests")
+      .insert({
+        name: request.name,
+        email: request.email,
+        phone: request.phone || null,
+        period: request.period || null,
+        message: request.message,
+      })
+      .select("id")
+      .maybeSingle();
+    stored = (data as { id: string } | null) ?? null;
+  } catch {
+    // Reading the request in the panel is a bonus; the email itself matters more.
+  }
+
+  try {
+    const messageId = await sendTextMail({
       to: CONTACT_EMAIL,
       fromName: `${BRAND} — site`,
       replyTo: request.email,
       subject: contactSubject(request),
       text: contactBody(request),
+      kind: "oferta",
     });
+
+    // Răspunsul trimis din panou pornește de la acest Message-ID, ca să intre în
+    // același fir al conversației, nu ca un email nou.
+    if (stored && messageId && service) {
+      await service.from("offer_requests").update({ mail_message_id: messageId }).eq("id", stored.id);
+    }
   } catch (error) {
     return { ok: false, error: mailError(error) };
   }

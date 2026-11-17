@@ -18,6 +18,7 @@ const dateFmt = new Intl.DateTimeFormat("ro-RO", {
 
 const KIND_LABEL: Record<MailEntry["kind"], string> = {
   oferta: "Cerere de ofertă",
+  raspuns: "Răspuns la cerere",
   factura: "Factură",
   cheie: "Cheie de acces",
 };
@@ -27,6 +28,7 @@ type Filter = "all" | MailEntry["kind"];
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "Toate" },
   { id: "oferta", label: "Cereri" },
+  { id: "raspuns", label: "Răspunsuri" },
   { id: "factura", label: "Facturi" },
   { id: "cheie", label: "Chei" },
 ];

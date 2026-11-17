@@ -65,6 +65,10 @@ export type OfferRequest = {
   status: OfferStatus;
   repliedAt: string | null;
   replyCount: number;
+  /** The wedding created or found for this request, once a key was sent. */
+  tenantId: string | null;
+  /** When an access key went out with the reply. */
+  keySentAt: string | null;
 };
 
 export const OFFER_STATUS_LABEL: Record<OfferStatus, string> = {

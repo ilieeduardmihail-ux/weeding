@@ -12,47 +12,14 @@ import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "@/lib/supabase/env";
 import { SUPABASE_SERVICE_ROLE_KEY } from "@/lib/supabase/service-env";
-import { DEMO_SLUG } from "@/lib/marketing";
 import { demoMode } from "@/lib/demo/mode";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 
-/** Slugs that would collide with a real route or an internal name. */
-export const RESERVED_SLUGS = new Set([
-  "admin",
-  "platform",
-  DEMO_SLUG,
-  "start",
-  "api",
-  "invitatia-poza",
-  "calendar",
-  "confidentialitate",
-  "cookies",
-  "termeni",
-  "subprocesatori",
-  "opengraph-image",
-  "icon",
-  "_next",
-]);
-
-export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-export function normalizeSlug(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
-
-export function slugProblem(slug: string): string | null {
-  if (slug.length < 2) return "Adresa trebuie să aibă cel puțin 2 caractere.";
-  if (slug.length > 60) return "Adresa poate avea cel mult 60 de caractere.";
-  if (!SLUG_PATTERN.test(slug)) return "Adresa poate conține doar litere mici, cifre și cratime.";
-  if (RESERVED_SLUGS.has(slug)) return "Această adresă este rezervată. Alege alta.";
-  return null;
-}
+/**
+ * Slugs are also needed in the browser (the panel previews the address), so the
+ * rules live in `lib/slug.ts` and are re-exported here for server callers.
+ */
+export { RESERVED_SLUGS, SLUG_PATTERN, normalizeSlug, slugProblem } from "@/lib/slug";
 
 /* ------------------------------------------------------------------ access keys */
 

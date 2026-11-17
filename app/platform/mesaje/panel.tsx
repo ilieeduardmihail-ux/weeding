@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock,
+  KeyRound,
   Mail,
   Phone,
   RotateCcw,
@@ -21,8 +22,15 @@ import {
   type OfferRequest,
   type OfferStatus,
 } from "@/lib/platform-types";
-import { REPLY_TEMPLATES, type ReplyContext, type ReplyTemplate } from "@/lib/mail-templates";
+import {
+  ACCESS_DURATIONS,
+  REPLY_TEMPLATES,
+  durationDaysFromPeriod,
+  type ReplyContext,
+  type ReplyTemplate,
+} from "@/lib/mail-templates";
 import { PUBLIC_SITE_URL } from "@/lib/message-template";
+import { normalizeSlug } from "@/lib/slug";
 import { replyToOffer, setOfferStatus } from "@/app/platform/actions";
 
 const dateFmt = new Intl.DateTimeFormat("ro-RO", {
@@ -76,8 +84,24 @@ function ReplyForm({
   const [subject, setSubject] = useState(() => findTemplate("oferta").subject(contextFor(item, "")));
   const [text, setText] = useState(() => findTemplate("oferta").body(contextFor(item, "")));
   const [touched, setTouched] = useState(false);
+  const [withKey, setWithKey] = useState(false);
+  const [duration, setDuration] = useState(() => durationDaysFromPeriod(item.period));
+  const [displayName, setDisplayName] = useState(item.name);
+  const [code, setCode] = useState<string | null>(null);
+  const [slug, setSlug] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+
+  const slugPreview = normalizeSlug(displayName) || "client";
+
+  const copyCode = () => {
+    if (!code) return;
+    void navigator.clipboard?.writeText(code).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const apply = (id: ReplyTemplate["id"], priceValue: string) => {
     const chosen = findTemplate(id);
@@ -89,18 +113,39 @@ function ReplyForm({
 
   const send = () => {
     start(async () => {
-      const result = await replyToOffer({ id: item.id, subject, text });
+      const result = await replyToOffer({
+        id: item.id,
+        subject,
+        text,
+        withKey,
+        durationDays: withKey ? duration : undefined,
+        displayName: withKey ? displayName.trim() : undefined,
+      });
       if (!result.ok) {
         setError(result.error);
+        // A key that exists but did not reach the client is not lost: the owner
+        // copies it from here and sends it by hand.
+        if (result.code) {
+          setCode(result.code);
+          setSlug(result.slug ?? null);
+        }
         return;
       }
       setError(null);
-      show("Răspuns trimis. Intră în același fir la client și apare în Emailuri.", "success");
+      setCode(result.code ?? null);
+      setSlug(result.slug ?? null);
+      show(
+        result.code
+          ? "Răspuns trimis, cu cheia de acces în el. O vezi mai jos, dacă vrei să o copiezi."
+          : "Răspuns trimis. Intră în același fir la client și apare în Emailuri.",
+        "success"
+      );
       onSent({
         ...item,
         status: "raspuns",
         repliedAt: new Date().toISOString(),
         replyCount: item.replyCount + 1,
+        keySentAt: result.code ? new Date().toISOString() : item.keySentAt,
       });
     });
   };
@@ -179,6 +224,79 @@ function ReplyForm({
           atins.
         </p>
       </div>
+
+      <div className="rounded-lg border border-ink/15 bg-ink/5 p-3">
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={withKey}
+            onChange={(event) => setWithKey(event.target.checked)}
+            className="mt-1 size-4 accent-ink"
+          />
+          <span>
+            <span className="block text-sm font-medium">Trimite și cheia de acces</span>
+            <span className="block text-xs text-ink/55">
+              Adaugă în email cheia, pașii de activare și linkurile utile. Dacă cererea nu are
+              încă un client, îl creez acum, cu numele de mai jos.
+            </span>
+          </span>
+        </label>
+
+        {withKey && (
+          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_10rem]">
+            <div className="space-y-1">
+              <Label htmlFor={`display-${item.id}`} className="text-xs">
+                Numele clientului
+              </Label>
+              <Input
+                id={`display-${item.id}`}
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                maxLength={120}
+              />
+              <p className="text-xs text-ink/55">Adresa publică: /{slugPreview}</p>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor={`duration-${item.id}`} className="text-xs">
+                Perioada
+              </Label>
+              <select
+                id={`duration-${item.id}`}
+                value={duration}
+                onChange={(event) => setDuration(Number(event.target.value))}
+                className={`${fieldClass} h-10`}
+              >
+                {ACCESS_DURATIONS.map((row) => (
+                  <option key={row.days} value={row.days}>
+                    {row.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs text-ink/55 sm:col-span-2">
+              Cheia apare aici cu „Copiază” după trimitere. Dacă emailul nu pleacă, rămâne
+              validă și o poți trimite manual.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {code && (
+        <div className="rounded-lg border border-gold/50 bg-gold/10 p-3">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink/50">Cheia trimisă</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <code className="font-mono text-sm">{code}</code>
+            <Button type="button" size="sm" variant="outline" onClick={copyCode}>
+              {copied ? "Copiat" : "Copiază"}
+            </Button>
+            {slug && <span className="text-xs text-ink/55">Client: /{slug}</span>}
+          </div>
+          <p className="mt-1 text-xs text-ink/55">
+            Nu se mai poate vedea după ce închizi cererea. Clientul o activează o singură dată, la
+            /start.
+          </p>
+        </div>
+      )}
 
       {error && (
         <p role="alert" className="rounded-md border border-red-700/35 bg-red-700/10 p-3 text-sm text-red-800">
@@ -331,6 +449,12 @@ export function OffersPanel({ requests, configured }: { requests: OfferRequest[]
                         {item.period && (
                           <span className="rounded-full border border-ink/15 bg-ink/5 px-2 py-0.5 text-xs text-ink/70">
                             {item.period}
+                          </span>
+                        )}
+                        {item.keySentAt && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-700/30 bg-emerald-700/10 px-2 py-0.5 text-xs text-emerald-900">
+                            <KeyRound aria-hidden="true" className="size-3" />
+                            Cheie trimisă
                           </span>
                         )}
                       </span>

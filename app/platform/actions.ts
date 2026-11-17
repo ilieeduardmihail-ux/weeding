@@ -18,7 +18,7 @@ import { DEFAULT_TENANT_SLUG } from "@/lib/tenants";
 import { loadInvoice } from "@/lib/platform-data";
 import { buildInvoicePdf, invoicePdfFileName } from "@/lib/invoice-pdf";
 import { invoiceEmailBody, invoiceEmailSubject } from "@/lib/invoice-email";
-import { keyMail } from "@/lib/mail-templates";
+import { keyMail, accessBlock, cleanName, durationDaysFromPeriod, withAccessBlock } from "@/lib/mail-templates";
 import { PUBLIC_SITE_URL } from "@/lib/message-template";
 import { mailConfigured, mailError, sendInvoiceMail, sendTextMail } from "@/lib/mail";
 
@@ -73,6 +73,60 @@ const createTenantSchema = z.object({
   contactEmail: z.union([z.literal(""), emailSchema]),
 });
 
+/**
+ * The wedding row plus everything a client needs to open the panel: settings
+ * (so the invitation has words on it) and the ten starting tables (so the
+ * seating board is not empty). Returns null and cleans up when a step fails.
+ */
+async function insertPendingTenant(
+  service: Service,
+  input: {
+    slug: string;
+    displayName: string;
+    partner1?: string;
+    partner2?: string;
+    contactEmail?: string | null;
+  }
+): Promise<{ id: string } | null> {
+  const { data: tenant, error } = await service
+    .from("tenants")
+    .insert({ slug: input.slug, display_name: input.displayName, status: "pending" })
+    .select("id")
+    .single();
+  if (error || !tenant) return null;
+
+  const { error: settingsError } = await service.from("event_settings").insert({
+    tenant_id: tenant.id,
+    partner_1: input.partner1 || "Mire",
+    partner_2: input.partner2 || "Mireasă",
+    city: "București",
+    timezone: "Europe/Bucharest",
+    contact_email: input.contactEmail || null,
+  });
+  if (settingsError) {
+    await service.from("tenants").delete().eq("id", tenant.id);
+    return null;
+  }
+
+  await service.from("seating_tables").insert(
+    Array.from({ length: 10 }, (_, i) => ({ tenant_id: tenant.id, number: i + 1, capacity: 10 }))
+  );
+
+  return { id: String(tenant.id) };
+}
+
+/** `ana-marin`, then `ana-marin-2`, ... until a free address is found. */
+async function availableSlug(service: Service, base: string): Promise<string | null> {
+  const clean = normalizeSlug(base) || "client";
+  for (let index = 1; index <= 40; index += 1) {
+    const candidate = index === 1 ? clean : `${clean}-${index}`;
+    if (slugProblem(candidate)) continue;
+    const { data } = await service.from("tenants").select("id").eq("slug", candidate).maybeSingle();
+    if (!data) return candidate;
+  }
+  return null;
+}
+
 export async function createTenant(input: z.infer<typeof createTenantSchema>): Promise<Result> {
   if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
   if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
@@ -90,30 +144,14 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>): P
   const { data: existing } = await service.from("tenants").select("id").eq("slug", slug).maybeSingle();
   if (existing) return { ok: false, error: "Există deja un client cu această adresă." };
 
-  const { data: tenant, error } = await service
-    .from("tenants")
-    .insert({ slug, display_name: data.displayName, status: "pending" })
-    .select("id")
-    .single();
-  if (error || !tenant) return { ok: false, error: "Nu am putut crea clientul. Încearcă din nou." };
-
-  const { error: settingsError } = await service.from("event_settings").insert({
-    tenant_id: tenant.id,
-    partner_1: data.partner1 || "Mire",
-    partner_2: data.partner2 || "Mireasă",
-    city: "București",
-    timezone: "Europe/Bucharest",
-    contact_email: data.contactEmail || null,
+  const tenant = await insertPendingTenant(service, {
+    slug,
+    displayName: data.displayName,
+    partner1: data.partner1,
+    partner2: data.partner2,
+    contactEmail: data.contactEmail || null,
   });
-  if (settingsError) {
-    await service.from("tenants").delete().eq("id", tenant.id);
-    return { ok: false, error: "Nu am putut crea setările clientului." };
-  }
-
-  // The seating board expects tables to exist; start with ten of ten seats.
-  await service.from("seating_tables").insert(
-    Array.from({ length: 10 }, (_, i) => ({ tenant_id: tenant.id, number: i + 1, capacity: 10 }))
-  );
+  if (!tenant) return { ok: false, error: "Nu am putut crea clientul. Încearcă din nou." };
 
   revalidatePath("/platform");
   return { ok: true };
@@ -134,8 +172,15 @@ export async function generateKey(input: z.infer<typeof keySchema>): Promise<Key
   const parsed = keySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Durata trebuie să fie între 1 și 3650 de zile." };
 
-  const code = generateAccessKey();
   const service = serviceClient();
+  const { data: tenant } = await service
+    .from("tenants")
+    .select("slug")
+    .eq("id", parsed.data.tenantId)
+    .maybeSingle();
+  if (!tenant) return { ok: false, error: "Clientul nu există." };
+
+  const code = generateAccessKey();
   const { error } = await service.from("access_keys").insert({
     tenant_id: parsed.data.tenantId,
     duration_days: parsed.data.durationDays,
@@ -158,7 +203,8 @@ export async function generateKey(input: z.infer<typeof keySchema>): Promise<Key
       const mail = keyMail({
         code,
         days: parsed.data.durationDays,
-        startUrl: `${PUBLIC_SITE_URL}/start`,
+        siteUrl: PUBLIC_SITE_URL,
+        slug: String(tenant.slug),
       });
       await sendTextMail({
         to: sendTo,
@@ -600,14 +646,85 @@ const replySchema = z.object({
   id: z.string().uuid(),
   subject: z.string().trim().min(1, "Scrie un subiect.").max(200),
   text: z.string().trim().min(10, "Mesajul este prea scurt.").max(8000),
+  /** Hands the client a key in the same email, creating the wedding if needed. */
+  withKey: z.boolean().optional(),
+  durationDays: z.number().int().min(1).max(3650).optional(),
+  /** The name the client's wedding gets; defaults to the name in the request. */
+  displayName: z.string().trim().max(120).optional(),
 });
+
+export type ReplyResult =
+  | { ok: true; code?: string; slug?: string }
+  | { ok: false; error: string; code?: string; slug?: string };
+
+type OfferRequestRow = {
+  id: string;
+  name: string;
+  email: string;
+  period: string | null;
+  mail_message_id: string | null;
+  reply_count: number | null;
+  tenant_id: string | null;
+};
+
+/**
+ * The wedding a reply writes to. An earlier run of the same request wins, then
+ * an account that already administers a wedding with this email, and only then
+ * a new client — so answering twice never leaves two weddings behind.
+ */
+async function tenantForRequest(
+  service: Service,
+  request: OfferRequestRow,
+  wantedName: string | undefined
+): Promise<{ id: string; slug: string } | { error: string }> {
+  const load = async (id: string) => {
+    const { data } = await service.from("tenants").select("id, slug").eq("id", id).maybeSingle();
+    return data ? { id: String(data.id), slug: String(data.slug) } : null;
+  };
+
+  if (request.tenant_id) {
+    const existing = await load(request.tenant_id);
+    if (existing) return existing;
+  }
+
+  const email = String(request.email).toLowerCase();
+  const { data: membership } = await service
+    .from("tenant_admins")
+    .select("tenant_id")
+    .eq("email", email)
+    .limit(1)
+    .maybeSingle();
+  if (membership?.tenant_id) {
+    const existing = await load(String(membership.tenant_id));
+    if (existing) return existing;
+  }
+
+  const displayName = cleanName(wantedName ?? "") || cleanName(request.name) || "Nuntă";
+  const slug = await availableSlug(service, displayName);
+  if (!slug) return { error: "Nu am putut alege o adresă publică pentru client. Scrie alt nume." };
+
+  const created = await insertPendingTenant(service, {
+    slug,
+    displayName,
+    contactEmail: email,
+  });
+  if (!created) return { error: "Nu am putut crea clientul pentru această cerere." };
+
+  return { id: created.id, slug };
+}
 
 /**
  * Answers an offer request from the panel. The reply goes out from the same
  * Gmail account and carries `In-Reply-To`, so the client sees it in the thread
- * they started instead of a separate email. The request is marked as answered.
+ * they started instead of a separate email.
+ *
+ * With `withKey`, the same email also hands over an access key: the client is
+ * found or created, any unused key of theirs is revoked, the new key is written
+ * down before the send, and the activation steps are inserted before the
+ * signature. A failed send does not throw the key away — it comes back to the
+ * panel, where the owner can copy it and send it by hand.
  */
-export async function replyToOffer(input: z.infer<typeof replySchema>): Promise<Result> {
+export async function replyToOffer(input: z.infer<typeof replySchema>): Promise<ReplyResult> {
   if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
   if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
   if (!mailConfigured()) {
@@ -620,29 +737,81 @@ export async function replyToOffer(input: z.infer<typeof replySchema>): Promise<
   }
 
   const service = serviceClient();
-  const { data: request } = await service
+  const { data } = await service
     .from("offer_requests")
-    .select("id, email, mail_message_id, reply_count")
+    .select("id, name, email, period, mail_message_id, reply_count, tenant_id")
     .eq("id", parsed.data.id)
     .maybeSingle();
-  if (!request) return { ok: false, error: "Cererea nu mai există." };
+  if (!data) return { ok: false, error: "Cererea nu mai există." };
+  const request = data as OfferRequestRow;
+
+  const withKey = parsed.data.withKey === true;
+  const durationDays = parsed.data.durationDays ?? durationDaysFromPeriod(request.period);
+  let code: string | null = null;
+  let slug: string | null = null;
+  let tenantId: string | null = null;
+
+  if (withKey) {
+    const target = await tenantForRequest(service, request, parsed.data.displayName);
+    if ("error" in target) return { ok: false, error: target.error };
+    tenantId = target.id;
+    slug = target.slug;
+
+    // Remembered before the send, so a retry or a failed email never creates a
+    // second wedding for the same request.
+    await service.from("offer_requests").update({ tenant_id: tenantId }).eq("id", request.id);
+
+    // One working code at a time: an unused key the client may already hold is
+    // replaced, so there is never a doubt about which one is current.
+    await service
+      .from("access_keys")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("tenant_id", tenantId)
+      .is("used_at", null)
+      .is("revoked_at", null);
+
+    code = generateAccessKey();
+    const { error: keyError } = await service.from("access_keys").insert({
+      tenant_id: tenantId,
+      duration_days: durationDays,
+      label: "Trimisă cu răspunsul",
+      code_hash: hashAccessKey(code),
+    });
+    if (keyError) return { ok: false, error: "Nu am putut genera cheia." };
+  }
 
   const subject = /^re:/i.test(parsed.data.subject)
     ? parsed.data.subject
     : `Re: ${parsed.data.subject}`;
 
+  const body =
+    code && slug
+      ? withAccessBlock(
+          parsed.data.text,
+          accessBlock({ code, days: durationDays, siteUrl: PUBLIC_SITE_URL, slug })
+        )
+      : parsed.data.text;
+
   try {
     await sendTextMail({
       to: String(request.email),
       subject,
-      text: parsed.data.text,
+      text: body,
       fromName: BRAND,
       replyTo: CONTACT_EMAIL,
       kind: "raspuns",
+      tenantId,
       inReplyTo: typeof request.mail_message_id === "string" ? request.mail_message_id : null,
     });
   } catch (error) {
-    return { ok: false, error: mailError(error) };
+    return code
+      ? {
+          ok: false,
+          error: `Emailul nu a plecat: ${mailError(error)} Cheia a fost creată și o vedeți mai jos, ca să o puteți trimite manual.`,
+          code,
+          slug: slug ?? undefined,
+        }
+      : { ok: false, error: mailError(error) };
   }
 
   await service
@@ -651,13 +820,14 @@ export async function replyToOffer(input: z.infer<typeof replySchema>): Promise<
       status: "raspuns",
       replied_at: new Date().toISOString(),
       reply_count: (Number(request.reply_count) || 0) + 1,
+      ...(tenantId && code ? { key_sent_at: new Date().toISOString() } : {}),
     })
-    .eq("id", parsed.data.id);
+    .eq("id", request.id);
 
   revalidatePath("/platform/mesaje");
   revalidatePath("/platform/emailuri");
   revalidatePath("/platform");
-  return { ok: true };
+  return { ok: true, code: code ?? undefined, slug: slug ?? undefined };
 }
 
 const offerStatusSchema = z.object({

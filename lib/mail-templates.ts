@@ -7,19 +7,40 @@
  * perioada se completează liber — platforma nu publică tarife, deci nu are de
  * unde să le ia.
  */
-import { BRAND } from "@/lib/marketing";
+import { BRAND, CONTACT_EMAIL } from "@/lib/marketing";
 
 export function cleanName(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+/** The durations the platform sells, in the order the panels offer them. */
+export const ACCESS_DURATIONS = [
+  { days: 180, label: "6 luni" },
+  { days: 365, label: "1 an" },
+  { days: 540, label: "1 an și 6 luni" },
+  { days: 730, label: "2 ani" },
+] as const;
+
 /** Days as the durations the owner sells. */
 export function durationLabel(days: number) {
-  if (days === 180) return "6 luni";
-  if (days === 365) return "1 an";
-  if (days === 540 || days === 545) return "1 an și 6 luni";
-  if (days === 730) return "2 ani";
-  return `${days} zile`;
+  return ACCESS_DURATIONS.find((row) => row.days === days)?.label ?? `${days} zile`;
+}
+
+/**
+ * The request form asks for a period as text ("1 an și 6 luni"), so the reply
+ * can prefill the key duration from the client's own words. Longest periods are
+ * checked first: "1 an și 6 luni" also contains "6 luni".
+ */
+export function durationDaysFromPeriod(period: string | null | undefined) {
+  const value = (period ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+  if (!value) return 365;
+  if (/\b2\s*ani\b/.test(value)) return 730;
+  if (/1\s*an\s*(?:și|si)\s*6\s*luni/.test(value)) return 540;
+  if (/6\s*luni/.test(value)) return 180;
+  if (/\b1\s*an\b/.test(value)) return 365;
+  const months = /(\d+)\s*luni/.exec(value);
+  if (months) return Math.min(3650, Math.max(1, Number(months[1]) * 30));
+  return 365;
 }
 
 export type ReplyContext = {
@@ -138,30 +159,81 @@ export const REPLY_TEMPLATES: readonly ReplyTemplate[] = [
 export function keyMail({
   code,
   days,
-  startUrl,
+  siteUrl,
+  slug,
 }: {
   code: string;
   days: number;
-  startUrl: string;
+  siteUrl: string;
+  /** The wedding's public address. The line is skipped when it is not known. */
+  slug?: string;
 }): { subject: string; text: string } {
-  const duration = durationLabel(days);
   return {
     subject: "Cheia de acces pentru invitația voastră",
     text: [
       "Bună ziua,",
       "",
-      "Contul pentru invitația voastră este pregătit. Cheia de acces este:",
+      `Contul pentru invitația voastră este pregătit.`,
       "",
-      code,
-      "",
-      `Cu ea vă creați contul aici: ${startUrl}`,
-      "Alegeți adresa de email și parola, apoi introduceți cheia.",
-      "",
-      `Perioada de ${duration} începe din momentul activării, nu de acum.`,
-      "",
-      "Cheia este valabilă o singură dată. Dacă nu mai merge, îmi scrieți și vă trimit alta.",
+      accessBlock({ code, days, siteUrl, slug }),
       "",
       signature(),
     ].join("\n"),
   };
+}
+
+export type AccessContext = {
+  code: string;
+  days: number;
+  siteUrl: string;
+  /** The wedding's public address; the line is skipped when it is empty. */
+  slug?: string;
+};
+
+/**
+ * The part of a message that hands over the key: the code, the four steps to
+ * activation, what the panel can do, and the links worth keeping. Plain text on
+ * purpose — it is read in Gmail, where every URL is clickable anyway.
+ */
+export function accessBlock({ code, days, siteUrl, slug }: AccessContext) {
+  const site = siteUrl.replace(/\/+$/, "");
+  const startUrl = `${site}/start`;
+  const publicUrl = slug ? `${site}/${slug}` : null;
+
+  return [
+    "Cheia dumneavoastră de acces:",
+    code,
+    "",
+    "Cum vă activați contul (durează două minute):",
+    `1. Deschideți ${startUrl}`,
+    "2. Alegeți adresa de email și o parolă de cel puțin 8 caractere. Aceasta este parola contului de administrare.",
+    "3. Lipiți cheia de mai sus.",
+    "4. Apăsați „Activez contul”. Intrați direct în panoul nunții.",
+    "",
+    "În panou puteți schimba numele mirilor, data și locațiile, alegeți paleta și decorul floral, adăugați fotografii, lista de invitați și așezarea la mese.",
+    ...(publicUrl
+      ? [`Invitația publică rămâne la ${publicUrl} — linkul pe care îl trimiteți invitaților.`]
+      : []),
+    "",
+    "Linkuri utile:",
+    `• Activare: ${startUrl}`,
+    `• Termeni: ${site}/termeni`,
+    `• Confidențialitate: ${site}/confidentialitate`,
+    `• Întrebări: ${CONTACT_EMAIL}`,
+    "",
+    `Perioada de ${durationLabel(days)} începe din momentul activării, nu de acum.`,
+    "Cheia se folosește o singură dată. Dacă nu mai merge, îmi scrieți și vă trimit alta.",
+  ].join("\n");
+}
+
+/**
+ * Puts the access block before the signature, where it reads as part of the
+ * letter rather than an appendix. Every reply template ends with the signature;
+ * a body without one gets the block at the end.
+ */
+export function withAccessBlock(body: string, block: string) {
+  const marker = `\n\n${signature()}`;
+  const at = body.lastIndexOf(marker);
+  if (at === -1) return `${body.trimEnd()}\n\n${block}`;
+  return `${body.slice(0, at)}\n\n${block}${body.slice(at)}`;
 }

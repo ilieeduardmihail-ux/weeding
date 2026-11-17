@@ -243,7 +243,9 @@ export async function loadOfferRequests(limit = 200): Promise<OfferRequest[]> {
 
     const { data, error } = await service
       .from("offer_requests")
-      .select("id, at, name, email, phone, period, message, status, replied_at, reply_count")
+      .select(
+        "id, at, name, email, phone, period, message, status, replied_at, reply_count, tenant_id, key_sent_at"
+      )
       .order("at", { ascending: false })
       .limit(limit);
     if (error || !data) return [];
@@ -259,6 +261,8 @@ export async function loadOfferRequests(limit = 200): Promise<OfferRequest[]> {
       status: toOfferStatus(row.status),
       repliedAt: typeof row.replied_at === "string" ? row.replied_at : null,
       replyCount: Number(row.reply_count) || 0,
+      tenantId: typeof row.tenant_id === "string" ? row.tenant_id : null,
+      keySentAt: typeof row.key_sent_at === "string" ? row.key_sent_at : null,
     }));
   } catch {
     return [];

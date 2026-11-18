@@ -74,7 +74,7 @@ export function InvoicesPanel({
     <main className="mx-auto max-w-6xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-ink/50">Platformă</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-ink/60">Platformă</p>
           <h1 className="font-display text-4xl">Facturi</h1>
           <p className="mt-1 text-sm text-ink/65">
             Note de plată simple, fără TVA. Suma se scrie liber pe fiecare factură.
@@ -106,9 +106,9 @@ export function InvoicesPanel({
           ["Emitent", issuer.issuerName || "Necompletat", ownerEmail],
         ].map(([label, value, hint]) => (
           <div key={label} className="glass rounded-xl p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-ink/50">{label}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-ink/60">{label}</p>
             <p className="mt-1 font-display text-2xl">{value}</p>
-            <p className="text-xs text-ink/55">{hint}</p>
+            <p className="text-xs text-ink/65">{hint}</p>
           </div>
         ))}
       </section>
@@ -130,7 +130,7 @@ export function InvoicesPanel({
         ) : (
           <div className="glass overflow-x-auto rounded-xl">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wider text-ink/50">
+              <thead className="text-left text-xs uppercase tracking-wider text-ink/60">
                 <tr>
                   <th className="px-4 py-3">Nr.</th>
                   <th className="px-4 py-3">Data</th>
@@ -149,7 +149,7 @@ export function InvoicesPanel({
                     <td className="px-4 py-3">
                       <span className="font-medium">{invoice.clientName}</span>
                       {invoice.clientSlug && (
-                        <span className="block text-xs text-ink/55">/{invoice.clientSlug}</span>
+                        <span className="block text-xs text-ink/65">/{invoice.clientSlug}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-ink/75">{invoice.description}</td>

@@ -163,8 +163,8 @@ export function PlatformDashboard({
     <main className="mx-auto max-w-5xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-ink/50">Platformă</p>
-          <h1 className="font-display text-4xl">Clienți</h1>
+          <p className="text-xs uppercase tracking-[0.25em] text-ink/60">Platformă</p>
+          <h1 className="font-display text-4xl text-ink">Clienți</h1>
           <p className="mt-1 text-sm text-ink/65">
             {overview.tenants.length} nunți · {overview.owners.length} administrator
             {overview.owners.length === 1 ? "" : "i"} de platformă
@@ -267,7 +267,7 @@ function NewClientForm({ disabled, onError }: { disabled: boolean; onError: (m: 
     <section className="glass rounded-xl p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl">Client nou</h2>
+          <h2 className="font-display text-2xl text-ink">Client nou</h2>
           <p className="text-sm text-ink/65">
             Creează nunta și adresa publică. Accesul se acordă cu o cheie sau un cont direct.
           </p>
@@ -487,7 +487,7 @@ function TenantCard({
               {copiedAdmin ? <Check className="size-3.5" aria-hidden="true" /> : <Copy className="size-3.5" aria-hidden="true" />}
             </button>
           </p>
-          <p className="mt-1 text-xs text-ink/55">
+          <p className="mt-1 text-xs text-ink/65">
             {tenant.admins.length} cont{tenant.admins.length === 1 ? "" : "uri"} · {openKeys} chei
             nefolosite
           </p>
@@ -548,7 +548,7 @@ function TenantCard({
               defaultValue={tenant.admins[0]?.email ?? ""}
               placeholder="emailul clientului"
             />
-            <p className="text-xs text-ink/55">
+            <p className="text-xs text-ink/65">
               Dacă lași o adresă, cheia pleacă imediat, cu durata și linkul de activare.
             </p>
           </div>

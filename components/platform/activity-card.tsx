@@ -29,26 +29,30 @@ function CounterCard({
   counter: VisitCounter;
   accent?: boolean;
 }) {
+  // The accent card flips its own colours (dark on ivory, gold on dark), so the
+  // labels use opacity instead of a fixed text colour.
+  const label = accent ? "opacity-70" : "text-ink/60";
+  const faint = accent ? "opacity-60" : "text-ink/65";
   return (
-    <div className={`rounded-xl border p-4 ${accent ? "border-gold/50 bg-ink text-sea" : "glass border-ink/15"}`}>
-      <p className={`text-xs uppercase tracking-[0.2em] ${accent ? "text-sea/60" : "text-ink/50"}`}>{title}</p>
+    <div className={`rounded-xl border p-4 ${accent ? "stat-accent" : "glass border-ink/15"}`}>
+      <p className={`text-xs uppercase tracking-[0.2em] ${label}`}>{title}</p>
       <p className="mt-1 font-display text-3xl tabular-nums">{nf.format(counter.total)}</p>
-      <p className={`text-xs ${accent ? "text-sea/55" : "text-ink/55"}`}>{hint}</p>
+      <p className={`text-xs ${faint}`}>{hint}</p>
       <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
         <div className="flex justify-between gap-2">
-          <dt className={accent ? "text-sea/60" : "text-ink/50"}>24h</dt>
+          <dt className={label}>24h</dt>
           <dd className="tabular-nums">{nf.format(counter.h24)}</dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className={accent ? "text-sea/60" : "text-ink/50"}>7 zile</dt>
+          <dt className={label}>7 zile</dt>
           <dd className="tabular-nums">{nf.format(counter.d7)}</dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className={accent ? "text-sea/60" : "text-ink/50"}>unici 24h</dt>
+          <dt className={label}>unici 24h</dt>
           <dd className="tabular-nums">{nf.format(counter.u24)}</dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className={accent ? "text-sea/60" : "text-ink/50"}>unici 7 zile</dt>
+          <dt className={label}>unici 7 zile</dt>
           <dd className="tabular-nums">{nf.format(counter.u7)}</dd>
         </div>
       </dl>
@@ -117,8 +121,8 @@ export function ActivityCard({ initial }: { initial: VisitStats }) {
           <Activity aria-hidden="true" className="size-5 text-gold" />
           Activitate
         </h2>
-        <p className="inline-flex items-center gap-2 text-xs text-ink/55" role="status">
-          <span aria-hidden className={`size-2 rounded-full ${live ? "bg-emerald-600" : "bg-ink/30"}`} />
+        <p className="inline-flex items-center gap-2 text-xs text-ink/65" role="status">
+          <span aria-hidden className={`size-2 rounded-full ${live ? "bg-ok" : "bg-ink/30"}`} />
           {live ? "actualizat automat" : "reconectare…"}
         </p>
       </div>
@@ -144,19 +148,19 @@ export function ActivityCard({ initial }: { initial: VisitStats }) {
 
       <div className="glass mt-3 rounded-xl border border-ink/15 p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink/50">Ultimele 24 de ore</p>
-          <p className="flex items-center gap-3 text-xs text-ink/55">
+          <p className="text-xs uppercase tracking-[0.2em] text-ink/60">Ultimele 24 de ore</p>
+          <p className="flex items-center gap-3 text-xs text-ink/65">
             <span className="inline-flex items-center gap-1.5">
               <span aria-hidden className="size-2 rounded-sm bg-gold" /> invitații
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span aria-hidden className="size-2 rounded-sm bg-ink/45" /> prezentare
+              <span aria-hidden className="size-2 rounded-sm bg-ink/50" /> prezentare
             </span>
           </p>
         </div>
 
         {hours.length === 0 ? (
-          <p className="mt-3 text-sm text-ink/55">
+          <p className="mt-3 text-sm text-ink/65">
             Încă nu sunt vizite înregistrate. Contorul pornește după ce rulezi migrarea și
             primești prima vizită.
           </p>
@@ -177,7 +181,7 @@ export function ActivityCard({ initial }: { initial: VisitStats }) {
                     style={{ height: `${Math.max(height, hour.marketing + hour.invites ? 3 : 0)}%` }}
                   >
                     <div className="w-full bg-gold" style={{ height: `${inviteShare}%` }} />
-                    <div className="w-full flex-1 bg-ink/45" />
+                    <div className="w-full flex-1 bg-ink/50" />
                   </div>
                 </div>
               );
@@ -186,7 +190,7 @@ export function ActivityCard({ initial }: { initial: VisitStats }) {
         )}
 
         {hours.length > 0 && (
-          <div className="mt-1 flex justify-between text-[10px] text-ink/40">
+          <div className="mt-1 flex justify-between text-[10px] text-ink/55">
             {[0, 6, 12, 18, 23].map((index) => (
               <span key={index}>{hourLabel(hours[Math.min(index, hours.length - 1)]?.hour ?? "")}</span>
             ))}

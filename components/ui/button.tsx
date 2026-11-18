@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-ink text-sea hover:bg-ink/90 hover:shadow-lg hover:shadow-black/25",
-        outline: "border border-ink/25 bg-transparent hover:border-ink/45 hover:bg-ink/5",
+        outline: "border border-ink/25 bg-transparent text-ink hover:border-ink/45 hover:bg-ink/5",
         secondary: "bg-mist text-ink hover:bg-mist/80",
         ghost: "hover:bg-ink/5",
         destructive: "bg-red-600 text-white hover:bg-red-700",

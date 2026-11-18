@@ -388,6 +388,30 @@ body {
    --------------------------------------------------------------------------- */
 
 .platform {
+  /* Text colour has to be set here: the theme switch only writes
+     <html data-theme>, so `body { color: var(--foreground) }` stays near-black
+     and every heading without a text class would vanish in dark mode. */
+  color: var(--color-ink);
+  /* shadcn primitives read their own tokens (--background, --border, ...).
+     Mapping them to the wedding palette keeps buttons, inputs and popovers
+     inside the panel even though the `.dark` class is never applied. */
+  --background: var(--color-sea);
+  --foreground: var(--color-ink);
+  --card: var(--color-paper);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-paper);
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-ink);
+  --primary-foreground: var(--color-sea);
+  --secondary: var(--color-mist);
+  --secondary-foreground: var(--color-ink);
+  --muted: var(--color-mist);
+  --muted-foreground: color-mix(in srgb, var(--color-ink) 65%, transparent);
+  --accent: var(--color-mist);
+  --accent-foreground: var(--color-ink);
+  --border: color-mix(in srgb, var(--color-ink) 16%, transparent);
+  --input: color-mix(in srgb, var(--color-ink) 22%, transparent);
+  --ring: var(--color-gold);
   background-color: var(--color-sea);
   background-image:
     radial-gradient(55rem 38rem at 12% -8%, color-mix(in srgb, var(--color-sage) 16%, transparent), transparent 62%),
@@ -409,11 +433,11 @@ body {
      reds and greens would sink into the olive paper. */
   --color-sea: #15170f;
   --color-mist: #1d2016;
-  --color-paper: #23261b;
-  --color-ink: #f2ead9;
-  --color-sage: #9fb17c;
-  --color-gold: #d9b877;
-  --color-rose: #d4a5ad;
+  --color-paper: #262a1e;
+  --color-ink: #f6f0e3;
+  --color-sage: #a9bb86;
+  --color-gold: #e0c184;
+  --color-rose: #dcb2ba;
   --color-ok: #9ed3a3;
   --color-warn: #e5c07b;
   --color-danger: #f0a6a0;
@@ -434,27 +458,40 @@ body {
 }
 
 :root[data-theme="dark"] .platform .glass {
-  background-color: rgb(35 38 27 / 0.76);
-  border-color: rgb(242 234 217 / 0.14);
+  background-color: rgb(38 42 30 / 0.8);
+  border-color: rgb(246 240 227 / 0.16);
 }
 
 :root[data-theme="dark"] .platform .glass-soft {
-  background-color: rgb(35 38 27 / 0.58);
-  border-color: rgb(242 234 217 / 0.10);
+  background-color: rgb(38 42 30 / 0.62);
+  border-color: rgb(246 240 227 / 0.12);
 }
 
 :root[data-theme="dark"] .platform .glass-bar {
-  background-color: rgb(21 23 15 / 0.86);
+  background-color: rgb(21 23 15 / 0.9);
 }
 
 :root[data-theme="dark"] .platform .card-hover:hover {
-  border-color: rgb(217 184 119 / 0.5);
+  border-color: rgb(224 193 132 / 0.5);
   box-shadow: 0 16px 36px -18px rgb(0 0 0 / 0.7);
 }
 
+/* The highlighted counter: dark card on ivory, gold-tinted on the dark page. */
+.platform .stat-accent {
+  background-color: var(--color-ink);
+  color: var(--color-sea);
+  border-color: color-mix(in srgb, var(--color-gold) 60%, transparent);
+}
+
+:root[data-theme="dark"] .platform .stat-accent {
+  background-color: rgb(224 193 132 / 0.14);
+  color: var(--color-ink);
+  border-color: rgb(224 193 132 / 0.5);
+}
+
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root[data-theme="dark"] .platform .glass { background-color: rgb(35 38 27 / 0.98); }
-  :root[data-theme="dark"] .platform .glass-soft { background-color: rgb(29 32 22 / 0.96); }
+  :root[data-theme="dark"] .platform .glass { background-color: rgb(38 42 30 / 0.98); }
+  :root[data-theme="dark"] .platform .glass-soft { background-color: rgb(32 35 25 / 0.96); }
   :root[data-theme="dark"] .platform .glass-bar { background-color: rgb(21 23 15 / 0.98); }
 }
 
@@ -472,6 +509,18 @@ body {
   --color-ok: #3f6b46;
   --color-warn: #8a611c;
   --color-danger: #9c3a34;
+  /* The document is paper: its inherited text and borders must come back to
+     the light palette even when the surrounding panel is dark. */
+  color: var(--color-ink);
+  --background: var(--color-sea);
+  --foreground: var(--color-ink);
+  --card: var(--color-paper);
+  --card-foreground: var(--color-ink);
+  --border: color-mix(in srgb, var(--color-ink) 16%, transparent);
+  --input: color-mix(in srgb, var(--color-ink) 22%, transparent);
+  --ring: var(--color-gold);
+  --muted: var(--color-mist);
+  --muted-foreground: color-mix(in srgb, var(--color-ink) 65%, transparent);
 }
 
 @media print {

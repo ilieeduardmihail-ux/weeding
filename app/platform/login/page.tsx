@@ -22,7 +22,7 @@ export default async function PlatformLogin({
     <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 px-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-ink/50">Platformă</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-ink/60">Platformă</p>
           <h1 className="font-display text-3xl">Cont de administrator</h1>
         </div>
         <ThemeToggle />

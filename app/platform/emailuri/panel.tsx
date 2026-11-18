@@ -58,7 +58,7 @@ export function MailPanel({ mails, configured }: { mails: MailEntry[]; configure
     <main className="mx-auto max-w-6xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-ink/50">Platformă</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-ink/60">Platformă</p>
           <h1 className="font-display text-4xl">Emailuri trimise</h1>
           <p className="mt-1 text-sm text-ink/65">
             Doar mesajele trimise din platformă, cu metadate. Conținutul rămâne în Gmail.
@@ -88,9 +88,9 @@ export function MailPanel({ mails, configured }: { mails: MailEntry[]; configure
           ["Gmail", "Manual", "mesajele scrise de tine nu apar aici"],
         ].map(([label, value, hint]) => (
           <div key={label} className="glass rounded-xl p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-ink/50">{label}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-ink/60">{label}</p>
             <p className="mt-1 font-display text-2xl">{value}</p>
-            <p className="text-xs text-ink/55">{hint}</p>
+            <p className="text-xs text-ink/65">{hint}</p>
           </div>
         ))}
       </section>
@@ -129,7 +129,7 @@ export function MailPanel({ mails, configured }: { mails: MailEntry[]; configure
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="border-b border-ink/25 text-xs uppercase tracking-[0.15em] text-ink/55">
+            <thead className="border-b border-ink/25 text-xs uppercase tracking-[0.15em] text-ink/65">
               <tr>
                 <th className="py-2 pr-3">Când</th>
                 <th className="pr-3">Tip</th>
@@ -147,7 +147,7 @@ export function MailPanel({ mails, configured }: { mails: MailEntry[]; configure
                   <td className="pr-3">
                     <span className="select-all">{mail.to}</span>
                     {mail.replyTo && (
-                      <span className="block text-xs text-ink/50">răspuns: {mail.replyTo}</span>
+                      <span className="block text-xs text-ink/60">răspuns: {mail.replyTo}</span>
                     )}
                   </td>
                   <td className="pr-3">{mail.subject}</td>
@@ -160,7 +160,7 @@ export function MailPanel({ mails, configured }: { mails: MailEntry[]; configure
                     ) : (
                       <span className="inline-flex items-center gap-1.5 text-danger" title={mail.error ?? undefined}>
                         <AlertCircle aria-hidden className="size-4" /> eșuat
-                        {mail.error && <span className="text-xs text-ink/55">({mail.error})</span>}
+                        {mail.error && <span className="text-xs text-ink/65">({mail.error})</span>}
                       </span>
                     )}
                   </td>
@@ -171,7 +171,7 @@ export function MailPanel({ mails, configured }: { mails: MailEntry[]; configure
         </div>
       )}
 
-      <p className="mt-6 flex items-center gap-2 text-xs text-ink/50">
+      <p className="mt-6 flex items-center gap-2 text-xs text-ink/60">
         <Mail aria-hidden className="size-4" />
         Mesajele scrise manual în Gmail (șabloanele de ofertă, trimiterea cheii) nu trec prin aplicație,
         deci nu apar aici.

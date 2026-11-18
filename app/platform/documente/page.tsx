@@ -27,7 +27,7 @@ export default async function DocumentsPage() {
     <main className="mx-auto max-w-4xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-ink/50">Platformă</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-ink/60">Platformă</p>
           <h1 className="font-display text-4xl">Documente legale</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink/65">
             Șabloane de completat și încheiat cu fiecare client. Înlocuiește câmpurile din paranteze

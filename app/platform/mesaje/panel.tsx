@@ -221,7 +221,7 @@ function ReplyForm({
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-ink/55">{findTemplate(templateId).hint}</p>
+              <p className="text-xs text-ink/65">{findTemplate(templateId).hint}</p>
             </div>
             <div className="space-y-1">
               <Label htmlFor={`price-${item.id}`} className="text-xs">
@@ -267,7 +267,7 @@ function ReplyForm({
               maxLength={8000}
               className={fieldClass}
             />
-            <p className="text-xs text-ink/55">
+            <p className="text-xs text-ink/65">
               Textul se poate modifica liber. Schimbarea prețului rescrie mesajul doar dacă nu l-ai
               atins.
             </p>
@@ -288,7 +288,7 @@ function ReplyForm({
             >
               <Send aria-hidden="true" /> {pending ? "Se trimite…" : "Trimite răspunsul"}
             </Button>
-            <p className="text-xs text-ink/55">
+            <p className="text-xs text-ink/65">
               Pleacă de pe același Gmail, către {item.email}.
             </p>
           </div>
@@ -297,7 +297,7 @@ function ReplyForm({
 
       {tab === "cheie" && (
         <div className="space-y-3">
-          <p className="text-xs text-ink/55">
+          <p className="text-xs text-ink/65">
             Pleacă un email separat, în același fir, doar cu cheia și pașii de activare. Textul este
             fix, ca pașii să nu se strice.
           </p>
@@ -313,7 +313,7 @@ function ReplyForm({
                 onChange={(event) => setDisplayName(event.target.value)}
                 maxLength={120}
               />
-              <p className="text-xs text-ink/55">Adresa publică: /{slugPreview}</p>
+              <p className="text-xs text-ink/65">Adresa publică: /{slugPreview}</p>
             </div>
             <div className="space-y-1">
               <Label htmlFor={`duration-${item.id}`} className="text-xs">
@@ -350,15 +350,15 @@ function ReplyForm({
 
           {code && (
             <div className="rounded-lg border border-gold/50 bg-gold/10 p-3">
-              <p className="text-xs uppercase tracking-[0.2em] text-ink/50">Cheia trimisă</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-ink/60">Cheia trimisă</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <code className="font-mono text-sm">{code}</code>
                 <Button type="button" size="sm" variant="outline" onClick={copyCode}>
                   {copied ? "Copiat" : "Copiază"}
                 </Button>
-                {slug && <span className="text-xs text-ink/55">Client: /{slug}</span>}
+                {slug && <span className="text-xs text-ink/65">Client: /{slug}</span>}
               </div>
-              <p className="mt-1 text-xs text-ink/55">
+              <p className="mt-1 text-xs text-ink/65">
                 Nu se mai poate vedea după ce închizi cererea. Clientul o activează o singură dată,
                 la /start.
               </p>
@@ -375,7 +375,7 @@ function ReplyForm({
             <Button type="button" onClick={sendKey} disabled={keyPending} className="bg-ink text-sea">
               <KeyRound aria-hidden="true" /> {keyPending ? "Se trimite…" : "Trimite cheia"}
             </Button>
-            <p className="text-xs text-ink/55">Către {item.email}, de pe același Gmail.</p>
+            <p className="text-xs text-ink/65">Către {item.email}, de pe același Gmail.</p>
           </div>
         </div>
       )}
@@ -424,7 +424,7 @@ export function OffersPanel({ requests, configured }: { requests: OfferRequest[]
     <main className="mx-auto max-w-4xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-ink/50">Platformă</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-ink/60">Platformă</p>
           <h1 className="font-display text-4xl">Mesaje</h1>
           <p className="mt-1 text-sm text-ink/65">
             Cererile trimise din site. Răspunsul pleacă în același fir, fără să deschizi Gmail.
@@ -457,9 +457,9 @@ export function OffersPanel({ requests, configured }: { requests: OfferRequest[]
           ["Răspunse", String(items.filter((item) => item.status === "raspuns").length), "cu răspuns trimis"],
         ].map(([label, value, hint]) => (
           <div key={label} className="glass rounded-xl p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-ink/50">{label}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-ink/60">{label}</p>
             <p className="mt-1 font-display text-2xl tabular-nums">{value}</p>
-            <p className="text-xs text-ink/55">{hint}</p>
+            <p className="text-xs text-ink/65">{hint}</p>
           </div>
         ))}
       </section>
@@ -526,7 +526,7 @@ export function OffersPanel({ requests, configured }: { requests: OfferRequest[]
                           </span>
                         )}
                       </span>
-                      <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink/55">
+                      <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink/65">
                         <span className="inline-flex items-center gap-1">
                           <Clock aria-hidden="true" className="size-3.5" />
                           {dateFmt.format(new Date(item.at))}
@@ -589,7 +589,7 @@ export function OffersPanel({ requests, configured }: { requests: OfferRequest[]
                   {open && (
                     <>
                       <div className="mt-4 rounded-lg border border-ink/10 bg-ink/5 p-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-ink/45">Mesajul cererii</p>
+                        <p className="text-xs uppercase tracking-[0.2em] text-ink/60">Mesajul cererii</p>
                         <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink/85">
                           {item.message}
                         </p>

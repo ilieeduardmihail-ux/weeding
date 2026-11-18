@@ -39,21 +39,27 @@ export async function loadAdminData(
   const [rsvpsResult, peopleResult, tablesResult, expensesResult, locationsResult, settingsResult, guestsResult, reportResult, tenantResult] =
     await Promise.all([
       supabase.from("rsvps").select("*, rsvp_guests(*)").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
-      supabase.from("seating_people").select("id, kind, name, table_number").eq("tenant_id", tenantId).order("name"),
+      supabase.from("seating_people").select("*").eq("tenant_id", tenantId).order("name"),
       supabase.from("seating_tables").select("number, capacity").eq("tenant_id", tenantId).order("number"),
       supabase.from("expenses").select("id, item_name, category, currency, total_cost, amount_paid, due_before, due_after, notes").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
       supabase.from("locations").select("key, label, name, address, event_time, embed_url").eq("tenant_id", tenantId).order("key", { ascending: true }),
       supabase.from("event_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
-      supabase.from("guests").select("id, full_name, phone").eq("tenant_id", tenantId),
-      supabase.from("venue_report").select("kind, name, is_child, table_number, counted").eq("tenant_id", tenantId),
+      supabase.from("guests").select("*").eq("tenant_id", tenantId),
+      supabase.from("venue_report").select("*").eq("tenant_id", tenantId),
       supabase.from("tenants").select("theme, plan").eq("id", tenantId).maybeSingle(),
     ]);
+
+  const textOrNull = (value: unknown) =>
+    typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 
   const people: Person[] = (peopleResult.data ?? []).map((row: Record<string, unknown>) => ({
     id: row.id as string,
     kind: row.kind as Kind,
     name: row.name as string,
     table: (row.table_number as number | null) ?? null,
+    isChild: row.is_child === true,
+    allergies: textOrNull(row.allergies),
+    group: textOrNull(row.group_name),
   }));
 
   // Before migration v8 the table does not exist yet: keep the fixed layout.
@@ -89,6 +95,9 @@ export async function loadAdminData(
     is_child: row.is_child === true,
     table_number: row.table_number === null ? null : Number(row.table_number),
     counted: row.counted === true,
+    allergies: textOrNull(row.allergies),
+    phone: textOrNull(row.phone),
+    group_name: textOrNull(row.group_name),
   }));
 
   return {
@@ -105,7 +114,10 @@ export async function loadAdminData(
     importedGuests: (guestsResult.data ?? []).map((guest: Record<string, unknown>) => ({
       id: String(guest.id),
       name: String(guest.full_name),
-      phone: typeof guest.phone === "string" && guest.phone.trim() !== "" ? guest.phone : null,
+      phone: textOrNull(guest.phone),
+      isChild: guest.is_child === true,
+      allergies: textOrNull(guest.allergies),
+      group: textOrNull(guest.group_name),
     })),
     report,
   };

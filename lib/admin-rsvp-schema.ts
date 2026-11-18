@@ -16,6 +16,7 @@ export const adminRsvpSchema = z.object({
         guestId,
         name: z.string().trim().min(1, "Introdu numele persoanei").max(120),
         isChild: z.boolean(),
+        allergies: z.string().trim().max(500, "Păstrează alergiile sub 500 de caractere").optional(),
       })
     )
     .max(MAX_GUESTS),

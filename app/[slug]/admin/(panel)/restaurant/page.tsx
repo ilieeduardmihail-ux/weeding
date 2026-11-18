@@ -71,12 +71,13 @@ export default function RestaurantPage() {
         <p className="mt-12 text-ink/70">Nimic de trimis încă — nu există persoane confirmate sau invitați cu masă.</p>
       ) : (
         <div className="glass-soft mt-10 overflow-x-auto rounded-xl">
-          <table className="w-full min-w-[520px] text-left">
+          <table className="w-full min-w-[720px] text-left">
             <thead className="border-b border-ink/20 text-xs uppercase tracking-wide text-ink/50">
               <tr>
                 <th className="px-4 py-3 font-medium">Nume</th>
                 <th className="px-4 py-3 font-medium">Masa</th>
                 <th className="px-4 py-3 font-medium">Meniu</th>
+                <th className="px-4 py-3 font-medium">Alergii / preferințe</th>
               </tr>
             </thead>
             <tbody>
@@ -93,6 +94,9 @@ export default function RestaurantPage() {
                     <span className="rounded bg-ink/10 px-1.5 py-0.5 text-xs font-medium text-ink/80">
                       {person.menu}
                     </span>
+                  </td>
+                  <td className="px-4 py-2 text-sm text-ink/70">
+                    {person.allergies ?? <span className="text-ink/40">—</span>}
                   </td>
                 </tr>
               ))}

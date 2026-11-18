@@ -15,14 +15,12 @@ export async function GET(request: Request) {
   const tenantId = await currentTenantId();
   if (!tenantId) return new Response("Neautorizat", { status: 401 });
 
-  const [reportResult, allergyResult] = await Promise.all([
-    supabase
-      .from("venue_report")
-      .select("kind, name, is_child, table_number, counted")
-      .eq("tenant_id", tenantId),
-    // Allergies live on the reply, not on the report view. One extra read in
-    // parallel keeps the export a single round trip.
+  const [reportResult, allergyResult, tableResult] = await Promise.all([
+    // `*` keeps the export working while the view gains columns (migration v32).
+    supabase.from("venue_report").select("*").eq("tenant_id", tenantId),
+    // Fallback for the family-head allergy when the view is still the old one.
     supabase.from("rsvps").select("name, allergies").eq("tenant_id", tenantId),
+    supabase.from("seating_tables").select("number, capacity").eq("tenant_id", tenantId),
   ]);
   if (reportResult.error) return new Response("Nu am putut citi datele.", { status: 500 });
 
@@ -32,7 +30,12 @@ export async function GET(request: Request) {
     allergiesByName.set(row.name.replace(/\s+/g, " ").trim().toLocaleLowerCase("ro"), String(row.allergies));
   }
 
-  const report = buildRestaurantReport((reportResult.data ?? []) as VenueRow[], allergiesByName);
+  const capacities = new Map<number, number>();
+  for (const row of tableResult.data ?? []) {
+    capacities.set(Number(row.number), Number(row.capacity));
+  }
+
+  const report = buildRestaurantReport((reportResult.data ?? []) as VenueRow[], allergiesByName, capacities);
   const format = new URL(request.url).searchParams.get("format");
 
   if (format === "csv") {
@@ -50,11 +53,25 @@ export async function GET(request: Request) {
   const workbook = XLSX.utils.book_new();
 
   const people = XLSX.utils.aoa_to_sheet([
-    ["Nume", "Masa", "Meniu", "Alergii"],
-    ...report.people.map((person) => [person.name, person.table ?? "", person.menu, person.allergies ?? ""]),
+    ["Nume", "Masa", "Meniu", "Alergii", "Telefon", "Grup"],
+    ...report.people.map((person) => [
+      person.name,
+      person.table ?? "",
+      person.menu,
+      person.allergies ?? "",
+      person.phone ?? "",
+      person.group ?? "",
+    ]),
   ]);
-  people["!cols"] = [{ wch: 34 }, { wch: 8 }, { wch: 12 }, { wch: 40 }];
+  people["!cols"] = [{ wch: 34 }, { wch: 8 }, { wch: 12 }, { wch: 40 }, { wch: 16 }, { wch: 20 }];
   XLSX.utils.book_append_sheet(workbook, people, "Invitati");
+
+  const tables = XLSX.utils.aoa_to_sheet([
+    ["Masa", "Persoane", "Adulti", "Copii", "Locuri"],
+    ...report.tableTotals.map((row) => [row.table, row.people, row.adults, row.children, row.capacity ?? ""]),
+  ]);
+  tables["!cols"] = [{ wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 8 }];
+  XLSX.utils.book_append_sheet(workbook, tables, "Mese");
 
   const totals = XLSX.utils.aoa_to_sheet([
     ["Meniu", "Persoane"],

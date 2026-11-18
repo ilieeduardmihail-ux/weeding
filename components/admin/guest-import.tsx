@@ -6,12 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { correctName, nameKey, type NameFix, type Status } from "@/lib/fuzzy";
 import { ignoredNamesNote } from "@/lib/import-names";
-import { parseFile, parseText } from "@/lib/parse-guests";
+import { parseFile, parseText, type ParsedGuest } from "@/lib/parse-guests";
 import { importGuests } from "@/app/admin/import/actions";
 import { useAdminPath } from "@/components/admin/admin-tenant";
 import { notifyAdminDataChanged } from "@/lib/admin-data";
 
-type Row = NameFix & { id: number; value: string; include: boolean; dup: boolean };
+type Row = NameFix & {
+  id: number;
+  value: string;
+  include: boolean;
+  dup: boolean;
+  group: string;
+  isChild: boolean;
+  allergies: string;
+  phone: string;
+};
 
 const LABEL: Record<Status, string> = {
   ok: "Fără modificări", diacritics: "Diacritice corectate", auto: "Corectat automat", suggest: "Verifică",
@@ -39,6 +48,20 @@ const ImportRow = memo(function ImportRow({
           </button>
         )}
       </td>
+      <td className="py-2 pr-3 text-center">
+        <input type="checkbox" checked={r.isChild} aria-label={`Copil — ${r.value}`}
+          onChange={(e) => onPatch(r.id, { isChild: e.target.checked })} />
+      </td>
+      <td className="py-2 pr-3">
+        <Input value={r.allergies} maxLength={500}
+          aria-label={`Alergii sau preferințe pentru ${r.value}`}
+          placeholder="Ex: fără gluten"
+          onChange={(e) => onPatch(r.id, { allergies: e.target.value })} />
+      </td>
+      <td className="py-2 pr-3">
+        <Input value={r.group} maxLength={120} aria-label={`Grup pentru ${r.value}`} placeholder="Familie, prieteni..."
+          onChange={(e) => onPatch(r.id, { group: e.target.value })} />
+      </td>
       <td className="py-2 pr-3 text-sm">
         {r.dup ? "Deja în listă" : LABEL[r.status]}
       </td>
@@ -62,20 +85,31 @@ export function GuestImport({ existing }: { existing: string[] }) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [onlyChanges, setOnlyChanges] = useState(false);
+  const [onlyChildren, setOnlyChildren] = useState(false);
   const [pending, start] = useTransition();
 
   const known = useMemo(() => new Set(existing.map(nameKey)), [existing]);
 
-  const build = useCallback((names: string[]) => {
-    if (!names.length) { setError("Nu am găsit niciun nume."); setRows(null); return; }
+  const build = useCallback((guests: ParsedGuest[]) => {
+    if (!guests.length) { setError("Nu am găsit niciun nume."); setRows(null); return; }
     const seen = new Set<string>();
     setError(null); setDone(null);
-    setRows(names.map((n, i) => {
-      const fix = correctName(n);
+    setRows(guests.map((guest, i) => {
+      const fix = correctName(guest.name);
       const k = nameKey(fix.corrected);
       const dup = known.has(k) || seen.has(k);
       seen.add(k);
-      return { ...fix, id: i, value: fix.corrected, include: !dup, dup };
+      return {
+        ...fix,
+        id: i,
+        value: fix.corrected,
+        include: !dup,
+        dup,
+        group: guest.group,
+        isChild: guest.isChild,
+        allergies: guest.allergies,
+        phone: guest.phone,
+      };
     }));
   }, [known]);
 
@@ -106,14 +140,25 @@ export function GuestImport({ existing }: { existing: string[] }) {
       suggest,
       dup,
       chosen,
-      shown: rows.filter((r) => !onlyChanges || r.status !== "ok" || r.dup),
+      children: chosen.filter((r) => r.isChild).length,
+      shown: rows.filter(
+        (r) => (!onlyChildren || r.isChild) && (!onlyChanges || r.status !== "ok" || r.dup),
+      ),
     };
-  }, [rows, onlyChanges]);
+  }, [rows, onlyChanges, onlyChildren]);
 
   const submit = useCallback(() => {
     if (!stats || stats.chosen.length === 0) return;
     start(async () => {
-      const r = await importGuests({ names: stats.chosen.map((x) => x.value.trim()) });
+      const r = await importGuests({
+        guests: stats.chosen.map((x) => ({
+          name: x.value.trim(),
+          group: x.group,
+          isChild: x.isChild,
+          allergies: x.allergies,
+          phone: x.phone,
+        })),
+      });
       if (r.ok) {
         const dupes = r.skipped ? `, ${r.skipped} ${r.skipped === 1 ? "era deja" : "erau deja"} în listă` : "";
         const ignored = ignoredNamesNote({ valid: [], tooLong: r.tooLong, tooShort: r.tooShort });
@@ -149,29 +194,48 @@ export function GuestImport({ existing }: { existing: string[] }) {
             <Upload className="size-5" aria-hidden="true" />
             <Input id="file" type="file" accept=".xlsx,.xls,.csv,.txt" onChange={(e) => onFile(e.target.files?.[0])} />
           </div>
-          <p className="text-xs text-ink/60">Excel, CSV sau text. Un nume pe rând, luat din prima coloană completată. Până la 500 de nume.</p>
+          <p className="text-xs text-ink/60">
+            Excel, CSV sau text. Coloana cu nume e citită automat, la fel coloanele „Copil”, „Alergii” și
+            „Grup”. Până la 500 de nume.
+          </p>
         </div>
       </section>
 
-      {error && <p role="alert" className="text-red-700">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
       {rows && stats && (
         <section aria-label="Verifică numele importate">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-display text-2xl">Verifică {rows.length} nume</h2>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={onlyChanges} onChange={(e) => setOnlyChanges(e.target.checked)} /> Arată doar numele care au nevoie de atenție
-            </label>
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={onlyChildren} onChange={(e) => setOnlyChildren(e.target.checked)} />
+                Doar copiii
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={onlyChanges} onChange={(e) => setOnlyChanges(e.target.checked)} />
+                Doar numele care au nevoie de atenție
+              </label>
+            </div>
           </div>
           <p className="mt-1 text-sm text-ink/70">
             {stats.auto} corectate automat, {stats.diacritics} cu diacritice corectate, {stats.suggest} de verificat,{" "}
-            {stats.dup} deja în listă. Poți modifica orice nume înainte de import.
+            {stats.dup} deja în listă. {stats.children} copii din {stats.chosen.length} selectați. Poți modifica
+            orice nume, copilul și alergiile înainte de import.
           </p>
 
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left">
+            <table className="w-full min-w-[900px] text-left">
               <thead className="border-b border-ink/25 text-sm text-ink/70">
-                <tr><th className="py-2">Adaugă</th><th>Nume</th><th>Stare</th><th>Original</th></tr>
+                <tr>
+                  <th className="py-2">Adaugă</th>
+                  <th>Nume</th>
+                  <th className="text-center">Copil</th>
+                  <th>Alergii / preferințe</th>
+                  <th>Grup</th>
+                  <th>Stare</th>
+                  <th>Original</th>
+                </tr>
               </thead>
               <tbody>
                 {stats.shown.map((r) => (
@@ -184,7 +248,7 @@ export function GuestImport({ existing }: { existing: string[] }) {
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button type="button" onClick={submit} disabled={pending || stats.chosen.length === 0}
               className="bg-ink text-sea hover:bg-ink/85">
-              {pending ? "Se importă…" : `Importă ${stats.chosen.length} invitați`}
+              {pending ? "Se importă..." : `Importă ${stats.chosen.length} invitați`}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setRows(null)}>Începe din nou</Button>
           </div>

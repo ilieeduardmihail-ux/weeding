@@ -10,6 +10,8 @@ export type DemoGuest = {
   name: string;
   is_child: boolean;
   table_number: number | null;
+  /** Food note for this companion, if the couple added one. */
+  allergies?: string | null;
 };
 
 export type DemoRsvp = {
@@ -20,6 +22,7 @@ export type DemoRsvp = {
   message: string | null;
   created_at: string;
   table_number: number | null;
+  allergies?: string | null;
   rsvp_guests: DemoGuest[];
 };
 
@@ -29,6 +32,8 @@ export type DemoImportedGuest = {
   phone?: string | null;
   is_child: boolean;
   table_number: number | null;
+  allergies?: string | null;
+  group_name?: string | null;
 };
 
 export type DemoExpense = {
@@ -75,9 +80,10 @@ const state = {
       message: "Can't wait! We'll be there for the ceremony and the party.",
       created_at: daysAgo(9),
       table_number: 1,
+      allergies: "fără gluten",
       rsvp_guests: [
-        { id: uuid(101), name: "Dan Ionescu", is_child: false, table_number: 1 },
-        { id: uuid(102), name: "Mara Ionescu", is_child: true, table_number: 1 },
+        { id: uuid(101), name: "Dan Ionescu", is_child: false, table_number: 1, allergies: null },
+        { id: uuid(102), name: "Mara Ionescu", is_child: true, table_number: 1, allergies: "alergie la nuci" },
       ],
     },
     {
@@ -123,10 +129,10 @@ const state = {
   ] as DemoRsvp[],
 
   guests: [
-    { id: uuid(201), full_name: "Alexandru Georgescu", is_child: false, table_number: 2 },
-    { id: uuid(202), full_name: "Bianca Radu", is_child: false, table_number: null },
-    { id: uuid(203), full_name: "Cătălin Marin", is_child: false, table_number: 3 },
-    { id: uuid(204), full_name: "Diana Voicu", is_child: false, table_number: null },
+    { id: uuid(201), full_name: "Alexandru Georgescu", is_child: false, table_number: 2, group_name: "Familia Georgescu" },
+    { id: uuid(202), full_name: "Bianca Radu", is_child: false, table_number: null, phone: "0722 000 111" },
+    { id: uuid(203), full_name: "Cătălin Marin", is_child: false, table_number: 3, group_name: "Prieteni" },
+    { id: uuid(204), full_name: "Diana Voicu", is_child: true, table_number: null, allergies: "fără lactoză" },
   ] as DemoImportedGuest[],
 
   expenses: [
@@ -230,11 +236,38 @@ export function listExpenses() {
 
 export function listSeating() {
   const rows = [
-    ...state.rsvps.map((r) => ({ id: r.id, kind: "rsvp", name: r.name, table_number: r.table_number })),
+    ...state.rsvps.map((r) => ({
+      id: r.id,
+      kind: "rsvp",
+      name: r.name,
+      table_number: r.table_number,
+      is_child: false,
+      allergies: r.allergies ?? null,
+      phone: r.phone ?? null,
+      group_name: null,
+    })),
     ...state.rsvps.flatMap((r) =>
-      r.rsvp_guests.map((g) => ({ id: g.id, kind: "plus", name: g.name, table_number: g.table_number }))
+      r.rsvp_guests.map((g) => ({
+        id: g.id,
+        kind: "plus",
+        name: g.name,
+        table_number: g.table_number,
+        is_child: g.is_child,
+        allergies: g.allergies ?? null,
+        phone: null,
+        group_name: null,
+      }))
     ),
-    ...state.guests.map((g) => ({ id: g.id, kind: "guest", name: g.full_name, table_number: g.table_number })),
+    ...state.guests.map((g) => ({
+      id: g.id,
+      kind: "guest",
+      name: g.full_name,
+      table_number: g.table_number,
+      is_child: g.is_child,
+      allergies: g.allergies ?? null,
+      phone: g.phone ?? null,
+      group_name: g.group_name ?? null,
+    })),
   ];
   return rows.sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -292,7 +325,7 @@ export function submitRsvp(input: {
   name: string;
   attending: boolean;
   message: string;
-  guests: { name: string; isChild?: boolean; is_child?: boolean }[];
+  guests: { name: string; isChild?: boolean; is_child?: boolean; allergies?: string | null }[];
 }) {
   const key = nameKey(input.name);
   const existing = state.rsvps.find((r) => nameKey(r.name) === key);
@@ -310,6 +343,7 @@ export function submitRsvp(input: {
         name: g.name,
         is_child: Boolean(g.isChild ?? g.is_child ?? false),
         table_number: previous.get(nameKey(g.name)) ?? null,
+        allergies: g.allergies?.trim() || null,
       }))
     : [];
 
@@ -341,7 +375,13 @@ export function adminUpdateRsvp(input: {
   name: string;
   attending: boolean;
   message: string;
-  guests: { id?: string | null; name: string; isChild?: boolean; is_child?: boolean }[];
+  guests: {
+    id?: string | null;
+    name: string;
+    isChild?: boolean;
+    is_child?: boolean;
+    allergies?: string | null;
+  }[];
 }) {
   const row = state.rsvps.find((r) => r.id === input.id);
   if (!row) return { error: { message: "not found" } };
@@ -359,6 +399,7 @@ export function adminUpdateRsvp(input: {
           name: g.name.trim().replace(/\s+/g, " "),
           is_child: Boolean(g.isChild ?? g.is_child ?? false),
           table_number: seats.get(id) ?? null,
+          allergies: g.allergies?.trim() || null,
         };
       })
     : [];
@@ -370,15 +411,39 @@ export function deleteRsvp(id: string) {
   state.rsvps = state.rsvps.filter((r) => r.id !== id);
 }
 
-/** Contact detail edited from /admin/messages. */
-export function updateRsvpPhone(id: string, phone: string | null) {
+/** Contact details and quick toggles edited from the admin panel. */
+export function updateRsvp(id: string, patch: Partial<Pick<DemoRsvp, "phone" | "allergies" | "attending">>) {
   const row = state.rsvps.find((r) => r.id === id);
-  if (row) row.phone = phone;
+  if (!row) return;
+  if (patch.phone !== undefined) row.phone = patch.phone;
+  if (patch.allergies !== undefined) row.allergies = patch.allergies;
+  if (typeof patch.attending === "boolean") row.attending = patch.attending;
 }
 
-export function updateGuestPhone(id: string, phone: string | null) {
+export function updateImportedGuest(
+  id: string,
+  patch: Partial<Pick<DemoImportedGuest, "phone" | "allergies" | "is_child" | "group_name">>,
+) {
   const row = state.guests.find((g) => g.id === id);
-  if (row) row.phone = phone;
+  if (!row) return;
+  if (patch.phone !== undefined) row.phone = patch.phone;
+  if (patch.allergies !== undefined) row.allergies = patch.allergies;
+  if (typeof patch.is_child === "boolean") row.is_child = patch.is_child;
+  if (patch.group_name !== undefined) row.group_name = patch.group_name;
+}
+
+/** Menu / allergy changes for one companion, from the confirmations list. */
+export function updateRsvpGuest(
+  id: string,
+  patch: { is_child?: boolean; allergies?: string | null },
+) {
+  for (const r of state.rsvps) {
+    const guest = r.rsvp_guests.find((g) => g.id === id);
+    if (!guest) continue;
+    if (typeof patch.is_child === "boolean") guest.is_child = patch.is_child;
+    if (patch.allergies !== undefined) guest.allergies = patch.allergies;
+    return;
+  }
 }
 
 /* ------------------------------------------------------------ admin tables */
@@ -403,11 +468,29 @@ export function deleteExpense(id: string) {
   state.expenses = state.expenses.filter((x) => x.id !== id);
 }
 
-export function importGuests(names: string[]) {
+export function importGuests(
+  rows: {
+    full_name: string;
+    group_name?: string | null;
+    is_child?: boolean;
+    allergies?: string | null;
+    phone?: string | null;
+  }[],
+) {
   let inserted = 0;
-  for (const full_name of names) {
+  for (const row of rows) {
+    const full_name = row.full_name.replace(/\s+/g, " ").trim();
+    if (!full_name) continue;
     if (state.guests.some((g) => nameKey(g.full_name) === nameKey(full_name))) continue;
-    state.guests.push({ id: nextId(), full_name, is_child: false, table_number: null });
+    state.guests.push({
+      id: nextId(),
+      full_name,
+      is_child: Boolean(row.is_child),
+      table_number: null,
+      allergies: row.allergies?.trim() || null,
+      phone: row.phone?.trim() || null,
+      group_name: row.group_name?.trim() || null,
+    });
     inserted += 1;
   }
   return inserted;
@@ -550,9 +633,12 @@ export type VenueReportRow = {
   is_child: boolean;
   table_number: number | null;
   counted: boolean;
+  allergies: string | null;
+  phone: string | null;
+  group_name: string | null;
 };
 
-/** Mirrors the `venue_report` view from migration v5. */
+/** Mirrors the `venue_report` view from migration v5 / v32. */
 export function venueReport(): VenueReportRow[] {
   const rows: VenueReportRow[] = [];
 
@@ -564,6 +650,9 @@ export function venueReport(): VenueReportRow[] {
       is_child: false,
       table_number: rsvp.table_number,
       counted: true,
+      allergies: rsvp.allergies ?? null,
+      phone: rsvp.phone ?? null,
+      group_name: null,
     });
     for (const guest of rsvp.rsvp_guests) {
       rows.push({
@@ -572,6 +661,9 @@ export function venueReport(): VenueReportRow[] {
         is_child: guest.is_child,
         table_number: guest.table_number,
         counted: true,
+        allergies: guest.allergies ?? null,
+        phone: null,
+        group_name: null,
       });
     }
   }
@@ -583,6 +675,9 @@ export function venueReport(): VenueReportRow[] {
       is_child: guest.is_child,
       table_number: guest.table_number,
       counted: guest.table_number !== null,
+      allergies: guest.allergies ?? null,
+      phone: guest.phone ?? null,
+      group_name: guest.group_name ?? null,
     });
   }
 

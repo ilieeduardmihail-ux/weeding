@@ -21,7 +21,13 @@ export type RsvpForEdit = {
   attending: boolean;
   message: string | null;
   allergies: string | null;
-  guests: { id: string; name: string; is_child: boolean; table_number: number | null }[];
+  guests: {
+    id: string;
+    name: string;
+    is_child: boolean;
+    allergies: string | null;
+    table_number: number | null;
+  }[];
 };
 
 export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
@@ -43,7 +49,12 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
       attending: rsvp.attending ? "yes" : "no",
       message: rsvp.message ?? "",
       allergies: rsvp.allergies ?? "",
-      guests: rsvp.guests.map((g) => ({ guestId: g.id, name: g.name, isChild: g.is_child })),
+      guests: rsvp.guests.map((g) => ({
+        guestId: g.id,
+        name: g.name,
+        isChild: g.is_child,
+        allergies: g.allergies ?? "",
+      })),
     },
   });
   const { fields, append, remove } = useFieldArray({ control, name: "guests" });
@@ -121,6 +132,15 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
                       <label className="flex items-center gap-2 text-sm text-ink/75">
                         <input type="checkbox" {...register(`guests.${index}.isChild`)} /> Copil
                       </label>
+                      <Input
+                        aria-label={`Alergii sau preferințe pentru persoana ${index + 1}`}
+                        placeholder="Alergii / preferințe pentru această persoană"
+                        maxLength={500}
+                        {...register(`guests.${index}.allergies`)}
+                      />
+                      {errors.guests?.[index]?.allergies && (
+                        <p className="text-sm text-red-700">{errors.guests[index]!.allergies!.message}</p>
+                      )}
                       {seat !== null && seat !== undefined && (
                         <p className="flex items-center gap-1.5 text-xs text-ink/60">
                           <Armchair className="size-3.5" aria-hidden="true" /> Păstrează masa {seat}
@@ -138,7 +158,7 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => append({ guestId: null, name: "", isChild: false })}
+                  onClick={() => append({ guestId: null, name: "", isChild: false, allergies: "" })}
                 >
                   Adaugă o persoană
                 </Button>
@@ -157,7 +177,10 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
           placeholder="Ex: fără gluten, alergie la nuci…"
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 focus-visible:outline-2 focus-visible:outline-gold"
         />
-        <p className="text-xs text-ink/55">Apare și în raportul pentru restaurant.</p>
+        <p className="text-xs text-ink/55">
+          Pentru persoana care a răspuns. Fiecare însoțitor are propriul câmp, mai sus. Ambele apar în
+          raportul pentru restaurant.
+        </p>
         {errors.allergies && <p className="text-sm text-red-700">{errors.allergies.message}</p>}
       </div>
 

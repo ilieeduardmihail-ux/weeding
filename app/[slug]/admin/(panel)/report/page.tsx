@@ -10,6 +10,7 @@ type ReportRow = {
   is_child: boolean;
   table_number: number | null;
   counted: boolean;
+  allergies?: string | null;
 };
 
 const kindLabel: Record<ReportRow["kind"], string> = {
@@ -82,7 +83,8 @@ function Report() {
                   <tr>
                     <th className="py-2 pr-4 font-medium">Nume</th>
                     <th className="py-2 pr-4 font-medium">Sursă</th>
-                    <th className="py-2 font-medium">Copil</th>
+                    <th className="py-2 pr-4 font-medium">Copil</th>
+                    <th className="py-2 font-medium">Alergii / preferințe</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -90,7 +92,8 @@ function Report() {
                     <tr key={`${row.kind}-${row.name}-${index}`} className="border-b border-ink/10 transition-colors duration-200 hover:bg-ink/5">
                       <td className="py-2 pr-4">{row.name}</td>
                       <td className="py-2 pr-4 text-ink/60">{kindLabel[row.kind]}</td>
-                      <td className="py-2 text-ink/60">{row.is_child ? "Da" : "—"}</td>
+                      <td className="py-2 pr-4 text-ink/60">{row.is_child ? "Da" : "—"}</td>
+                      <td className="py-2 text-ink/60">{row.allergies ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -82,7 +82,14 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
         if (this.op === "update") {
           const payload = (Array.isArray(this.payload) ? this.payload[0] : this.payload) ?? {};
           if (typeof idFilter === "string") {
-            store.updateRsvpPhone(idFilter, typeof payload.phone === "string" ? payload.phone : null);
+            store.updateRsvp(idFilter, {
+              phone: typeof payload.phone === "string" || payload.phone === null ? payload.phone : undefined,
+              allergies:
+                typeof payload.allergies === "string" || payload.allergies === null
+                  ? payload.allergies
+                  : undefined,
+              attending: typeof payload.attending === "boolean" ? payload.attending : undefined,
+            });
           }
           return ok(null);
         }
@@ -123,11 +130,39 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
         if (this.op === "update") {
           const payload = (Array.isArray(this.payload) ? this.payload[0] : this.payload) ?? {};
           if (typeof idFilter === "string") {
-            store.updateGuestPhone(idFilter, typeof payload.phone === "string" ? payload.phone : null);
+            store.updateImportedGuest(idFilter, {
+              phone: typeof payload.phone === "string" || payload.phone === null ? payload.phone : undefined,
+              allergies:
+                typeof payload.allergies === "string" || payload.allergies === null
+                  ? payload.allergies
+                  : undefined,
+              is_child: typeof payload.is_child === "boolean" ? payload.is_child : undefined,
+              group_name:
+                typeof payload.group_name === "string" || payload.group_name === null
+                  ? payload.group_name
+                  : undefined,
+            });
           }
           return ok(null);
         }
         return ok(store.listGuestNames());
+      }
+
+      case "rsvp_guests": {
+        if (this.op === "update") {
+          const payload = (Array.isArray(this.payload) ? this.payload[0] : this.payload) ?? {};
+          if (typeof idFilter === "string") {
+            store.updateRsvpGuest(idFilter, {
+              is_child: typeof payload.is_child === "boolean" ? payload.is_child : undefined,
+              allergies:
+                typeof payload.allergies === "string" || payload.allergies === null
+                  ? payload.allergies
+                  : undefined,
+            });
+          }
+          return ok(null);
+        }
+        return ok([]);
       }
 
       case "event_settings": {
@@ -235,8 +270,15 @@ export function createDemoClient() {
         }
 
         case "import_guests": {
-          const names = ((args.p_guests as { full_name: string }[]) ?? []).map((g) => g.full_name);
-          return ok(store.importGuests(names));
+          const rows =
+            (args.p_guests as {
+              full_name: string;
+              group_name?: string | null;
+              is_child?: boolean;
+              allergies?: string | null;
+              phone?: string | null;
+            }[]) ?? [];
+          return ok(store.importGuests(rows));
         }
 
         case "assign_table": {

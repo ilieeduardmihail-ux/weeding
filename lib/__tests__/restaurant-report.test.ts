@@ -68,9 +68,9 @@ describe("restaurant report", () => {
     const csv = restaurantCsv(report);
     const lines = csv.split("\r\n");
 
-    expect(lines[0]).toBe("Nume,Masa,Meniu,Alergii");
-    expect(lines[1]).toBe('"Copil, Mic","2","Copii",""');
-    expect(lines[2]).toBe('"Popescu Ana","2","Standard",""');
+    expect(lines[0]).toBe("Nume,Masa,Meniu,Alergii,Telefon,Grup");
+    expect(lines[1]).toBe('"Copil, Mic","2","Copii","","",""');
+    expect(lines[2]).toBe('"Popescu Ana","2","Standard","","",""');
     expect(csv).toContain("Meniu,Persoane");
     expect(csv).toContain('"Standard","1"');
     expect(csv).toContain('"Total","2"');
@@ -78,15 +78,59 @@ describe("restaurant report", () => {
 
   it("leaves the table empty for unseated people", () => {
     const report = buildRestaurantReport([row({ name: "Fara Masa", table_number: null })]);
-    expect(restaurantCsv(report)).toContain('"Fara Masa","","Standard",""');
+    expect(restaurantCsv(report)).toContain('"Fara Masa","","Standard","","",""');
   });
 
-  it("copies the guest's allergies into the export by name", () => {
+  it("copies the guest's allergies into the export", () => {
     const report = buildRestaurantReport(
       [row({ name: "Popescu Ana", table_number: 2 })],
       new Map([["popescu ana", "fără gluten"]]),
     );
     expect(report.people[0].allergies).toBe("fără gluten");
-    expect(restaurantCsv(report)).toContain('"Popescu Ana","2","Standard","fără gluten"');
+    expect(restaurantCsv(report)).toContain('"Popescu Ana","2","Standard","fără gluten","",""');
+  });
+
+  it("uses the person's own note and contact before the family fallback", () => {
+    const report = buildRestaurantReport(
+      [
+        row({
+          name: "Popescu Ana",
+          table_number: 2,
+          allergies: "fără lactoză",
+          phone: "0722 000 111",
+          group_name: "Familia Popescu",
+        }),
+      ],
+      new Map([["popescu ana", "fără gluten"]]),
+    );
+
+    expect(report.people[0]).toMatchObject({
+      allergies: "fără lactoză",
+      phone: "0722 000 111",
+      group: "Familia Popescu",
+    });
+  });
+
+  it("builds one row per table with adults, children and capacity", () => {
+    const report = buildRestaurantReport(
+      [
+        row({ name: "Adult 1", table_number: 1 }),
+        row({ name: "Adult 2", table_number: 1 }),
+        row({ name: "Copil 1", table_number: 2, is_child: true }),
+        row({ name: "Neasezat", table_number: null }),
+      ],
+      undefined,
+      new Map([
+        [1, 10],
+        [2, 8],
+      ]),
+    );
+
+    expect(report.tableTotals).toEqual([
+      { table: 1, people: 2, adults: 2, children: 0, capacity: 10 },
+      { table: 2, people: 1, adults: 0, children: 1, capacity: 8 },
+    ]);
+    expect(report.tables).toBe(2);
+    expect(report.seated).toBe(3);
   });
 });

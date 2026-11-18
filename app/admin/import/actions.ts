@@ -4,24 +4,70 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { adminBasePath, currentAdminSlug, currentTenantId } from "@/lib/tenant-session";
-import { MAX_IMPORT_NAMES, splitImportNames } from "@/lib/import-names";
+import { MAX_IMPORT_NAMES, NAME_MAX_LENGTH, NAME_MIN_LENGTH } from "@/lib/import-names";
+
+const guestSchema = z.object({
+  name: z.string().max(300),
+  group: z.string().max(120).optional(),
+  isChild: z.boolean().optional(),
+  allergies: z.string().max(500).optional(),
+  phone: z.string().max(40).optional(),
+});
 
 const schema = z.object({
-  names: z.array(z.string()).min(1).max(MAX_IMPORT_NAMES),
+  guests: z.array(guestSchema).min(1).max(MAX_IMPORT_NAMES),
 });
+
+export type ImportGuestInput = {
+  name: string;
+  group?: string;
+  isChild?: boolean;
+  allergies?: string;
+  phone?: string;
+};
 
 export type ImportResult =
   | { ok: true; inserted: number; skipped: number; tooLong: number; tooShort: number }
   | { ok: false; error: string };
 
-export async function importGuests(input: { names: string[] }): Promise<ImportResult> {
+export async function importGuests(input: { guests: ImportGuestInput[] }): Promise<ImportResult> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: `Poți importa între 1 și ${MAX_IMPORT_NAMES} nume o dată.` };
   }
 
-  // One over-long row must not throw away the other four hundred.
-  const { valid, tooLong, tooShort } = splitImportNames(parsed.data.names);
+  // One over-long row must not throw away the other four hundred, and the rows
+  // that survive keep their child/allergy details.
+  const valid: {
+    full_name: string;
+    group_name: string | null;
+    is_child: boolean;
+    allergies: string | null;
+    phone: string | null;
+  }[] = [];
+  let tooLong = 0;
+  let tooShort = 0;
+
+  for (const guest of parsed.data.guests) {
+    const name = guest.name.replace(/\s+/g, " ").trim();
+    if (!name) continue;
+    if (name.length > NAME_MAX_LENGTH) {
+      tooLong += 1;
+      continue;
+    }
+    if (name.length < NAME_MIN_LENGTH) {
+      tooShort += 1;
+      continue;
+    }
+    valid.push({
+      full_name: name,
+      group_name: guest.group?.trim() || null,
+      is_child: guest.isChild === true,
+      allergies: guest.allergies?.trim() || null,
+      phone: guest.phone?.trim() || null,
+    });
+  }
+
   if (valid.length === 0) {
     return {
       ok: false,
@@ -40,7 +86,7 @@ export async function importGuests(input: { names: string[] }): Promise<ImportRe
   }
 
   const { data, error } = await supabase.rpc("import_guests", {
-    p_guests: valid.map((full_name) => ({ full_name })),
+    p_guests: valid,
     p_tenant: tenantId,
   });
 

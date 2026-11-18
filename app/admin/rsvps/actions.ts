@@ -33,7 +33,12 @@ export async function updateRsvp(input: AdminRsvpInput): Promise<UpdateRsvpResul
     p_attending: attending,
     p_message: d.message ?? "",
     p_guests: attending
-      ? d.guests.map((g) => ({ id: g.guestId === "" ? null : g.guestId, name: g.name, isChild: g.isChild }))
+      ? d.guests.map((g) => ({
+          id: g.guestId === "" ? null : g.guestId,
+          name: g.name,
+          isChild: g.isChild,
+          allergies: g.allergies ?? "",
+        }))
       : [],
     p_tenant: tenantId,
   });
@@ -87,17 +92,47 @@ export async function setRsvpAttending(id: string, attending: boolean): Promise<
 }
 
 /** Switches one person between the standard menu and the children's menu. */
-export async function setGuestChild(id: string, isChild: boolean): Promise<QuickResult> {
+export type GuestKind = "plus" | "guest";
+
+export async function setGuestChild(
+  id: string,
+  isChild: boolean,
+  kind: GuestKind = "plus",
+): Promise<QuickResult> {
   if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Cerere invalidă." };
+  if (kind !== "plus" && kind !== "guest") return { ok: false, error: "Cerere invalidă." };
   const tenantId = await currentTenantId();
   if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
 
   const supabase = await createClient();
   const { error } = await supabase
-    .from("rsvp_guests")
+    .from(kind === "guest" ? "guests" : "rsvp_guests")
     .update({ is_child: isChild })
     .eq("id", id)
     .eq("tenant_id", tenantId);
   if (error) return { ok: false, error: "Nu am putut schimba meniul. Încearcă din nou." };
+  return { ok: true };
+}
+
+/** Saves the food note of one person (companion or imported guest). */
+export async function setGuestAllergies(
+  id: string,
+  allergies: string,
+  kind: GuestKind = "plus",
+): Promise<QuickResult> {
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Cerere invalidă." };
+  if (kind !== "plus" && kind !== "guest") return { ok: false, error: "Cerere invalidă." };
+  const value = allergies.replace(/\s+/g, " ").trim();
+  if (value.length > 500) return { ok: false, error: "Păstrează alergiile sub 500 de caractere." };
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from(kind === "guest" ? "guests" : "rsvp_guests")
+    .update({ allergies: value === "" ? null : value })
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
+  if (error) return { ok: false, error: "Nu am putut salva alergiile. Încearcă din nou." };
   return { ok: true };
 }

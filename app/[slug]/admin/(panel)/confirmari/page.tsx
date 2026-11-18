@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState, type ReactNode } from "react";
+import { Suspense, memo, useMemo, useState, type ReactNode } from "react";
 import { Check, Clock, Copy, Phone, Search, UserCheck, UserX, Users } from "lucide-react";
 import { useAdminData } from "@/components/admin/admin-data";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
@@ -11,7 +11,7 @@ import { Toast, useToast } from "@/components/ui/toast";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { nameKey } from "@/lib/fuzzy";
 import { notifyAdminDataChanged } from "@/lib/admin-data";
-import { setGuestChild, setRsvpAttending } from "@/app/admin/rsvps/actions";
+import { setGuestAllergies, setGuestChild, setRsvpAttending, type GuestKind } from "@/app/admin/rsvps/actions";
 
 type Filter = "all" | "yes" | "no" | "pending";
 
@@ -32,6 +32,66 @@ const TABS: { id: Filter; label: string }[] = [
   { id: "no", label: "Nu vin" },
   { id: "pending", label: "Fără răspuns" },
 ];
+
+/** Inline editor for one person's food note; saves on blur and Enter. */
+const refreshData = () => notifyAdminDataChanged();
+
+const AllergyInput = memo(function AllergyInput({
+  id,
+  name,
+  value,
+  kind,
+  onSaved,
+  onError,
+}: {
+  id: string;
+  name: string;
+  value: string | null;
+  kind: GuestKind;
+  onSaved: () => void;
+  onError: (message: string) => void;
+}) {
+  const [text, setText] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const commit = () => {
+    const next = text.replace(/\s+/g, " ").trim();
+    if (next === (value ?? "")) return;
+    setSaving(true);
+    void setGuestAllergies(id, next, kind)
+      .catch(() => ({ ok: false as const, error: "Conexiunea a eșuat. Încearcă din nou." }))
+      .then((result) => {
+        setSaving(false);
+        if (result.ok) onSaved();
+        else {
+          setText(value ?? "");
+          onError(result.error);
+        }
+      });
+  };
+
+  return (
+    <label className="flex min-w-0 items-center gap-1 text-xs text-ink/60">
+      <span className="shrink-0">Alergii:</span>
+      <input
+        value={text}
+        maxLength={500}
+        disabled={saving}
+        onChange={(event) => setText(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            event.currentTarget.blur();
+          }
+        }}
+        aria-label={`Alergii sau preferințe pentru ${name}`}
+        placeholder="—"
+        className="w-40 min-w-0 rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-ink/80 transition-colors hover:border-ink/20 focus:border-gold focus:outline-none disabled:opacity-60"
+      />
+    </label>
+  );
+});
 
 function StatCard({
   icon,
@@ -246,19 +306,37 @@ function Confirmari() {
           ) : (
             <ul className="glass divide-y divide-ink/10 rounded-xl">
               {visiblePending.map((guest) => (
-                <li key={guest.id} className="flex items-center justify-between gap-4 px-5 py-3">
-                  <span>{guest.name}</span>
-                  {guest.phone ? (
-                    <a
-                      href={`tel:${guest.phone}`}
-                      className="flex items-center gap-1.5 text-sm text-ink/65 hover:text-ink"
-                    >
-                      <Phone className="size-3.5" aria-hidden />
-                      {guest.phone}
-                    </a>
-                  ) : (
-                    <span className="text-sm text-ink/40">fără telefon</span>
-                  )}
+                <li key={guest.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                  <span className="flex items-center gap-2">
+                    {guest.name}
+                    {guest.isChild && (
+                      <span className="rounded bg-gold/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gold">
+                        copil
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex flex-wrap items-center justify-end gap-3">
+                    <AllergyInput
+                      key={`allergy-${guest.id}-${guest.allergies ?? ""}`}
+                      id={guest.id}
+                      name={guest.name}
+                      value={guest.allergies}
+                      kind="guest"
+                      onSaved={refreshData}
+                      onError={show}
+                    />
+                    {guest.phone ? (
+                      <a
+                        href={`tel:${guest.phone}`}
+                        className="flex items-center gap-1.5 text-sm text-ink/65 hover:text-ink"
+                      >
+                        <Phone className="size-3.5" aria-hidden />
+                        {guest.phone}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-ink/40">fără telefon</span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -317,6 +395,15 @@ function Confirmari() {
                               >
                                 {guest.is_child ? "Meniu de pici" : "Meniu standard"}
                               </button>
+                              <AllergyInput
+                                key={`allergy-${guest.id}-${guest.allergies ?? ""}`}
+                                id={guest.id}
+                                name={guest.name}
+                                value={guest.allergies}
+                                kind="plus"
+                                onSaved={refreshData}
+                                onError={show}
+                              />
                             </li>
                           ))}
                         </ul>

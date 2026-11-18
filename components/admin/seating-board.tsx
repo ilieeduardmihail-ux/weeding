@@ -23,7 +23,15 @@ import {
 } from "@/lib/seating";
 
 export type Kind = "rsvp" | "plus" | "guest";
-export type Person = { id: string; kind: Kind; name: string; table: number | null };
+export type Person = {
+  id: string;
+  kind: Kind;
+  name: string;
+  table: number | null;
+  isChild: boolean;
+  allergies: string | null;
+  group: string | null;
+};
 
 const keyOf = (p: Person) => `${p.kind}:${p.id}`;
 const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
@@ -91,7 +99,16 @@ const PersonChip = memo(function PersonChip({
         )}
       >
         {p.name}
+        {p.isChild && <span className="ml-2 rounded bg-gold/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gold">copil</span>}
         {BADGE[p.kind] && <span className="ml-2 text-xs text-ink/60">{BADGE[p.kind]}</span>}
+        {p.allergies && (
+          <span
+            className="ml-2 cursor-help text-[11px] text-ink/60 underline decoration-dotted decoration-ink/30 underline-offset-2"
+            title={`Alergii / preferințe: ${p.allergies}`}
+          >
+            alergii
+          </span>
+        )}
       </div>
       {onUnassign && (
         <button type="button" onClick={() => onUnassign(p)} aria-label={`Mută-l pe ${p.name} în Fără masă`}

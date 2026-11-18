@@ -31,6 +31,7 @@ export default function EditRsvpPage() {
       id: guest.id,
       name: guest.name,
       is_child: guest.is_child,
+      allergies: guest.allergies ?? null,
       table_number: guest.table_number,
     })),
   };

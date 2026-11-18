@@ -20,7 +20,13 @@ export type GuestRow = {
   allergies: string | null;
   created_at: string;
   table_number: number | null;
-  rsvp_guests: { id: string; name: string; is_child: boolean; table_number: number | null }[];
+  rsvp_guests: {
+    id: string;
+    name: string;
+    is_child: boolean;
+    allergies: string | null;
+    table_number: number | null;
+  }[];
 };
 
 const NETWORK_ERROR = "Conexiunea a eșuat. Încearcă din nou.";
@@ -40,6 +46,7 @@ const sameGuest = (a: GuestRow["rsvp_guests"][number], b: GuestRow["rsvp_guests"
   a.id === b.id &&
   a.name === b.name &&
   a.is_child === b.is_child &&
+  a.allergies === b.allergies &&
   a.table_number === b.table_number;
 
 const sameRow = (a: GuestRow, b: GuestRow) =>
@@ -76,6 +83,9 @@ const RowView = memo(function RowView({
           <p key={guest.id}>
             {guest.name}
             {guest.is_child ? " (copil, meniu de pici)" : ""}, {tableLabel(guest.table_number)}
+            {guest.allergies && (
+              <span className="block text-xs text-ink/60">Alergii: {guest.allergies}</span>
+            )}
           </p>
         ))}
       </td>

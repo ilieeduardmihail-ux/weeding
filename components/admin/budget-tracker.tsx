@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Toast, useToast } from "@/components/ui/toast";
 import { addExpense, addPayment, deleteExpense, updateExpense, updateExpenseCategory } from "@/app/admin/budget/actions";
 import { CATEGORIES } from "@/lib/admin-config";
+import { stageTotals, type StageTotals } from "@/lib/budget";
 import { CURRENCIES, moneyFormatter, type Currency } from "@/lib/currency";
 import { expenseSchema, expenseUpdateSchema, parseMoney, round2, type Category, type ExpenseInput, type ExpenseUpdateInput } from "@/lib/expense-schema";
 import { mergeById } from "@/lib/merge-by-id";
@@ -76,14 +77,10 @@ function Progress({ ratio, label, now, max }: { ratio: number; label: string; no
   );
 }
 
-const Totals = memo(function Totals({
-  totals,
-}: {
-  totals: { currency: Currency; count: number; total: number; paid: number; left: number }[];
-}) {
+const Totals = memo(function Totals({ totals }: { totals: StageTotals[] }) {
   return (
     <>
-      {totals.map(({ currency, count, total, paid, left }) => {
+      {totals.map(({ currency, count, total, paid, left, before, after, unassigned }) => {
         const fmt = moneyFormatter(currency);
         return (
           <section key={currency} className="mt-6">
@@ -99,6 +96,28 @@ const Totals = memo(function Totals({
                 </div>
               ))}
             </dl>
+
+            {/* The remaining money, split by the moment it has to be paid. */}
+            <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+              {([
+                ["Avans plătit", paid, "deja achitat"],
+                ["De plată înainte de nuntă", before, "scadent până la nuntă"],
+                ["De plată în ziua nunții / după", after, "scadent în ziua nunții sau după"],
+              ] as const).map(([label, value, hint]) => (
+                <div key={label} className="rounded-lg border border-ink/10 px-4 py-3">
+                  <dt className="text-xs uppercase tracking-[0.12em] text-ink/55">{label}</dt>
+                  <dd className="mt-1 font-display text-2xl tabular-nums">{fmt.format(value)}</dd>
+                  <p className="text-[11px] leading-relaxed text-ink/50">{hint}</p>
+                </div>
+              ))}
+            </dl>
+            {unassigned > 0 && (
+              <p className="mt-2 text-xs leading-relaxed text-ink/60">
+                Neîmpărțit pe etape: <span className="tabular-nums">{fmt.format(unassigned)}</span>. Deschide
+                furnizorul și împarte restul între „înainte de nuntă” și „în ziua nunții / după”.
+              </p>
+            )}
+
             <Progress
               ratio={total ? paid / total : 0}
               label={`Procentul din bugetul în ${currency} plătit`}
@@ -196,7 +215,7 @@ const ExpenseRow = memo(function ExpenseRow({
         <p className="mt-1 text-xs text-ink/60">
           Rest de plată:{" "}
           <span className="tabular-nums">{fmt.format(x.due_before ?? 0)}</span> înainte de nuntă ·{" "}
-          <span className="tabular-nums">{fmt.format(x.due_after ?? 0)}</span> în ziua nunții
+          <span className="tabular-nums">{fmt.format(x.due_after ?? 0)}</span> în ziua nunții / după
         </p>
       )}
       {x.notes && <p className="mt-1 text-sm text-ink/60">{x.notes}</p>}
@@ -654,16 +673,7 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
     setStore((prev) => ({ ...prev, items: updater(prev.items) }));
   }, []);
 
-  const totals = useMemo(
-    () =>
-      CURRENCIES.map((currency) => {
-        const list = items.filter((e) => e.currency === currency);
-        const total = list.reduce((s, e) => s + e.total_cost, 0);
-        const paid = list.reduce((s, e) => s + e.amount_paid, 0);
-        return { currency, count: list.length, total, paid, left: round2(total - paid) };
-      }).filter((t) => t.count > 0),
-    [items],
-  );
+  const totals = useMemo(() => stageTotals(items), [items]);
 
   // Category counts and the filtered list are pure client-side derivations.
   // Clicking a tab only sets state: no server call, no re-fetch.

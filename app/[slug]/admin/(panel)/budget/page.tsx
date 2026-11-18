@@ -44,7 +44,8 @@ export default function BudgetPage() {
       <h1 className="font-display text-4xl">Buget & furnizori</h1>
       <p className="mt-2 max-w-2xl text-ink/70">
         Fiecare furnizor, cu avansul plătit și cu restul împărțit între „înainte de nuntă” și
-        „în ziua nunții”. Planificatorul și calculatorul de dar pornesc din aceleași sume.
+        „în ziua nunții sau după”. Totalurile de sus arată cât aveți de plătit în fiecare etapă.
+        Planificatorul și calculatorul de dar pornesc din aceleași sume.
       </p>
       <BudgetTracker expenses={data.expenses} />
       <FinancialPlanner expenses={data.expenses} eventDate={data.settings.event_date} />

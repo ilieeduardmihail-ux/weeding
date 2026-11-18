@@ -18,6 +18,7 @@ import {
   HERO,
   NAVIGATION,
   PANEL_SECTIONS,
+  PLANS,
   PRICE,
   STEPS,
 } from "@/lib/marketing";
@@ -340,26 +341,59 @@ export default function Home() {
         {/* ------------------------------------------------------ preț + contact */}
         <section id="pret" className="scroll-mt-24 px-6 pb-20 sm:pb-28">
           <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl bg-ink px-6 py-12 text-sea sm:px-10 sm:py-14">
-            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-14">
+            <div className="max-w-2xl">
+              <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">{PRICE.eyebrow}</p>
+              <h2 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">{PRICE.title}</h2>
+              <p className="mt-4 leading-relaxed text-sea/70">{PRICE.text}</p>
+            </div>
+
+            <div className="mt-10 grid gap-4 lg:grid-cols-2">
+              {PLANS.map((plan) => (
+                <article
+                  key={plan.id}
+                  className={`relative rounded-2xl border p-6 ${
+                    plan.featured
+                      ? "border-gold/60 bg-gold/10"
+                      : "border-sea/15 bg-sea/5"
+                  }`}
+                >
+                  {plan.featured && (
+                    <span className="absolute -top-3 right-5 rounded-full bg-gold px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-ink">
+                      Recomandat
+                    </span>
+                  )}
+                  <h3 className="font-display text-2xl">{plan.name}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-sea/65">{plan.tagline}</p>
+                  <ul className="mt-5 grid gap-2.5 text-sm text-sea/80">
+                    {plan.included.map((item) => (
+                      <li key={item} className="flex gap-3">
+                        <span aria-hidden className="mt-1.5 shrink-0 text-gold">
+                          ✦
+                        </span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-5 border-t border-sea/10 pt-4 text-xs leading-relaxed text-sea/55">
+                    {plan.note}
+                  </p>
+                </article>
+              ))}
+            </div>
+
+            <p className="mt-6 max-w-2xl text-sm leading-relaxed text-sea/60">{PRICE.note}</p>
+
+            <div className="mt-12 grid gap-8 border-t border-sea/15 pt-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start lg:gap-14">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">{PRICE.eyebrow}</p>
-                <h2 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">{PRICE.title}</h2>
-                <p className="mt-4 max-w-lg leading-relaxed text-sea/70">{PRICE.text}</p>
-                <p className="mt-4 max-w-lg text-sm leading-relaxed text-sea/60">{PRICE.note}</p>
-
-                <p className="mt-8 text-[11px] uppercase tracking-[0.3em] text-sea/45">Ce include</p>
-                <ul className="mt-4 grid gap-2.5 text-sm text-sea/75">
-                  {PRICE.included.map((item) => (
-                    <li key={item} className="flex gap-3">
-                      <span aria-hidden className="mt-1.5 text-gold">
-                        ✦
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+                <p className="text-[11px] uppercase tracking-[0.3em] text-sea/45">Cererea voastră</p>
+                <h3 className="mt-3 font-display text-2xl leading-snug">
+                  Alegeți pachetul și scrieți-ne.
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-sea/65">
+                  Nu aveți încă toate detaliile? E în regulă. Ne spuneți ce știți acum, iar noi
+                  revenim cu oferta și cu întrebările care mai lipsesc.
+                </p>
               </div>
-
               <div id="contact" className="scroll-mt-28">
                 <ContactForm />
               </div>

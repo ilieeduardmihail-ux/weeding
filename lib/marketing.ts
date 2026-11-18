@@ -162,17 +162,55 @@ export const PRICE = {
   title: "Spuneți-ne ce invitație aveți în minte.",
   text:
     "Alegeți perioada care vi se potrivește și scrieți-ne în câteva rânduri ce vă doriți. Vă răspundem cu o ofertă potrivită.",
-  included: [
-    "Site public cu link propriu pentru nuntă",
-    "Paletă de culori și decor floral ales de voi",
-    "Confirmări, listă de invitați și însoțitori",
-    "Așezare la mese și raport pentru restaurant",
-    "Buget pe categorii, în lei și euro",
-    "Mesaje gata de trimis pe WhatsApp",
-    "Suport pe email, până după nuntă",
-  ],
   note: "Pachete pe perioade definite: 6 luni, 1 an, 1 an și 6 luni sau 2 ani. Perioada începe din momentul activării.",
 } as const;
+
+export type Plan = {
+  id: string;
+  name: string;
+  tagline: string;
+  included: readonly string[];
+  note: string;
+  /** The plan we point people to. */
+  featured?: boolean;
+};
+
+/**
+ * What each package contains, written for the couple rather than for the
+ * platform. Standard is everything about the guests; Premium adds the money
+ * side (budget, vendors, planner and the gift calculator).
+ */
+export const PLANS: readonly Plan[] = [
+  {
+    id: "standard",
+    name: "Standard",
+    tagline: "Tot ce ține de invitați, de la link până la raportul pentru restaurant.",
+    included: [
+      "Site public cu link propriu pentru nuntă",
+      "Paletă de culori și decor floral ales de voi",
+      "Confirmări RSVP, listă de invitați și însoțitori",
+      "Meniu de pici și alergii / preferințe alimentare",
+      "Așezare la mese și raport pentru restaurant (.xlsx)",
+      "Mesaje gata de trimis pe WhatsApp",
+      "Suport pe email, până după nuntă",
+    ],
+    note: "Ideal dacă țineți bugetul separat, într-un fișier al vostru.",
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    tagline: "Standard, plus banii: buget, furnizori și planificare.",
+    included: [
+      "Tot ce include Standard",
+      "Buget pe categorii, în lei și euro",
+      "Furnizori cu avans, rest înainte de nuntă și rest în ziua nunții",
+      "Planificator financiar: câte luni au rămas și cât economisiți lunar",
+      "Calculator de dar: dar minim recomandat per persoană și per cuplu",
+    ],
+    note: "Recomandat dacă vreți să țineți și banii în același loc.",
+    featured: true,
+  },
+] as const;
 
 export const FAQ = [
   {
@@ -204,6 +242,11 @@ export const FAQ = [
     question: "Ce se întâmplă cu datele invitaților?",
     answer:
       "Sunt folosite doar pentru nunta voastră: confirmarea, așezarea la mese și raportul pentru restaurant. Nu le folosim în alt scop și nu le vindem. Detalii în pagina de confidențialitate.",
+  },
+  {
+    question: "Care e diferența dintre Standard și Premium?",
+    answer:
+      "Standard acoperă invitația și tot ce ține de invitați: confirmări, meniul de pici, alergii, așezarea la mese și raportul pentru restaurant. Premium adaugă partea financiară: bugetul pe furnizori, planificatorul lunar și calculatorul de dar.",
   },
   {
     question: "Cât timp rămâne site-ul online?",

@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrowserFrame, PhoneFrame, Screenshot } from "@/components/marketing/frames";
 import { PanelAccordion } from "@/components/marketing/panel-accordion";
+import { THEME_COUNTS, ThemeAccordion } from "@/components/marketing/theme-accordion";
 import { ContactLink } from "@/components/marketing/contact-link";
 import { ContactForm } from "@/components/marketing/contact-form";
 import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import { VisitBeacon } from "@/components/visit-beacon";
 import { Button } from "@/components/ui/button";
-import { FLORAL_IMAGES, FLORAL_SETS, PALETTES, floralSrcSet } from "@/lib/theme";
 import {
   BRAND,
   CONTACT_EMAIL,
@@ -54,17 +54,9 @@ export const metadata: Metadata = {
 
 const eyebrow = "text-[11px] font-medium uppercase tracking-[0.3em] text-gold";
 const h2 = "mt-3 font-display text-3xl leading-tight text-ink sm:text-4xl";
-const lead = "mt-4 max-w-2xl text-base leading-relaxed text-ink/70 sm:text-lg";
+const lead = "mt-3 max-w-2xl text-base leading-relaxed text-ink/70 sm:text-lg";
 const linkUnderline =
   "underline decoration-gold/40 decoration-1 underline-offset-4 transition-colors hover:text-ink hover:decoration-gold";
-const floralPreview = [
-  "photo-bujori",
-  "photo-bujori-si-trandafiri",
-  "photo-trandafiri-vintage",
-  "photo-bordo-si-aur",
-  "photo-hortensie-albastra",
-  "photo-flori-mov",
-] as const;
 
 export default function Home() {
   return (
@@ -100,7 +92,7 @@ export default function Home() {
 
       <main>
         {/* ------------------------------------------------------------- hero */}
-        <section className="relative overflow-hidden px-6 pt-14 pb-24 sm:pt-20 sm:pb-32">
+        <section className="relative overflow-hidden px-6 pt-10 pb-14 sm:pt-14 sm:pb-20">
           <div
             aria-hidden
             className="pointer-events-none absolute -top-40 right-[-10%] size-[38rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(185,138,147,0.28),transparent_65%)]"
@@ -110,24 +102,24 @@ export default function Home() {
             className="pointer-events-none absolute top-1/3 left-[-15%] size-[32rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(107,122,78,0.18),transparent_65%)]"
           />
 
-          <div className="relative mx-auto grid w-full max-w-6xl items-center gap-14 lg:grid-cols-[1.02fr_1fr] lg:gap-10">
+          <div className="relative mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[1.02fr_1fr] lg:gap-10">
             <div>
               <p className={`${eyebrow} animate-rise motion-reduce:animate-none`}>{HERO.eyebrow}</p>
               <h1
-                className="mt-5 animate-rise font-display text-[2.6rem] leading-[1.05] text-ink motion-reduce:animate-none sm:text-6xl"
+                className="mt-4 animate-rise font-display text-[2.6rem] leading-[1.05] text-ink motion-reduce:animate-none sm:text-6xl"
                 style={{ animationDelay: "80ms" }}
               >
                 {HERO.title}
               </h1>
               <p
-                className="mt-6 max-w-xl animate-rise text-lg leading-relaxed text-ink/70 motion-reduce:animate-none"
+                className="mt-5 max-w-xl animate-rise text-lg leading-relaxed text-ink/70 motion-reduce:animate-none"
                 style={{ animationDelay: "160ms" }}
               >
                 {HERO.lead}
               </p>
 
               <div
-                className="mt-8 flex animate-rise flex-wrap items-center gap-3 motion-reduce:animate-none"
+                className="mt-7 flex animate-rise flex-wrap items-center gap-3 motion-reduce:animate-none"
                 style={{ animationDelay: "240ms" }}
               >
                 <Button asChild size="lg">
@@ -145,7 +137,7 @@ export default function Home() {
               </p>
 
               <ul
-                className="mt-9 flex animate-rise flex-wrap gap-x-6 gap-y-2 text-sm text-ink/65 motion-reduce:animate-none"
+                className="mt-7 flex animate-rise flex-wrap gap-x-6 gap-y-2 text-sm text-ink/65 motion-reduce:animate-none"
                 style={{ animationDelay: "360ms" }}
               >
                 {HERO.points.map((point) => (
@@ -157,7 +149,7 @@ export default function Home() {
               </ul>
             </div>
 
-            <div className="relative pb-16 sm:pb-20 lg:pb-10">
+            <div className="relative pb-10 sm:pb-12 lg:pb-8">
               <BrowserFrame url="ne-casatorim.ro/demo">
                 <Screenshot
                   name="deschidere"
@@ -180,7 +172,7 @@ export default function Home() {
         </section>
 
         {/* --------------------------------------------------- pentru invitați */}
-        <section id="invitatia" className="scroll-mt-24 border-y border-ink/10 bg-mist/35 px-6 py-20 sm:py-28">
+        <section id="invitatia" className="scroll-mt-24 border-y border-ink/10 bg-mist/35 px-6 py-12 sm:py-16">
           <div className="mx-auto w-full max-w-6xl">
             <div className="max-w-2xl">
               <p className={eyebrow}>Pentru invitați</p>
@@ -191,7 +183,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="relative mx-auto mt-12 w-full max-w-5xl pb-16 sm:pb-20">
+            <div className="relative mx-auto mt-8 w-full max-w-5xl pb-16 sm:pb-20">
               <BrowserFrame url="ne-casatorim.ro/demo">
                 <Screenshot
                   name="invitatie"
@@ -210,7 +202,7 @@ export default function Home() {
               </div>
             </div>
 
-            <ul className="mt-12 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="mt-8 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
               {GUEST_FEATURES.map((feature, index) => (
                 <li key={feature.title} className="border-t border-ink/15 pt-4">
                   <p className="font-display text-sm text-gold">{String(index + 1).padStart(2, "0")}</p>
@@ -223,7 +215,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------------------------------------- panou */}
-        <section id="panou" className="scroll-mt-24 px-6 py-20 sm:py-28">
+        <section id="panou" className="scroll-mt-24 px-6 py-12 sm:py-16">
           <div className="mx-auto w-full max-w-6xl">
             <div className="max-w-2xl">
               <p className={eyebrow}>Panoul vostru</p>
@@ -239,88 +231,30 @@ export default function Home() {
         </section>
 
         {/* -------------------------------------------------------------- teme */}
-        <section id="teme" className="scroll-mt-24 border-y border-ink/10 bg-mist/35 px-6 py-20 sm:py-28">
+        <section id="teme" className="scroll-mt-24 border-y border-ink/10 bg-mist/35 px-6 py-12 sm:py-16">
           <div className="mx-auto w-full max-w-6xl">
             <div className="max-w-2xl">
               <p className={eyebrow}>Teme</p>
               <h2 className={h2}>Alese de voi, nu impuse de noi.</h2>
               <p className={lead}>
-                Aveți de ales între {PALETTES.length} palete de culori și {FLORAL_SETS.length} decoruri
-                florale. Le schimbați oricând din panou, iar linkul rămâne același.
+                Aveți de ales între {THEME_COUNTS.palettes} palete de culori și{" "}
+                {THEME_COUNTS.florals} decoruri florale. Le schimbați oricând din panou, iar linkul
+                rămâne același.
               </p>
             </div>
 
-            <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {PALETTES.map((palette) => (
-                <li
-                  key={palette.id}
-                  className="card-hover overflow-hidden rounded-2xl border border-ink/10 shadow-[0_18px_40px_-32px_rgba(44,51,37,0.5)]"
-                  style={{ backgroundColor: palette.paper }}
-                >
-                  <div className="flex h-20 items-end gap-1.5 p-4" style={{ backgroundColor: palette.bg }}>
-                    <span className="size-7 rounded-full" style={{ backgroundColor: palette.mist }} />
-                    <span className="size-7 rounded-full" style={{ backgroundColor: palette.sage }} />
-                    <span className="size-7 rounded-full" style={{ backgroundColor: palette.rose }} />
-                    <span className="ml-auto size-4 rounded-full" style={{ backgroundColor: palette.accent }} />
-                  </div>
-                  <div className="flex items-center justify-between gap-3 px-4 py-3" style={{ color: palette.text }}>
-                    <p className="font-display text-sm">{palette.name}</p>
-                    <span
-                      aria-hidden
-                      className="font-display text-lg leading-none"
-                      style={{ color: palette.accent }}
-                    >
-                      A&amp;S
-                    </span>
-                  </div>
-                </li>
-              ))}
-              <li className="flex flex-col justify-center rounded-2xl border border-dashed border-ink/20 bg-paper/50 p-5 text-sm leading-relaxed text-ink/60">
-                Vă place altceva? Putem potrivi culorile cu invitația tipărită.
-              </li>
-            </ul>
-
-            <div className="mt-10 flex flex-wrap items-end gap-6">
-              {floralPreview.map((id) => {
-                const image = FLORAL_IMAGES[id];
-                if (!image) return null;
-                return (
-                  <picture key={id} className="block">
-                    <source type="image/avif" srcSet={floralSrcSet(image, "avif")} sizes="96px" />
-                    <source type="image/webp" srcSet={floralSrcSet(image, "webp")} sizes="96px" />
-                    <img
-                      src={`${image.src}-${image.widths[0]}.webp`}
-                      alt=""
-                      width={120}
-                      height={120}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-24 w-24 object-contain opacity-90"
-                    />
-                  </picture>
-                );
-              })}
-              <div className="max-w-sm text-sm leading-relaxed text-ink/60">
-                <p>
-                  Decorurile sunt fotografii de buchete adevărate, puse în colțuri, pe margini sau ca
-                  un cadru întreg.
-                </p>
-                <p className="mt-2 font-display text-ink/75">
-                  {FLORAL_SETS.map((set) => set.name.replace("Poză · ", "")).join(" · ")}
-                </p>
-              </div>
-            </div>
+            <ThemeAccordion />
           </div>
         </section>
 
         {/* -------------------------------------------------------------- pași */}
-        <section id="pasi" className="scroll-mt-24 px-6 py-20 sm:py-28">
+        <section id="pasi" className="scroll-mt-24 px-6 py-12 sm:py-16">
           <div className="mx-auto w-full max-w-6xl">
             <div className="max-w-2xl">
               <p className={eyebrow}>Cum funcționează</p>
               <h2 className={h2}>Trei pași, niciunul complicat.</h2>
             </div>
-            <ol className="mt-12 grid gap-8 sm:grid-cols-3">
+            <ol className="mt-8 grid gap-8 sm:grid-cols-3">
               {STEPS.map((step, index) => (
                 <li key={step.title} className="relative border-t border-gold/40 pt-6">
                   <span className="font-display text-4xl text-gold/70">{index + 1}</span>
@@ -329,7 +263,7 @@ export default function Home() {
                 </li>
               ))}
             </ol>
-            <p className="mt-10 text-sm text-ink/60">
+            <p className="mt-8 text-sm text-ink/60">
               Restul detaliilor le lămurim pe email, fără grabă.{" "}
               <ContactLink className={`text-ink ${linkUnderline}`}>
                 {CONTACT_EMAIL}
@@ -339,15 +273,15 @@ export default function Home() {
         </section>
 
         {/* ------------------------------------------------------ preț + contact */}
-        <section id="pret" className="scroll-mt-24 px-6 pb-20 sm:pb-28">
-          <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl bg-ink px-6 py-12 text-sea sm:px-10 sm:py-14">
+        <section id="pret" className="scroll-mt-24 px-6 pb-12 sm:pb-16">
+          <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-3xl bg-ink px-6 py-10 text-sea sm:px-10 sm:py-12">
             <div className="max-w-2xl">
               <p className="text-[11px] uppercase tracking-[0.3em] text-sea/60">{PRICE.eyebrow}</p>
               <h2 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">{PRICE.title}</h2>
               <p className="mt-4 leading-relaxed text-sea/70">{PRICE.text}</p>
             </div>
 
-            <div className="mt-10 grid gap-4 lg:grid-cols-2">
+            <div className="mt-8 grid gap-4 lg:grid-cols-2">
               {PLANS.map((plan) => (
                 <article
                   key={plan.id}
@@ -383,7 +317,7 @@ export default function Home() {
 
             <p className="mt-6 max-w-2xl text-sm leading-relaxed text-sea/60">{PRICE.note}</p>
 
-            <div className="mt-12 grid gap-8 border-t border-sea/15 pt-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start lg:gap-14">
+            <div className="mt-10 grid gap-8 border-t border-sea/15 pt-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start lg:gap-14">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.3em] text-sea/45">Cererea voastră</p>
                 <h3 className="mt-3 font-display text-2xl leading-snug">
@@ -402,8 +336,8 @@ export default function Home() {
         </section>
 
         {/* --------------------------------------------------------- întrebări */}
-        <section id="intrebari" className="scroll-mt-24 border-t border-ink/10 px-6 py-20 sm:py-28">
-          <div className="mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[0.7fr_1.3fr] lg:gap-16">
+        <section id="intrebari" className="scroll-mt-24 border-t border-ink/10 px-6 py-12 sm:py-16">
+          <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:gap-12">
             <div>
               <p className={eyebrow}>Întrebări</p>
               <h2 className={h2}>Ce ne întreabă mirii cel mai des.</h2>
@@ -417,7 +351,7 @@ export default function Home() {
             </div>
             <div className="divide-y divide-ink/10 border-y border-ink/10">
               {FAQ.map((item) => (
-                <details key={item.question} className="group py-5">
+                <details key={item.question} className="group py-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-left font-display text-lg text-ink [&::-webkit-details-marker]:hidden">
                     {item.question}
                     <span
@@ -435,7 +369,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-ink/10 px-6 py-12 text-sm text-ink/60">
+      <footer className="border-t border-ink/10 px-6 py-10 text-sm text-ink/60">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-sm">
             <p className="font-display text-xl text-ink">

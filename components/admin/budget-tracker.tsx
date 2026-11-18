@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toast, useToast } from "@/components/ui/toast";
-import { addExpense, addPayment, deleteExpense, updateExpenseCategory } from "@/app/admin/budget/actions";
+import { addExpense, addPayment, deleteExpense, updateExpense, updateExpenseCategory } from "@/app/admin/budget/actions";
 import { CATEGORIES } from "@/lib/admin-config";
 import { CURRENCIES, moneyFormatter, type Currency } from "@/lib/currency";
-import { expenseSchema, parseMoney, round2, type Category, type ExpenseInput } from "@/lib/expense-schema";
+import { expenseSchema, expenseUpdateSchema, parseMoney, round2, type Category, type ExpenseInput, type ExpenseUpdateInput } from "@/lib/expense-schema";
 import { mergeById } from "@/lib/merge-by-id";
 import { notifyAdminDataChanged } from "@/lib/admin-data";
 
@@ -19,6 +19,10 @@ export type Expense = {
   currency: Currency;
   total_cost: number;
   amount_paid: number;
+  /** Part of the remaining amount due before the wedding. */
+  due_before?: number;
+  /** Part of the remaining amount due on the wedding day or after. */
+  due_after?: number;
   notes: string | null;
 };
 
@@ -49,6 +53,8 @@ const sameExpense = (a: Expense, b: Expense) =>
   a.currency === b.currency &&
   a.total_cost === b.total_cost &&
   a.amount_paid === b.amount_paid &&
+  (a.due_before ?? 0) === (b.due_before ?? 0) &&
+  (a.due_after ?? 0) === (b.due_after ?? 0) &&
   a.notes === b.notes;
 
 // Top-level component: creating it inside the form would reset it on every render.
@@ -110,11 +116,13 @@ const ExpenseRow = memo(function ExpenseRow({
   x,
   onDelete,
   onPay,
+  onEdit,
   onCategoryChange,
 }: {
   x: LocalExpense;
   onDelete: (id: string) => void;
   onPay: (expense: Expense) => void;
+  onEdit: (expense: Expense) => void;
   onCategoryChange: (expense: Expense, category: Category) => void;
 }) {
   const fmt = moneyFormatter(x.currency);
@@ -175,10 +183,22 @@ const ExpenseRow = memo(function ExpenseRow({
           Plătit <span className="tabular-nums">{fmt.format(x.amount_paid)}</span> din{" "}
           <span className="tabular-nums">{fmt.format(x.total_cost)}</span>
         </p>
-        <Button type="button" variant="outline" size="sm" disabled={rest <= 0} onClick={() => onPay(x)}>
-          <Plus className="size-4" /> Adaugă plată
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(x)}>
+            Editează
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled={rest <= 0} onClick={() => onPay(x)}>
+            <Plus className="size-4" /> Adaugă plată
+          </Button>
+        </div>
       </div>
+      {rest > 0 && (
+        <p className="mt-1 text-xs text-ink/60">
+          Rest de plată:{" "}
+          <span className="tabular-nums">{fmt.format(x.due_before ?? 0)}</span> înainte de nuntă ·{" "}
+          <span className="tabular-nums">{fmt.format(x.due_after ?? 0)}</span> în ziua nunții
+        </p>
+      )}
       {x.notes && <p className="mt-1 text-sm text-ink/60">{x.notes}</p>}
     </li>
   );
@@ -189,12 +209,14 @@ const ExpenseList = memo(function ExpenseList({
   empty,
   onDelete,
   onPay,
+  onEdit,
   onCategoryChange,
 }: {
   items: LocalExpense[];
   empty?: string;
   onDelete: (id: string) => void;
   onPay: (expense: Expense) => void;
+  onEdit: (expense: Expense) => void;
   onCategoryChange: (expense: Expense, category: Category) => void;
 }) {
   if (items.length === 0) {
@@ -209,6 +231,7 @@ const ExpenseList = memo(function ExpenseList({
           x={x}
           onDelete={onDelete}
           onPay={onPay}
+          onEdit={onEdit}
           onCategoryChange={onCategoryChange}
         />
       ))}
@@ -275,6 +298,8 @@ const blankForm = {
   currency: "RON" as Currency,
   total: "",
   paid: "",
+  dueBefore: "",
+  dueAfter: "",
   notes: "",
 };
 
@@ -304,6 +329,12 @@ const ExpenseForm = memo(function ExpenseForm({
       e.preventDefault();
       const t = parseMoney(f.total);
       const p = f.paid === "" ? 0 : parseMoney(f.paid);
+      const before = f.dueBefore === "" ? 0 : parseMoney(f.dueBefore);
+      const rest = Math.max(0, round2((Number.isFinite(t) ? t : 0) - (Number.isFinite(p) ? p : 0)));
+      const after =
+        f.dueAfter === ""
+          ? Math.max(0, round2(rest - (Number.isFinite(before) ? before : 0)))
+          : parseMoney(f.dueAfter);
       const er: Record<string, string> = {};
       if (!Number.isFinite(t)) er.total_cost = "Introdu costul total";
       if (!Number.isFinite(p)) er.amount_paid = "Introdu o sumă validă";
@@ -313,6 +344,8 @@ const ExpenseForm = memo(function ExpenseForm({
         currency: f.currency,
         total_cost: t,
         amount_paid: p,
+        due_before: before,
+        due_after: after,
         notes: f.notes || undefined,
       });
       if (!parsed.success) parsed.error.issues.forEach((i) => { er[String(i.path[0])] ??= i.message; });
@@ -369,8 +402,16 @@ const ExpenseForm = memo(function ExpenseForm({
         <Input id="total" inputMode="decimal" value={f.total} onChange={(e) => set("total", e.target.value)} /><Err errs={errs} k="total_cost" />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="paid">Sumă plătită ({f.currency})</Label>
+        <Label htmlFor="paid">Avans plătit ({f.currency})</Label>
         <Input id="paid" inputMode="decimal" placeholder="0" value={f.paid} onChange={(e) => set("paid", e.target.value)} /><Err errs={errs} k="amount_paid" />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="due-before">Rest înainte de nuntă ({f.currency})</Label>
+        <Input id="due-before" inputMode="decimal" placeholder="0" value={f.dueBefore} onChange={(e) => set("dueBefore", e.target.value)} /><Err errs={errs} k="due_before" />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="due-after">Rest în ziua nunții ({f.currency})</Label>
+        <Input id="due-after" inputMode="decimal" placeholder="rămâne automat" value={f.dueAfter} onChange={(e) => set("dueAfter", e.target.value)} /><Err errs={errs} k="due_after" />
       </div>
       <div className="space-y-1 sm:col-span-2">
         <Label htmlFor="notes">Note (opțional)</Label>
@@ -460,9 +501,133 @@ function PaymentDialog({
 
 type ItemsState = { source: Expense[]; items: LocalExpense[] };
 
+/** Full edit of a vendor, including the two remaining-payment stages. */
+function ExpenseEditDialog({
+  expense,
+  onClose,
+  onSave,
+}: {
+  expense: Expense | null;
+  onClose: () => void;
+  onSave: (input: ExpenseUpdateInput) => Promise<Result>;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [f, setF] = useState(blankForm);
+  const [err, setErr] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (expense && !dialog.open) {
+      setF({
+        item: expense.item_name,
+        cat: expense.category,
+        currency: expense.currency,
+        total: String(expense.total_cost),
+        paid: String(expense.amount_paid),
+        dueBefore: String(expense.due_before ?? 0),
+        dueAfter: String(expense.due_after ?? 0),
+        notes: expense.notes ?? "",
+      });
+      setErr(null);
+      dialog.showModal();
+    }
+    if (!expense && dialog.open) dialog.close();
+  }, [expense]);
+
+  const set = (key: keyof FormState, value: string) => setF((prev) => ({ ...prev, [key]: value }));
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!expense) return;
+    const parsed = expenseUpdateSchema.safeParse({
+      id: expense.id,
+      item_name: f.item,
+      category: f.cat,
+      currency: f.currency,
+      total_cost: parseMoney(f.total),
+      amount_paid: f.paid === "" ? 0 : parseMoney(f.paid),
+      due_before: f.dueBefore === "" ? 0 : parseMoney(f.dueBefore),
+      due_after: f.dueAfter === "" ? 0 : parseMoney(f.dueAfter),
+      notes: f.notes || undefined,
+    });
+    if (!parsed.success) {
+      setErr(parsed.error.issues[0]?.message ?? "Verifică datele.");
+      return;
+    }
+    setSaving(true);
+    void (async () => {
+      const result = await onSave(parsed.data);
+      setSaving(false);
+      if (result.ok) onClose();
+      else setErr(result.error);
+    })();
+  };
+
+  return (
+    <dialog ref={ref} onClose={onClose}
+      className="glass-bar m-auto w-[min(94vw,32rem)] rounded-xl p-6 text-ink backdrop:bg-black/50">
+      {expense && (
+        <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+          <h2 className="font-display text-2xl sm:col-span-2">Editează cheltuiala</h2>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="edit-item">Numele cheltuielii</Label>
+            <Input id="edit-item" value={f.item} onChange={(e) => set("item", e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-cat">Categorie</Label>
+            <select id="edit-cat" value={f.cat} onChange={(e) => set("cat", e.target.value)}
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25">
+              {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-currency">Monedă</Label>
+            <select id="edit-currency" value={f.currency} onChange={(e) => set("currency", e.target.value as Currency)}
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25">
+              {CURRENCIES.map((currency) => (
+                <option key={currency} value={currency}>{CURRENCY_LABEL[currency]}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-total">Cost total</Label>
+            <Input id="edit-total" inputMode="decimal" value={f.total} onChange={(e) => set("total", e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-paid">Avans plătit</Label>
+            <Input id="edit-paid" inputMode="decimal" value={f.paid} onChange={(e) => set("paid", e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-before">Rest înainte de nuntă</Label>
+            <Input id="edit-before" inputMode="decimal" value={f.dueBefore} onChange={(e) => set("dueBefore", e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-after">Rest în ziua nunții</Label>
+            <Input id="edit-after" inputMode="decimal" value={f.dueAfter} onChange={(e) => set("dueAfter", e.target.value)} />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="edit-notes">Note (opțional)</Label>
+            <Input id="edit-notes" value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+          </div>
+          {err && <p role="alert" className="text-sm text-red-700 sm:col-span-2">{err}</p>}
+          <div className="flex justify-end gap-2 sm:col-span-2">
+            <Button type="button" variant="ghost" onClick={onClose}>Anulează</Button>
+            <Button type="submit" disabled={saving} className="bg-ink text-sea hover:bg-ink/85">
+              {saving ? "Se salvează…" : "Salvează"}
+            </Button>
+          </div>
+        </form>
+      )}
+    </dialog>
+  );
+}
+
 export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
   const [store, setStore] = useState<ItemsState>(() => ({ source: expenses, items: expenses }));
   const [paying, setPaying] = useState<Expense | null>(null);
+  const [editing, setEditing] = useState<Expense | null>(null);
   const [category, setCategory] = useState<string | null>(null);
   const { toast, show, dismiss } = useToast();
 
@@ -526,6 +691,8 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
       currency: data.currency,
       total_cost: round2(data.total_cost),
       amount_paid: round2(data.amount_paid),
+      due_before: round2(data.due_before),
+      due_after: round2(data.due_after),
       notes: data.notes || null,
       pending: true,
     };
@@ -592,6 +759,43 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
     [setItems, show],
   );
 
+  const saveEdit = useCallback(
+    async (data: ExpenseUpdateInput): Promise<Result> => {
+      const previous = itemsRef.current.find((x) => x.id === data.id);
+      setItems((prev) =>
+        prev.map((x) =>
+          x.id === data.id
+            ? {
+                ...x,
+                item_name: data.item_name,
+                category: data.category,
+                currency: data.currency,
+                total_cost: round2(data.total_cost),
+                amount_paid: round2(data.amount_paid),
+                due_before: round2(data.due_before),
+                due_after: round2(data.due_after),
+                notes: data.notes || null,
+              }
+            : x,
+        ),
+      );
+      const result = await updateExpense(data).catch(() => ({
+        ok: false as const,
+        error: NETWORK_ERROR,
+      }));
+      if (!result.ok) {
+        if (previous) {
+          setItems((prev) => prev.map((x) => (x.id === data.id ? previous : x)));
+        }
+        show(result.error, "error");
+      } else {
+        notifyAdminDataChanged();
+      }
+      return result;
+    },
+    [setItems, show],
+  );
+
   const beginPay = useCallback((expense: Expense, amount: number) => {
     const id = expense.id;
     setItems((prev) =>
@@ -638,9 +842,11 @@ export function BudgetTracker({ expenses }: { expenses: Expense[] }) {
         empty={category === null ? undefined : "Nicio cheltuială în această categorie."}
         onDelete={remove}
         onPay={openPay}
+        onEdit={setEditing}
         onCategoryChange={changeCategory}
       />
       <PaymentDialog expense={paying} onClose={closePay} onBeginPay={beginPay} onFinishPay={finishPay} />
+      <ExpenseEditDialog expense={editing} onClose={() => setEditing(null)} onSave={saveEdit} />
       <Toast toast={toast} onDismiss={dismiss} />
     </>
   );

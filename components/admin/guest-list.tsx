@@ -2,12 +2,14 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { AdminRealtime } from "@/components/admin/admin-realtime";
 import { useAdminPath } from "@/components/admin/admin-tenant";
 import { Toast, useToast } from "@/components/ui/toast";
 import { mergeById } from "@/lib/merge-by-id";
 import { notifyAdminDataChanged } from "@/lib/admin-data";
-import { deleteRsvp, type DeleteRsvpResult } from "@/app/admin/actions";
+import { deleteAllRsvps, deleteRsvp, type DeleteRsvpResult } from "@/app/admin/actions";
 
 export type GuestRow = {
   id: string;
@@ -15,6 +17,7 @@ export type GuestRow = {
   phone: string | null;
   attending: boolean;
   message: string | null;
+  allergies: string | null;
   created_at: string;
   table_number: number | null;
   rsvp_guests: { id: string; name: string; is_child: boolean; table_number: number | null }[];
@@ -44,6 +47,7 @@ const sameRow = (a: GuestRow, b: GuestRow) =>
   a.name === b.name &&
   a.attending === b.attending &&
   a.message === b.message &&
+  a.allergies === b.allergies &&
   a.created_at === b.created_at &&
   a.table_number === b.table_number &&
   a.rsvp_guests.length === b.rsvp_guests.length &&
@@ -71,11 +75,12 @@ const RowView = memo(function RowView({
         {row.rsvp_guests.map((guest) => (
           <p key={guest.id}>
             {guest.name}
-            {guest.is_child ? " (copil)" : ""}, {tableLabel(guest.table_number)}
+            {guest.is_child ? " (copil, meniu de pici)" : ""}, {tableLabel(guest.table_number)}
           </p>
         ))}
       </td>
       <td className="pr-4 text-sm text-ink/75">{row.message}</td>
+      <td className="pr-4 text-sm text-ink/75">{row.allergies}</td>
       <td>
         <div className="flex items-center gap-1">
           <Button asChild variant="outline" size="sm">
@@ -90,6 +95,105 @@ const RowView = memo(function RowView({
   );
 });
 
+const DELETE_WORD = "STERGE";
+
+/**
+ * The only way to empty the guest list. The couple must type the word, so a
+ * stray click on a button near "Șterge" cannot erase a whole wedding.
+ */
+function DeleteAllDialog({
+  open,
+  onClose,
+  onDeleted,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [word, setWord] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      setWord("");
+      setError(null);
+      dialog.showModal();
+    }
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+
+  const confirmed = word.trim().toUpperCase() === DELETE_WORD;
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!confirmed) return;
+    setPending(true);
+    setError(null);
+    void (async () => {
+      const result = await deleteAllRsvps(word).catch(() => ({
+        ok: false as const,
+        error: "Conexiunea a eșuat. Încearcă din nou.",
+      }));
+      setPending(false);
+      if (result.ok) {
+        onDeleted();
+        onClose();
+      } else {
+        setError(result.error);
+      }
+    })();
+  };
+
+  return (
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      aria-labelledby="delete-all-title"
+      className="glass-bar m-auto w-[min(92vw,28rem)] rounded-xl p-6 text-ink backdrop:bg-black/60"
+    >
+      <form onSubmit={submit} className="space-y-4">
+        <h2 id="delete-all-title" className="font-display text-2xl">
+          Ștergi toți invitații?
+        </h2>
+        <p className="text-sm leading-relaxed text-ink/70">
+          Se șterg definitiv toate răspunsurile RSVP, însoțitorii și lista importată.
+          Mesele, bugetul și restul panoului rămân. Nu se poate anula.
+        </p>
+        <div className="space-y-2">
+          <Label htmlFor="delete-all-word">
+            Scrie <span className="font-semibold">{DELETE_WORD}</span> ca să confirmi
+          </Label>
+          <Input
+            id="delete-all-word"
+            value={word}
+            autoComplete="off"
+            onChange={(event) => setWord(event.target.value)}
+            placeholder={DELETE_WORD}
+            aria-invalid={!!error}
+          />
+        </div>
+        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
+            Anulează
+          </Button>
+          <Button
+            type="submit"
+            disabled={!confirmed || pending}
+            className="bg-red-700 text-white hover:bg-red-800"
+          >
+            {pending ? "Se șterge…" : "Șterge tot"}
+          </Button>
+        </div>
+      </form>
+    </dialog>
+  );
+}
+
 export function GuestList({
   rows,
   edited,
@@ -100,6 +204,8 @@ export function GuestList({
   error?: string;
 }) {
   const [store, setStore] = useState(() => ({ source: rows, items: rows }));
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [wiped, setWiped] = useState(false);
   const { toast, show, dismiss } = useToast();
   const pendingDeletes = useRef(new Set<string>());
   const itemsRef = useRef(store.items);
@@ -112,10 +218,21 @@ export function GuestList({
   // objects that did not change so memoized rows do not re-render, and keep
   // rows that are being deleted hidden until the request resolves.
   if (store.source !== rows) {
-    setStore((prev) => {
-      const incoming = rows.filter((row) => !pendingDeletes.current.has(row.id));
-      return { source: rows, items: mergeById(prev.items, incoming, sameRow) };
-    });
+    if (wiped) {
+      // "Șterge tot" already emptied the screen. Keep it empty until the shared
+      // dataset confirms the deletion, so old props cannot flash the rows back.
+      if (rows.length === 0) {
+        setWiped(false);
+        setStore({ source: rows, items: [] });
+      } else {
+        setStore((prev) => ({ ...prev, source: rows }));
+      }
+    } else {
+      setStore((prev) => {
+        const incoming = rows.filter((row) => !pendingDeletes.current.has(row.id));
+        return { source: rows, items: mergeById(prev.items, incoming, sameRow) };
+      });
+    }
   }
 
   const remove = useCallback(
@@ -168,9 +285,36 @@ export function GuestList({
     ] as const;
   }, [store.items]);
 
+  const onAllDeleted = useCallback(() => {
+    setWiped(true);
+    itemsRef.current = [];
+    pendingDeletes.current.clear();
+    setStore((prev) => ({ source: prev.source, items: [] }));
+    show("Toți invitații au fost șterși.", "success");
+    notifyAdminDataChanged();
+  }, [show]);
+
   return (
     <>
-      <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-ink/60">
+          {store.items.length > 0
+            ? `${store.items.length} răspunsuri salvate.`
+            : "Lista este goală."}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="border-red-700/30 text-red-800 hover:bg-red-700/10"
+          onClick={() => setDeletingAll(true)}
+          disabled={store.items.length === 0}
+        >
+          Șterge toți invitații
+        </Button>
+      </div>
+
+      <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map(([label, value]) => (
           <div key={label} className="glass-soft card-hover rounded-lg p-5">
             <dd className="font-display text-4xl tabular-nums">{value}</dd>
@@ -205,6 +349,7 @@ export function GuestList({
                 <th>Status</th>
                 <th>Însoțitori</th>
                 <th>Mesaj</th>
+                <th>Alergii</th>
                 <th />
               </tr>
             </thead>
@@ -217,6 +362,11 @@ export function GuestList({
         </div>
       )}
 
+      <DeleteAllDialog
+        open={deletingAll}
+        onClose={() => setDeletingAll(false)}
+        onDeleted={onAllDeleted}
+      />
       <Toast toast={toast} onDismiss={dismiss} />
     </>
   );

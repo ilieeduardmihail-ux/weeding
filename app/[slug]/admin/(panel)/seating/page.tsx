@@ -2,8 +2,14 @@
 
 import { useAdminData } from "@/components/admin/admin-data";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
-import { SeatingBoard } from "@/components/admin/seating-board";
 import { AdminRealtime } from "@/components/admin/admin-realtime";
+import dynamic from "next/dynamic";
+
+// The board is the heaviest admin component; only this section downloads it.
+const SeatingBoard = dynamic(
+  () => import("@/components/admin/seating-board").then((mod) => mod.SeatingBoard),
+  { loading: () => <AdminSectionSkeleton /> },
+);
 
 export default function SeatingPage() {
   const { data } = useAdminData();

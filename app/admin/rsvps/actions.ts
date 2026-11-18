@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { adminRsvpSchema, type AdminRsvpInput } from "@/lib/admin-rsvp-schema";
 import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
@@ -46,10 +47,57 @@ export async function updateRsvp(input: AdminRsvpInput): Promise<UpdateRsvpResul
     };
   }
 
+  // Allergies are a new column, outside the older RPC signature.
+  const { error: allergyError } = await supabase
+    .from("rsvps")
+    .update({ allergies: d.allergies?.trim() ? d.allergies.trim() : null })
+    .eq("id", d.id)
+    .eq("tenant_id", tenantId);
+  if (allergyError) {
+    return { ok: false, error: "Modificările au fost salvate, dar alergiile nu. Încearcă din nou." };
+  }
+
   const base = await adminBasePath();
   revalidatePath("/");
   revalidatePath(base, "layout");
   revalidatePath(base);
   revalidatePath(`${base}/rsvps/${d.id}/edit`);
+  return { ok: true };
+}
+
+export type QuickResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Quick actions used by the Confirmări list. They only touch one column, so the
+ * list can paint the change immediately and reconcile in the background.
+ */
+export async function setRsvpAttending(id: string, attending: boolean): Promise<QuickResult> {
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Cerere invalidă." };
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("rsvps")
+    .update({ attending })
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
+  if (error) return { ok: false, error: "Nu am putut salva prezența. Încearcă din nou." };
+  return { ok: true };
+}
+
+/** Switches one person between the standard menu and the children's menu. */
+export async function setGuestChild(id: string, isChild: boolean): Promise<QuickResult> {
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: "Cerere invalidă." };
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("rsvp_guests")
+    .update({ is_child: isChild })
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
+  if (error) return { ok: false, error: "Nu am putut schimba meniul. Încearcă din nou." };
   return { ok: true };
 }

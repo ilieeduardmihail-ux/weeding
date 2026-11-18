@@ -17,6 +17,7 @@ export function RsvpForm({ token, slug, initialName = "", onDone }: { token: str
   const [attending, setAttending] = useState<"yes" | "no">("yes");
   const [guests, setGuests] = useState<Guest[]>([]);
   const [message, setMessage] = useState("");
+  const [allergies, setAllergies] = useState("");
   const [errors, setErrors] = useState<RsvpErrors>(NO_ERRORS);
   const [serverError, setServerError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
@@ -31,7 +32,7 @@ export function RsvpForm({ token, slug, initialName = "", onDone }: { token: str
     openedAt.current = Date.now();
   }, []);
 
-  const clearError = (key: "name" | "message") =>
+  const clearError = (key: "name" | "message" | "allergies") =>
     setErrors((current) => (current[key] ? { ...current, [key]: undefined } : current));
 
   const addGuest = () => {
@@ -58,14 +59,20 @@ export function RsvpForm({ token, slug, initialName = "", onDone }: { token: str
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const draft = { name, attending, guests, message };
+    const draft = { name, attending, guests, message, allergies };
     const found = validateRsvp(draft);
     setErrors(found);
     if (!consent) setConsentError(true);
 
     if (hasErrors(found)) {
       const firstGuest = Object.keys(found.guests)[0];
-      const target = found.name ? "name" : firstGuest !== undefined ? `guest-${firstGuest}` : "message";
+      const target = found.name
+        ? "name"
+        : firstGuest !== undefined
+          ? `guest-${firstGuest}`
+          : found.allergies
+            ? "allergies"
+            : "message";
       document.getElementById(target)?.focus();
       return;
     }
@@ -149,7 +156,7 @@ export function RsvpForm({ token, slug, initialName = "", onDone }: { token: str
                   />
                   {errors.guests[i] && <p className="text-sm text-red-700">{errors.guests[i]}</p>}
                   <label className="flex items-center gap-2 text-sm text-ink/75">
-                    <input type="checkbox" checked={guest.isChild} onChange={(event) => updateGuest(i, { isChild: event.target.checked })} /> Copil
+                    <input type="checkbox" checked={guest.isChild} onChange={(event) => updateGuest(i, { isChild: event.target.checked })} /> Copil (meniu de pici)
                   </label>
                 </div>
                 <Button type="button" variant="ghost" onClick={() => removeGuest(i)}>Elimină</Button>
@@ -159,6 +166,29 @@ export function RsvpForm({ token, slug, initialName = "", onDone }: { token: str
               <Button type="button" variant="outline" onClick={addGuest}>Adaugă o persoană</Button>
             )}
           </div>
+        </div>
+      )}
+
+      {attending === "yes" && (
+        <div className="space-y-2">
+          <Label htmlFor="allergies">Alergii sau preferințe alimentare (opțional)</Label>
+          <textarea
+            id="allergies"
+            rows={2}
+            maxLength={500}
+            value={allergies}
+            onChange={(event) => {
+              setAllergies(event.target.value);
+              clearError("allergies");
+            }}
+            aria-invalid={!!errors.allergies}
+            placeholder="Ex: fără gluten, alergie la nuci, meniu vegetarian…"
+            className="w-full rounded-md border border-input bg-transparent px-3 py-2 transition-[border-color,box-shadow] duration-200 focus-visible:border-gold focus-visible:outline-2 focus-visible:outline-gold"
+          />
+          <p className="text-xs text-ink/55">
+            Ne ajută să anunțăm bucătăria. Pentru copii pregătim automat meniul de pici.
+          </p>
+          {errors.allergies && <p className="text-sm text-red-700">{errors.allergies}</p>}
         </div>
       )}
 

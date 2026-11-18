@@ -2,7 +2,12 @@
 
 import { useAdminData } from "@/components/admin/admin-data";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
-import { GuestImport } from "@/components/admin/guest-import";
+import dynamic from "next/dynamic";
+
+const GuestImport = dynamic(
+  () => import("@/components/admin/guest-import").then((mod) => mod.GuestImport),
+  { loading: () => <AdminSectionSkeleton /> },
+);
 
 export default function ImportPage() {
   const { data } = useAdminData();

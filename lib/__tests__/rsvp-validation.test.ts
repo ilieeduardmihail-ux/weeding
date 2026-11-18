@@ -8,6 +8,7 @@ const draft = (patch: Partial<RsvpDraft> = {}): RsvpDraft => ({
   attending: "yes",
   guests: [],
   message: "",
+  allergies: "",
   ...patch,
 });
 
@@ -80,7 +81,13 @@ describe("toRsvpInput", () => {
       attending: "yes",
       guests: [{ name: "Dan", isChild: true }],
       message: "",
+      allergies: "",
     });
     expect(toRsvpInput(draft({ attending: "no", guests: [{ name: "Dan", isChild: false }] })).guests).toEqual([]);
+  });
+
+  it("keeps the allergies only when the guest is coming", () => {
+    expect(toRsvpInput(draft({ allergies: " fără gluten " })).allergies).toBe("fără gluten");
+    expect(toRsvpInput(draft({ attending: "no", allergies: "fără gluten" })).allergies).toBe("");
   });
 });

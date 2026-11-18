@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Toast, useToast } from "@/components/ui/toast";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { nameKey } from "@/lib/fuzzy";
+import { notifyAdminDataChanged } from "@/lib/admin-data";
+import { setGuestChild, setRsvpAttending } from "@/app/admin/rsvps/actions";
 
 type Filter = "all" | "yes" | "no" | "pending";
 
@@ -66,12 +68,27 @@ function Confirmari() {
   const { toast, show, dismiss } = useToast();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  // Optimistic overrides: the list paints the new value immediately, then the
+  // shared dataset catches up in the background.
+  const [attendingOverride, setAttendingOverride] = useState<Record<string, boolean>>({});
+  const [childOverride, setChildOverride] = useState<Record<string, boolean>>({});
   const debounced = useDebouncedValue(query, 200);
 
   // `data?.rsvps ?? []` would hand a brand-new array to every render (and to
   // every `useMemo` below) whenever the dataset is still empty, so the memos
   // could never hit. Two stable fallbacks keep them honest.
-  const rows = useMemo(() => data?.rsvps ?? [], [data]);
+  const rows = useMemo(
+    () =>
+      (data?.rsvps ?? []).map((row) => ({
+        ...row,
+        attending: attendingOverride[row.id] ?? row.attending,
+        rsvp_guests: row.rsvp_guests.map((guest) => ({
+          ...guest,
+          is_child: childOverride[guest.id] ?? guest.is_child,
+        })),
+      })),
+    [data, attendingOverride, childOverride],
+  );
   const imported = useMemo(() => data?.importedGuests ?? [], [data]);
 
   const summary = useMemo(() => {
@@ -117,6 +134,36 @@ function Confirmari() {
     } catch {
       show("Nu am putut copia automat. Selectează textul și copiază-l manual.");
     }
+  };
+
+  const toggleAttending = (id: string, next: boolean) => {
+    const previous = attendingOverride[id];
+    setAttendingOverride((prev) => ({ ...prev, [id]: next }));
+    void setRsvpAttending(id, next)
+      .catch(() => ({ ok: false as const, error: "Conexiunea a eșuat. Încearcă din nou." }))
+      .then((result) => {
+        if (result.ok) {
+          notifyAdminDataChanged();
+          return;
+        }
+        setAttendingOverride((prev) => ({ ...prev, [id]: previous ?? !next }));
+        show(result.error, "error");
+      });
+  };
+
+  const toggleChild = (id: string, next: boolean) => {
+    const previous = childOverride[id];
+    setChildOverride((prev) => ({ ...prev, [id]: next }));
+    void setGuestChild(id, next)
+      .catch(() => ({ ok: false as const, error: "Conexiunea a eșuat. Încearcă din nou." }))
+      .then((result) => {
+        if (result.ok) {
+          notifyAdminDataChanged();
+          return;
+        }
+        setChildOverride((prev) => ({ ...prev, [id]: previous ?? !next }));
+        show(result.error, "error");
+      });
   };
 
   if (!data) return <AdminSectionSkeleton />;
@@ -231,22 +278,53 @@ function Confirmari() {
                 const phone = phoneByName.get(nameKey(row.name)) ?? row.phone;
                 return (
                   <li key={row.id} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-start sm:gap-4">
-                    <span
-                      className={`mt-0.5 inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        row.attending
-                          ? "bg-emerald-600/12 text-emerald-800"
-                          : "bg-rose-600/12 text-rose-800"
-                      }`}
-                    >
-                      {row.attending ? <Check className="size-3.5" aria-hidden /> : <UserX className="size-3.5" aria-hidden />}
-                      {row.attending ? "Vine" : "Nu vine"}
-                    </span>
+                    <div className="flex shrink-0 flex-col items-start gap-1.5">
+                      <span
+                        className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          row.attending
+                            ? "bg-emerald-600/12 text-emerald-800"
+                            : "bg-rose-600/12 text-rose-800"
+                        }`}
+                      >
+                        {row.attending ? <Check className="size-3.5" aria-hidden /> : <UserX className="size-3.5" aria-hidden />}
+                        {row.attending ? "Vine" : "Nu vine"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleAttending(row.id, !row.attending)}
+                        className="text-xs text-ink/55 underline decoration-ink/25 underline-offset-4 transition-colors hover:text-ink"
+                      >
+                        {row.attending ? "Marchează „nu vine”" : "Marchează „vine”"}
+                      </button>
+                    </div>
 
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{row.name}</p>
                       {row.rsvp_guests.length > 0 && (
-                        <p className="text-sm text-ink/70">
-                          + însoțitori: {row.rsvp_guests.map((guest) => guest.name).join(", ")}
+                        <ul className="mt-1 space-y-1 text-sm text-ink/70">
+                          {row.rsvp_guests.map((guest) => (
+                            <li key={guest.id} className="flex flex-wrap items-center gap-2">
+                              <span>{guest.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => toggleChild(guest.id, !guest.is_child)}
+                                title="Schimbă meniul acestei persoane"
+                                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                                  guest.is_child
+                                    ? "border-gold/50 bg-gold/15 text-ink"
+                                    : "border-ink/20 text-ink/60 hover:bg-ink/5"
+                                }`}
+                              >
+                                {guest.is_child ? "Meniu de pici" : "Meniu standard"}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {row.allergies && (
+                        <p className="mt-2 rounded-lg border border-gold/30 bg-gold/10 px-2.5 py-1.5 text-sm text-ink/80">
+                          <span className="font-medium">Alergii / preferințe: </span>
+                          {row.allergies}
                         </p>
                       )}
                       {row.message && <p className="mt-1 text-sm italic text-ink/70">„{row.message}”</p>}

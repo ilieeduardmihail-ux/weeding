@@ -26,13 +26,15 @@ export default async function PlatformPage() {
   if (!(await isOwnerRequest())) redirect("/platform/login");
 
   const configured = platformIsConfigured();
-  const overview = configured
-    ? await loadPlatformOverview()
-    : { tenants: [], owners: [] };
-  const activity = configured
-    ? await loadVisitStats()
-    : { marketing: EMPTY_VISITS, invites: EMPTY_VISITS, hourly: [] };
-  const newRequests = configured ? await countNewOfferRequests() : 0;
+  // One round trip instead of three sequential ones: the panel needs all of it
+  // before it can paint anyway.
+  const [overview, activity, newRequests] = configured
+    ? await Promise.all([loadPlatformOverview(), loadVisitStats(), countNewOfferRequests()])
+    : [
+        { tenants: [], owners: [] },
+        { marketing: EMPTY_VISITS, invites: EMPTY_VISITS, hourly: [] },
+        0,
+      ];
 
   return (
     <PlatformDashboard

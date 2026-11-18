@@ -10,11 +10,19 @@ import { SUPABASE_KEY, SUPABASE_URL } from "./supabase/env";
 export { DEFAULT_TENANT_SLUG } from "./default-tenant";
 import { DEFAULT_TENANT_SLUG } from "./default-tenant";
 
+export type TenantPlan = "standard" | "premium";
+
+/** Old rows predate `plan`, so anything unexpected is treated as Standard. */
+export function normalizePlan(value: unknown): TenantPlan {
+  return value === "premium" ? "premium" : "standard";
+}
+
 export type Tenant = {
   id: string;
   slug: string;
   display_name: string;
   status: "pending" | "active" | "suspended";
+  plan: TenantPlan;
   expires_at: string | null;
   theme: Record<string, unknown>;
 };
@@ -30,6 +38,7 @@ const DEMO_TENANT: Tenant = {
   slug: DEFAULT_TENANT_SLUG,
   display_name: "Nunta demo",
   status: "active",
+  plan: "premium",
   expires_at: null,
   theme: {},
 };
@@ -53,11 +62,11 @@ export const getTenantBySlug = cache(async (slug: string): Promise<Tenant | null
   try {
     const { data } = await anonClient()
       .from("tenants")
-      .select("id, slug, display_name, status, expires_at, theme")
+      .select("id, slug, display_name, status, plan, expires_at, theme")
       .eq("slug", clean)
       .maybeSingle();
     if (!data) return null;
-    return data as Tenant;
+    return { ...(data as Omit<Tenant, "plan">), plan: normalizePlan((data as { plan?: unknown }).plan) };
   } catch {
     return null;
   }

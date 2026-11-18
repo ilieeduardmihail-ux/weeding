@@ -24,6 +24,8 @@ export type RestaurantPerson = {
   name: string;
   table: number | null;
   menu: MenuType;
+  /** Free text the guest wrote about allergies, if any. */
+  allergies: string | null;
 };
 
 export type MenuTotal = { menu: MenuType; count: number };
@@ -39,14 +41,22 @@ export type RestaurantReport = {
 const byName = (a: RestaurantPerson, b: RestaurantPerson) =>
   a.name.localeCompare(b.name, "ro", { sensitivity: "base" });
 
-export function buildRestaurantReport(rows: readonly VenueRow[]): RestaurantReport {
+export function buildRestaurantReport(
+  rows: readonly VenueRow[],
+  allergiesByName?: ReadonlyMap<string, string | null>,
+): RestaurantReport {
   const people = rows
     .filter((row) => row.counted)
-    .map((row) => ({
-      name: row.name.replace(/\s+/g, " ").trim(),
-      table: row.table_number,
-      menu: menuTypeFor(row.is_child),
-    }))
+    .map((row) => {
+      const name = row.name.replace(/\s+/g, " ").trim();
+      const allergies = allergiesByName?.get(name.toLocaleLowerCase("ro"))?.trim() || null;
+      return {
+        name,
+        table: row.table_number,
+        menu: menuTypeFor(row.is_child),
+        allergies,
+      };
+    })
     .sort(byName);
 
   const counts = new Map<MenuType, number>(MENU_TYPES.map((menu) => [menu, 0]));
@@ -67,9 +77,9 @@ const cell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 
 /** CSV is the lightweight fallback; Excel gets the richer two-sheet file. */
 export function restaurantCsv(report: RestaurantReport): string {
-  const lines = ["Nume,Masa,Meniu"];
+  const lines = ["Nume,Masa,Meniu,Alergii"];
   for (const person of report.people) {
-    lines.push([person.name, person.table ?? "", person.menu].map(cell).join(","));
+    lines.push([person.name, person.table ?? "", person.menu, person.allergies ?? ""].map(cell).join(","));
   }
   lines.push("");
   lines.push("Meniu,Persoane");

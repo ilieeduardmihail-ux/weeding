@@ -11,10 +11,13 @@ import type { SeatingTable } from "@/lib/seating";
 import type { VenueRow } from "@/lib/restaurant-report";
 import type { WeddingLocation } from "@/lib/config";
 import type { Theme } from "@/lib/theme";
+import type { TenantPlan } from "@/lib/tenants";
 
 export type AdminData = {
   /** The tenant slug, used to build the WhatsApp RSVP links. */
   slug: string;
+  /** Standard or Premium: Premium unlocks budget, vendors and the planners. */
+  plan: TenantPlan;
   rsvps: GuestRow[];
   seatingPeople: Person[];
   seatingTables: SeatingTable[];

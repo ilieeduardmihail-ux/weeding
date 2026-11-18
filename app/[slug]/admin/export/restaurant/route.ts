@@ -15,13 +15,24 @@ export async function GET(request: Request) {
   const tenantId = await currentTenantId();
   if (!tenantId) return new Response("Neautorizat", { status: 401 });
 
-  const { data, error } = await supabase
-    .from("venue_report")
-    .select("kind, name, is_child, table_number, counted")
-    .eq("tenant_id", tenantId);
-  if (error) return new Response("Nu am putut citi datele.", { status: 500 });
+  const [reportResult, allergyResult] = await Promise.all([
+    supabase
+      .from("venue_report")
+      .select("kind, name, is_child, table_number, counted")
+      .eq("tenant_id", tenantId),
+    // Allergies live on the reply, not on the report view. One extra read in
+    // parallel keeps the export a single round trip.
+    supabase.from("rsvps").select("name, allergies").eq("tenant_id", tenantId),
+  ]);
+  if (reportResult.error) return new Response("Nu am putut citi datele.", { status: 500 });
 
-  const report = buildRestaurantReport((data ?? []) as VenueRow[]);
+  const allergiesByName = new Map<string, string | null>();
+  for (const row of allergyResult.data ?? []) {
+    if (typeof row.name !== "string" || !row.allergies) continue;
+    allergiesByName.set(row.name.replace(/\s+/g, " ").trim().toLocaleLowerCase("ro"), String(row.allergies));
+  }
+
+  const report = buildRestaurantReport((reportResult.data ?? []) as VenueRow[], allergiesByName);
   const format = new URL(request.url).searchParams.get("format");
 
   if (format === "csv") {
@@ -39,10 +50,10 @@ export async function GET(request: Request) {
   const workbook = XLSX.utils.book_new();
 
   const people = XLSX.utils.aoa_to_sheet([
-    ["Nume", "Masa", "Meniu"],
-    ...report.people.map((person) => [person.name, person.table ?? "", person.menu]),
+    ["Nume", "Masa", "Meniu", "Alergii"],
+    ...report.people.map((person) => [person.name, person.table ?? "", person.menu, person.allergies ?? ""]),
   ]);
-  people["!cols"] = [{ wch: 34 }, { wch: 8 }, { wch: 12 }];
+  people["!cols"] = [{ wch: 34 }, { wch: 8 }, { wch: 12 }, { wch: 40 }];
   XLSX.utils.book_append_sheet(workbook, people, "Invitati");
 
   const totals = XLSX.utils.aoa_to_sheet([

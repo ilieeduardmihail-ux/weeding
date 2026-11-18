@@ -68,9 +68,9 @@ describe("restaurant report", () => {
     const csv = restaurantCsv(report);
     const lines = csv.split("\r\n");
 
-    expect(lines[0]).toBe("Nume,Masa,Meniu");
-    expect(lines[1]).toBe('"Copil, Mic","2","Copii"');
-    expect(lines[2]).toBe('"Popescu Ana","2","Standard"');
+    expect(lines[0]).toBe("Nume,Masa,Meniu,Alergii");
+    expect(lines[1]).toBe('"Copil, Mic","2","Copii",""');
+    expect(lines[2]).toBe('"Popescu Ana","2","Standard",""');
     expect(csv).toContain("Meniu,Persoane");
     expect(csv).toContain('"Standard","1"');
     expect(csv).toContain('"Total","2"');
@@ -78,6 +78,15 @@ describe("restaurant report", () => {
 
   it("leaves the table empty for unseated people", () => {
     const report = buildRestaurantReport([row({ name: "Fara Masa", table_number: null })]);
-    expect(restaurantCsv(report)).toContain('"Fara Masa","","Standard"');
+    expect(restaurantCsv(report)).toContain('"Fara Masa","","Standard",""');
+  });
+
+  it("copies the guest's allergies into the export by name", () => {
+    const report = buildRestaurantReport(
+      [row({ name: "Popescu Ana", table_number: 2 })],
+      new Map([["popescu ana", "fără gluten"]]),
+    );
+    expect(report.people[0].allergies).toBe("fără gluten");
+    expect(restaurantCsv(report)).toContain('"Popescu Ana","2","Standard","fără gluten"');
   });
 });

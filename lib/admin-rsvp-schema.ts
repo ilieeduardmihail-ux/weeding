@@ -9,6 +9,7 @@ export const adminRsvpSchema = z.object({
   name: z.string().trim().min(2, "Introdu numele complet").max(120),
   attending: z.enum(["yes", "no"]),
   message: z.string().trim().max(500, "Păstrează mesajul sub 500 de caractere").optional(),
+  allergies: z.string().trim().max(500, "Păstrează alergiile sub 500 de caractere").optional(),
   guests: z
     .array(
       z.object({

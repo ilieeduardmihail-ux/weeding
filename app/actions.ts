@@ -84,7 +84,7 @@ export async function submitRsvp(input: RsvpInput, token: string): Promise<Submi
   if (!supabase) return { ok: false, error: UNAVAILABLE };
 
   const attending = d.attending === "yes";
-  const { error } = await supabase.rpc("submit_rsvp", {
+  const { data: savedId, error } = await supabase.rpc("submit_rsvp", {
     p_name: d.name,
     p_attending: attending,
     p_message: d.message ?? "",
@@ -103,6 +103,17 @@ export async function submitRsvp(input: RsvpInput, token: string): Promise<Submi
           ? "Formularul de confirmare este închis. Scrie-ne direct dacă vrei să modifici ceva."
           : "Nu am putut salva răspunsul. Te rugăm să încerci din nou.",
     };
+  }
+
+  // Allergies live on the reply itself. Kept out of the RPC signature so old
+  // cached pages keep working: the reply is already saved, and this only fills
+  // the extra field on the row the function just returned.
+  if (typeof savedId === "string" && savedId) {
+    await supabase
+      .from("rsvps")
+      .update({ allergies: d.allergies?.trim() ? d.allergies.trim() : null })
+      .eq("id", savedId)
+      .eq("tenant_id", tenantId);
   }
   return { ok: true };
 }

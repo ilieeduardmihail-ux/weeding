@@ -8,13 +8,14 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { demoMode } from "@/lib/demo/mode";
-import { tenantIsAvailable } from "@/lib/tenants";
+import { normalizePlan, tenantIsAvailable, type TenantPlan } from "@/lib/tenants";
 
 export type ContextTenant = {
   id: string;
   slug: string;
   display_name: string;
   status: string;
+  plan: TenantPlan;
   expires_at: string | null;
 };
 
@@ -70,10 +71,13 @@ const loadBaseContext = cache(async (): Promise<BaseContext> => {
   if (tenantIds.length > 0) {
     const { data: rows } = await supabase
       .from("tenants")
-      .select("id, slug, display_name, status, expires_at, created_at")
+      .select("id, slug, display_name, status, plan, expires_at, created_at")
       .in("id", tenantIds)
       .order("created_at", { ascending: true });
-    tenants = (rows ?? []) as ContextTenant[];
+    tenants = ((rows ?? []) as (Omit<ContextTenant, "plan"> & { plan?: unknown })[]).map((row) => ({
+      ...row,
+      plan: normalizePlan(row.plan),
+    }));
   }
 
   return {
@@ -156,7 +160,7 @@ export const getAdminTenant = cache(async (): Promise<ContextTenant | null> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("tenant_admins")
-    .select("tenants!inner(id, slug, display_name, status, expires_at)")
+    .select("tenants!inner(id, slug, display_name, status, plan, expires_at)")
     .eq("tenants.slug", slug)
     .limit(1);
 
@@ -166,7 +170,9 @@ export const getAdminTenant = cache(async (): Promise<ContextTenant | null> => {
     (data as { tenants?: ContextTenant | ContextTenant[] | null }[] | null)?.[0]?.tenants ?? null;
   const fast = Array.isArray(joined) ? joined[0] ?? null : joined;
 
-  return fast ?? (await getTenantContextForSlug(slug)).tenant;
+  return fast
+    ? { ...fast, plan: normalizePlan((fast as { plan?: unknown }).plan) }
+    : (await getTenantContextForSlug(slug)).tenant;
 });
 
 /** Convenience for the server actions: the tenant they may write to. An expired
@@ -175,4 +181,11 @@ export async function currentTenantId(): Promise<string | null> {
   const tenant = await getAdminTenant();
   if (!tenant || !tenantIsAvailable(tenant)) return null;
   return tenant.id;
+}
+
+/** The active package of the wedding being managed, or null without access. */
+export async function currentTenantPlan(): Promise<TenantPlan | null> {
+  const tenant = await getAdminTenant();
+  if (!tenant || !tenantIsAvailable(tenant)) return null;
+  return tenant.plan;
 }

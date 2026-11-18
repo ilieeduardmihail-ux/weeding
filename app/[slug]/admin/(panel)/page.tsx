@@ -1,13 +1,21 @@
 "use client";
 
 import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { signOut } from "@/app/admin/actions";
 import { useAdminData } from "@/components/admin/admin-data";
 import { useAdminPath } from "@/components/admin/admin-tenant";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
-import { GuestList, type GuestRow } from "@/components/admin/guest-list";
+import type { GuestRow } from "@/components/admin/guest-list";
 import { Button } from "@/components/ui/button";
+
+// The table (and its delete dialog) is only downloaded by the admin panel, and
+// only when this section is actually opened.
+const GuestList = dynamic(
+  () => import("@/components/admin/guest-list").then((mod) => mod.GuestList),
+  { loading: () => <AdminSectionSkeleton /> },
+);
 
 function GuestListWithFeedback({ rows }: { rows: GuestRow[] }) {
   const params = useSearchParams();
@@ -51,7 +59,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <Suspense fallback={<GuestList rows={data.rsvps} />}>
+      <Suspense fallback={<AdminSectionSkeleton />}>
         <GuestListWithFeedback rows={data.rsvps} />
       </Suspense>
     </main>

@@ -26,6 +26,7 @@ export default function EditRsvpPage() {
     name: row.name,
     attending: row.attending,
     message: row.message,
+    allergies: row.allergies ?? null,
     guests: (row.rsvp_guests ?? []).map((guest) => ({
       id: guest.id,
       name: guest.name,

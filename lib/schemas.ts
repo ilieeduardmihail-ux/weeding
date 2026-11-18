@@ -13,6 +13,8 @@ export const rsvpSchema = z.object({
     )
     .max(MAX_GUESTS),
   message: z.string().trim().max(500, "Păstrează mesajul sub 500 de caractere").optional(),
+  /** Allergies or food preferences; shown to the couple and the venue. */
+  allergies: z.string().trim().max(500, "Păstrează alergiile sub 500 de caractere").optional(),
   website: z.string().max(200).optional(), // honeypot: real people never fill this in
   // Time trap: how long the visitor spent on the form. Bots that post in the
   // first couple of seconds are dropped the same way as the honeypot.

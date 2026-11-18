@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BrowserFrame, PhoneFrame, Screenshot } from "@/components/marketing/frames";
+import { PanelAccordion } from "@/components/marketing/panel-accordion";
 import { ContactLink } from "@/components/marketing/contact-link";
 import { ContactForm } from "@/components/marketing/contact-form";
 import { ThemeToggle } from "@/components/marketing/theme-toggle";
@@ -232,38 +233,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="mt-14 space-y-16 sm:space-y-24">
-              {PANEL_SECTIONS.map((section, index) => (
-                <article key={section.id} className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
-                  <div className={index % 2 === 1 ? "lg:order-last" : ""}>
-                    <BrowserFrame url={`ne-casatorim.ro/demo/admin`}>
-                      <Screenshot
-                        name={section.image}
-                        alt={section.alt}
-                        sizes="(min-width: 1024px) 560px, 92vw"
-                      />
-                    </BrowserFrame>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-gold">
-                      {section.eyebrow}
-                    </p>
-                    <h3 className="mt-3 font-display text-2xl leading-snug text-ink sm:text-3xl">
-                      {section.title}
-                    </h3>
-                    <p className="mt-4 leading-relaxed text-ink/70">{section.text}</p>
-                    <ul className="mt-6 space-y-2.5 text-sm text-ink/70">
-                      {section.bullets.map((bullet) => (
-                        <li key={bullet} className="flex gap-3">
-                          <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-gold/80" />
-                          {bullet}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </article>
-              ))}
-            </div>
+            <PanelAccordion sections={PANEL_SECTIONS} />
           </div>
         </section>
 

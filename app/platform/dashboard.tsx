@@ -28,6 +28,7 @@ import {
   generateKey,
   renewTenant,
   setTenantStatus,
+  setTenantPlan,
   signOutOwner,
 } from "@/app/platform/actions";
 
@@ -404,6 +405,21 @@ function TenantCard({
       () => onSuccess(tenant.status === "suspended" ? "Client reactivat." : "Client suspendat.")
     );
 
+  const togglePlan = () =>
+    run(
+      () =>
+        setTenantPlan({
+          tenantId: tenant.id,
+          plan: tenant.plan === "premium" ? "standard" : "premium",
+        }),
+      () =>
+        onSuccess(
+          tenant.plan === "premium"
+            ? "Pachetul a fost schimbat în Standard."
+            : "Pachetul a fost schimbat în Premium."
+        )
+    );
+
   const remove = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     run(
@@ -440,6 +456,15 @@ function TenantCard({
           <div className="flex flex-wrap items-center gap-3">
             <h3 className="font-display text-2xl">{tenant.displayName}</h3>
             <Badge tenant={tenant} />
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                tenant.plan === "premium"
+                  ? "border-gold/50 bg-gold/15 text-ink"
+                  : "border-ink/20 bg-ink/5 text-ink/65"
+              }`}
+            >
+              {tenant.plan === "premium" ? "Premium" : "Standard"}
+            </span>
           </div>
           <p className="mt-1 text-sm text-ink/65">
             <a href={`/${tenant.slug}`} target="_blank" rel="noreferrer" className="underline decoration-gold underline-offset-4">
@@ -467,9 +492,14 @@ function TenantCard({
             nefolosite
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" disabled={disabled || pending} onClick={toggleStatus}>
-          {tenant.status === "suspended" ? "Reactivează" : "Suspendă"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={disabled || pending} onClick={togglePlan}>
+            {tenant.plan === "premium" ? "Trece la Standard" : "Trece la Premium"}
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled={disabled || pending} onClick={toggleStatus}>
+            {tenant.status === "suspended" ? "Reactivează" : "Suspendă"}
+          </Button>
+        </div>
       </div>
 
       {isExpired && (

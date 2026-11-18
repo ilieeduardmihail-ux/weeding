@@ -29,7 +29,7 @@ export async function loadPlatformOverview(): Promise<PlatformOverview> {
   const [tenantsResult, adminsResult, keysResult, ownersResult] = await Promise.all([
     service
       .from("tenants")
-      .select("id, slug, display_name, status, created_at, activated_at, expires_at")
+      .select("id, slug, display_name, status, plan, created_at, activated_at, expires_at")
       // The demo is a real tenant, but not a client: it never belongs in the
       // owner's list, its counts or the invoice client picker.
       .neq("slug", DEMO_SLUG)
@@ -71,6 +71,7 @@ export async function loadPlatformOverview(): Promise<PlatformOverview> {
       slug: String(row.slug),
       displayName: String(row.display_name),
       status: String(row.status),
+      plan: row.plan === "premium" ? "premium" : "standard",
       createdAt: String(row.created_at),
       activatedAt: typeof row.activated_at === "string" ? row.activated_at : null,
       expiresAt: typeof row.expires_at === "string" ? row.expires_at : null,

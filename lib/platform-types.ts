@@ -23,6 +23,8 @@ export type PlatformTenant = {
   createdAt: string;
   activatedAt: string | null;
   expiresAt: string | null;
+  /** Standard includes the guest tools; Premium adds budget and planners. */
+  plan: "standard" | "premium";
   admins: PlatformAdmin[];
   keys: PlatformKey[];
 };

@@ -156,6 +156,8 @@ class DemoQuery implements PromiseLike<Result<unknown>> {
             slug: "demo",
             display_name: "Nunta demo",
             status: "active",
+            plan: "premium",
+            theme: {},
             expires_at: null,
             created_at: new Date(0).toISOString(),
           },

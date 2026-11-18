@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { adminBasePath } from "@/lib/tenant-session";
+import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
 import { demoMode } from "@/lib/demo/mode";
 
 export async function signIn(formData: FormData) {
@@ -96,4 +96,36 @@ export async function deleteRsvp(id: string): Promise<DeleteRsvpResult> {
   if (error) return { ok: false, error: "Nu am putut șterge răspunsul. Încearcă din nou." };
   revalidatePath(await adminBasePath(), "layout");
   return { ok: true };
+}
+
+export type DeleteAllResult = { ok: true; deleted: number } | { ok: false; error: string };
+
+/** The word the couple must type before every guest and reply is removed. */
+const DELETE_ALL_WORD = "STERGE";
+
+/**
+ * Empties the guest list: every RSVP (with its plus-ones) and every imported
+ * guest of this wedding. The word is verified again here, not only in the
+ * dialog, so a stray request without the typed confirmation is refused.
+ */
+export async function deleteAllRsvps(confirmation: string): Promise<DeleteAllResult> {
+  if (String(confirmation).trim().toUpperCase() !== DELETE_ALL_WORD) {
+    return { ok: false, error: `Scrie „${DELETE_ALL_WORD}” ca să confirmi.` };
+  }
+
+  const tenantId = await currentTenantId();
+  if (!tenantId) return { ok: false, error: "Sesiunea a expirat. Autentifică-te din nou în admin." };
+
+  const supabase = await createClient();
+  const [rsvpsResult, guestsResult] = await Promise.all([
+    supabase.from("rsvps").delete({ count: "exact" }).eq("tenant_id", tenantId),
+    supabase.from("guests").delete({ count: "exact" }).eq("tenant_id", tenantId),
+  ]);
+
+  if (rsvpsResult.error || guestsResult.error) {
+    return { ok: false, error: "Nu am putut șterge toți invitații. Încearcă din nou." };
+  }
+
+  revalidatePath(await adminBasePath(), "layout");
+  return { ok: true, deleted: (rsvpsResult.count ?? 0) + (guestsResult.count ?? 0) };
 }

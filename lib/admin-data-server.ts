@@ -23,6 +23,7 @@ import { DEFAULT_TABLE_CAPACITY } from "@/lib/seating";
 import type { WeddingLocation } from "@/lib/config";
 import type { VenueRow } from "@/lib/restaurant-report";
 import { normalizeTheme } from "@/lib/theme";
+import { normalizePlan } from "@/lib/tenants";
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
@@ -40,12 +41,12 @@ export async function loadAdminData(
       supabase.from("rsvps").select("*, rsvp_guests(*)").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
       supabase.from("seating_people").select("id, kind, name, table_number").eq("tenant_id", tenantId).order("name"),
       supabase.from("seating_tables").select("number, capacity").eq("tenant_id", tenantId).order("number"),
-      supabase.from("expenses").select("id, item_name, category, currency, total_cost, amount_paid, notes").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+      supabase.from("expenses").select("id, item_name, category, currency, total_cost, amount_paid, due_before, due_after, notes").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
       supabase.from("locations").select("key, label, name, address, event_time, embed_url").eq("tenant_id", tenantId).order("key", { ascending: true }),
       supabase.from("event_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
       supabase.from("guests").select("id, full_name, phone").eq("tenant_id", tenantId),
       supabase.from("venue_report").select("kind, name, is_child, table_number, counted").eq("tenant_id", tenantId),
-      supabase.from("tenants").select("theme").eq("id", tenantId).maybeSingle(),
+      supabase.from("tenants").select("theme, plan").eq("id", tenantId).maybeSingle(),
     ]);
 
   const people: Person[] = (peopleResult.data ?? []).map((row: Record<string, unknown>) => ({
@@ -70,6 +71,8 @@ export async function loadAdminData(
     currency: isCurrency(row.currency) ? row.currency : DEFAULT_CURRENCY,
     total_cost: Number(row.total_cost),
     amount_paid: Number(row.amount_paid),
+    due_before: Number(row.due_before ?? 0),
+    due_after: Number(row.due_after ?? 0),
     notes: typeof row.notes === "string" ? row.notes : null,
   }));
 
@@ -90,6 +93,7 @@ export async function loadAdminData(
 
   return {
     slug: tenant.slug,
+    plan: normalizePlan(tenantResult.data?.plan),
     rsvps: (rsvpsResult.data ?? []) as GuestRow[],
     seatingPeople: people,
     seatingTables,

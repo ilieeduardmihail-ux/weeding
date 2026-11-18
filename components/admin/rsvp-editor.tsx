@@ -20,6 +20,7 @@ export type RsvpForEdit = {
   name: string;
   attending: boolean;
   message: string | null;
+  allergies: string | null;
   guests: { id: string; name: string; is_child: boolean; table_number: number | null }[];
 };
 
@@ -41,6 +42,7 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
       name: rsvp.name,
       attending: rsvp.attending ? "yes" : "no",
       message: rsvp.message ?? "",
+      allergies: rsvp.allergies ?? "",
       guests: rsvp.guests.map((g) => ({ guestId: g.id, name: g.name, isChild: g.is_child })),
     },
   });
@@ -144,6 +146,20 @@ export function RsvpEditor({ rsvp }: { rsvp: RsvpForEdit }) {
           </div>
         </div>
       )}
+
+      <div className="space-y-2">
+        <Label htmlFor="admin-allergies">Alergii sau preferințe alimentare</Label>
+        <textarea
+          id="admin-allergies"
+          rows={2}
+          maxLength={500}
+          {...register("allergies")}
+          placeholder="Ex: fără gluten, alergie la nuci…"
+          className="w-full rounded-md border border-input bg-transparent px-3 py-2 focus-visible:outline-2 focus-visible:outline-gold"
+        />
+        <p className="text-xs text-ink/55">Apare și în raportul pentru restaurant.</p>
+        {errors.allergies && <p className="text-sm text-red-700">{errors.allergies.message}</p>}
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="admin-message">Mesaj (opțional)</Label>

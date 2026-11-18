@@ -350,6 +350,31 @@ export async function setTenantStatus(input: z.infer<typeof statusSchema>): Prom
   return { ok: true };
 }
 
+const planSchema = z.object({
+  tenantId: z.string().uuid(),
+  plan: z.enum(["standard", "premium"]),
+});
+
+/** Owner-only: switches a wedding between Standard and Premium in one click. */
+export async function setTenantPlan(input: z.infer<typeof planSchema>): Promise<Result> {
+  if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
+  if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
+
+  const parsed = planSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Cerere invalidă." };
+
+  const service = serviceClient();
+  const { error } = await service
+    .from("tenants")
+    .update({ plan: parsed.data.plan })
+    .eq("id", parsed.data.tenantId);
+  if (error) return { ok: false, error: "Nu am putut schimba pachetul." };
+
+  revalidatePath("/platform");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 /* ----------------------------------------------------------------- invoices */
 
 const invoiceSchema = z.object({

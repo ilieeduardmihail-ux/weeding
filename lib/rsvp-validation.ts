@@ -14,17 +14,19 @@ export type RsvpDraft = {
   attending: "yes" | "no";
   guests: { name: string; isChild: boolean }[];
   message: string;
+  allergies: string;
 };
 
 export type RsvpErrors = {
   name?: string;
   message?: string;
+  allergies?: string;
   /** Keyed by the guest's position in the draft. */
   guests: Record<number, string>;
 };
 
 export function hasErrors(errors: RsvpErrors): boolean {
-  return Boolean(errors.name || errors.message || Object.keys(errors.guests).length > 0);
+  return Boolean(errors.name || errors.message || errors.allergies || Object.keys(errors.guests).length > 0);
 }
 
 export function validateRsvp(draft: RsvpDraft): RsvpErrors {
@@ -46,6 +48,7 @@ export function validateRsvp(draft: RsvpDraft): RsvpErrors {
   }
 
   if (draft.message.trim().length > 500) errors.message = "Păstrează mesajul sub 500 de caractere";
+  if (draft.allergies.trim().length > 500) errors.allergies = "Păstrează alergiile sub 500 de caractere";
 
   return errors;
 }
@@ -60,5 +63,6 @@ export function toRsvpInput(draft: RsvpDraft): RsvpInput {
         ? draft.guests.map((guest) => ({ name: guest.name.trim(), isChild: guest.isChild }))
         : [],
     message: draft.message.trim(),
+    allergies: draft.attending === "yes" ? draft.allergies.trim() : "",
   };
 }

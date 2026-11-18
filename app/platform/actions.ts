@@ -29,6 +29,15 @@ export type KeyResult =
 
 const emailSchema = z.string().trim().toLowerCase().email("Adresa de email nu pare validă.");
 
+/**
+ * `ana-si-stefan` and the demo are the platform's own weddings, used by the
+ * presentation page. They are never a client's wedding, so their memberships
+ * must not make the panel reuse them for a real request.
+ */
+function isPlatformTenant(slug: string) {
+  return slug === DEFAULT_TENANT_SLUG || slug === DEMO_SLUG;
+}
+
 /* --------------------------------------------------------------------- auth */
 
 export async function signInOwner(formData: FormData) {
@@ -684,6 +693,11 @@ type OfferRequestRow = {
  * The wedding a request writes to. An earlier run of the same request wins, then
  * an account that already administers a wedding with this email, and only then
  * a new client — so answering twice never leaves two weddings behind.
+ *
+ * The platform's own weddings (`ana-si-stefan`, the demo) are never handed to a
+ * client: they exist for the presentation page, and the owner's own address is
+ * listed on one, so trusting a membership alone used to send new clients
+ * straight into the default wedding.
  */
 async function tenantForRequest(
   service: Service,
@@ -692,7 +706,10 @@ async function tenantForRequest(
 ): Promise<{ id: string; slug: string } | { error: string }> {
   const load = async (id: string) => {
     const { data } = await service.from("tenants").select("id, slug").eq("id", id).maybeSingle();
-    return data ? { id: String(data.id), slug: String(data.slug) } : null;
+    if (!data) return null;
+    const slug = String(data.slug);
+    if (isPlatformTenant(slug)) return null;
+    return { id: String(data.id), slug };
   };
 
   if (request.tenant_id) {
@@ -701,14 +718,13 @@ async function tenantForRequest(
   }
 
   const email = String(request.email).toLowerCase();
-  const { data: membership } = await service
+  const { data: memberships } = await service
     .from("tenant_admins")
     .select("tenant_id")
     .eq("email", email)
-    .limit(1)
-    .maybeSingle();
-  if (membership?.tenant_id) {
-    const existing = await load(String(membership.tenant_id));
+    .order("created_at", { ascending: true });
+  for (const row of memberships ?? []) {
+    const existing = await load(String(row.tenant_id));
     if (existing) return existing;
   }
 

@@ -99,8 +99,17 @@ export async function activateAccount(input: z.infer<typeof schema>): Promise<Ac
 
   await activateFromKey(key.tenant_id, key.duration_days, service);
 
+  // Land on the wedding this key was made for, not on the bare resolver: an
+  // account that also administers another wedding (or carries a leftover
+  // membership) would otherwise be taken to the wrong panel.
+  const { data: tenant } = await service
+    .from("tenants")
+    .select("slug")
+    .eq("id", key.tenant_id)
+    .maybeSingle();
+
   await supabase.auth.signInWithPassword({ email, password });
-  redirect("/admin");
+  redirect(tenant?.slug ? `/${String(tenant.slug)}/admin` : "/admin");
 }
 
 /** Starts (or extends) the validity window from the moment of activation. */

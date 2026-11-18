@@ -16,13 +16,26 @@ export const CONTACT_BODY =
  * default mail app (Gmail, Outlook, Mail) with the draft already filled in.
  * ContactLink picks between the two; the address is also shown as plain text.
  */
-const contactBody = `body=${encodeURIComponent(CONTACT_BODY)}`;
-const contactSubject = encodeURIComponent(CONTACT_SUBJECT);
+/**
+ * Both targets for one draft, so a page that has its own message (the Premium
+ * upgrade for a specific wedding) gets the same behaviour as the landing page.
+ * The text is plain and short: it is read and edited in the mail client.
+ */
+export function contactLinks(subject: string, body: string) {
+  const su = encodeURIComponent(subject);
+  const text = encodeURIComponent(body);
+  return {
+    mailto: `mailto:${CONTACT_EMAIL}?subject=${su}&body=${text}`,
+    compose: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+      CONTACT_EMAIL
+    )}&su=${su}&body=${text}`,
+  };
+}
 
-export const CONTACT_COMPOSE = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-  CONTACT_EMAIL
-)}&su=${contactSubject}&${contactBody}`;
-export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}?subject=${contactSubject}&${contactBody}`;
+const contactLinksDefault = contactLinks(CONTACT_SUBJECT, CONTACT_BODY);
+
+export const CONTACT_COMPOSE = contactLinksDefault.compose;
+export const CONTACT_MAILTO = contactLinksDefault.mailto;
 export const DEMO_SLUG = "demo";
 export const DEMO_PATH = `/${DEMO_SLUG}`;
 

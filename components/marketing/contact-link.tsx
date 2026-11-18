@@ -16,7 +16,19 @@ import { CONTACT_COMPOSE, CONTACT_MAILTO } from "@/lib/marketing";
 
 const DESKTOP_POINTER = "(hover: hover) and (pointer: fine)";
 
-export function ContactLink({ onClick, ...props }: ComponentPropsWithRef<"a">) {
+type Props = ComponentPropsWithRef<"a"> & {
+  /** Gmail compose target on a computer; the offer request unless overridden. */
+  compose?: string;
+  /** Link for a phone, for the keyboard and for a browser without JavaScript. */
+  mailto?: string;
+};
+
+export function ContactLink({
+  compose = CONTACT_COMPOSE,
+  mailto = CONTACT_MAILTO,
+  onClick,
+  ...props
+}: Props) {
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     onClick?.(event);
     if (event.defaultPrevented) return;
@@ -29,8 +41,8 @@ export function ContactLink({ onClick, ...props }: ComponentPropsWithRef<"a">) {
     if (!window.matchMedia(DESKTOP_POINTER).matches) return;
 
     event.preventDefault();
-    window.open(CONTACT_COMPOSE, "_blank", "noopener,noreferrer");
+    window.open(compose, "_blank", "noopener,noreferrer");
   }
 
-  return <a {...props} href={CONTACT_MAILTO} onClick={handleClick} />;
+  return <a {...props} href={mailto} onClick={handleClick} />;
 }

@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Crown, Gift, Lock, PiggyBank, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactLink } from "@/components/marketing/contact-link";
-import { CONTACT_EMAIL } from "@/lib/marketing";
+import { useAdminData } from "@/components/admin/admin-data";
+import { CONTACT_COMPOSE, CONTACT_MAILTO, CONTACT_EMAIL, contactLinks } from "@/lib/marketing";
+import { PUBLIC_SITE_URL } from "@/lib/message-template";
+import { premiumBody, premiumRequest, premiumSubject } from "@/lib/premium-message";
 
 const INCLUDED = [
   { icon: Wallet, title: "Buget & furnizori", text: "Avans, rest înainte de nuntă și rest în ziua nunții, pe fiecare cheltuială." },
@@ -15,10 +18,21 @@ const INCLUDED = [
 /**
  * Shown instead of the Premium modules for a Standard wedding. The upgrade is
  * a conversation, not a checkout: the couple writes to us and we switch the plan.
+ *
+ * The email is written here, per wedding: names, date, city and the invitation
+ * link come from this wedding's settings, so the draft in Gmail needs no
+ * follow-up question about who is writing.
  */
 export function UpgradeNotice() {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
+
+  const { data } = useAdminData();
+  const links = useMemo(() => {
+    if (!data) return { mailto: CONTACT_MAILTO, compose: CONTACT_COMPOSE };
+    const request = premiumRequest(data.settings, data.slug, PUBLIC_SITE_URL);
+    return contactLinks(premiumSubject(request), premiumBody(request));
+  }, [data]);
 
   useEffect(() => {
     const element = dialog.current;
@@ -55,7 +69,11 @@ export function UpgradeNotice() {
         <Button type="button" onClick={() => setOpen(true)} className="bg-ink text-sea hover:bg-ink/85">
           <Lock className="size-4" aria-hidden /> Activează Premium
         </Button>
-        <ContactLink className="text-sm text-ink/70 underline decoration-gold/50 underline-offset-4 transition-colors hover:text-ink">
+        <ContactLink
+          compose={links.compose}
+          mailto={links.mailto}
+          className="text-sm text-ink/70 underline decoration-gold/50 underline-offset-4 transition-colors hover:text-ink"
+        >
           Scrie-ne la {CONTACT_EMAIL}
         </ContactLink>
       </div>
@@ -82,7 +100,9 @@ export function UpgradeNotice() {
         <div className="mt-6 flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Închide</Button>
           <Button asChild className="bg-ink text-sea hover:bg-ink/85">
-            <ContactLink>Scrie-ne pe email</ContactLink>
+            <ContactLink compose={links.compose} mailto={links.mailto}>
+              Scrie-ne pe email
+            </ContactLink>
           </Button>
         </div>
       </dialog>

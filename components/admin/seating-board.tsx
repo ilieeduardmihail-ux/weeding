@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toast, useToast } from "@/components/ui/toast";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
-import { notifyAdminDataChanged } from "@/lib/admin-data";
+import { notifyAdminDataChanged, snapshotIsFresh } from "@/lib/admin-data";
 import {
   DEFAULT_TABLE_CAPACITY,
   MAX_TABLE_CAPACITY,
@@ -317,9 +317,12 @@ function DeleteTableDialog({
 export function SeatingBoard({
   initial,
   initialTables,
+  loadedAt,
 }: {
   initial: Person[];
   initialTables: SeatingTable[];
+  /** When the shared dataset was requested, so old snapshots can be spotted. */
+  loadedAt: number;
 }) {
   const [people, setPeople] = useState(initial);
   const [tables, setTables] = useState(initialTables);
@@ -335,10 +338,14 @@ export function SeatingBoard({
   // refresh never undoes a change the couple just made.
   const appliedPeople = useRef(initial);
   const appliedTables = useRef(initialTables);
+  const mutationAt = useRef(0);
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    if (pendingCount !== 0) return;
+    // A request that left before the last write finished can still carry the
+    // old table number. Applying it would flash the guest back into „Fără
+    // masă" until the refresh queued by the write returns. Drop it instead.
+    if (!snapshotIsFresh(loadedAt, mutationAt.current, pendingCount)) return;
     if (appliedPeople.current !== initial) {
       appliedPeople.current = initial;
       setPeople(initial);
@@ -347,7 +354,7 @@ export function SeatingBoard({
       appliedTables.current = initialTables;
       setTables(initialTables);
     }
-  }, [initial, initialTables, pendingCount]);
+  }, [initial, initialTables, pendingCount, loadedAt]);
 
   // The expensive filtering waits for the typing to settle; the input itself
   // still updates on every keystroke.
@@ -427,6 +434,7 @@ export function SeatingBoard({
         commitPeople((list) => list.map((x) => (keyOf(x) === key ? { ...x, table: original } : x)));
         show(r.error, "error");
       } else {
+        mutationAt.current = Date.now();
         notifyAdminDataChanged();
       }
     })();
@@ -488,6 +496,7 @@ export function SeatingBoard({
         });
         show(r.error, "error");
       } else {
+        mutationAt.current = Date.now();
         notifyAdminDataChanged();
       }
     })();
@@ -505,6 +514,7 @@ export function SeatingBoard({
         const added = { number: r.number, capacity };
         commitTables((prev) => [...prev, added].sort((a, b) => a.number - b.number));
       }
+      mutationAt.current = Date.now();
       notifyAdminDataChanged();
     })();
   }, [commitTables, show]);
@@ -538,6 +548,7 @@ export function SeatingBoard({
         );
         show(r.error, "error");
       } else {
+        mutationAt.current = Date.now();
         notifyAdminDataChanged();
       }
     })();
@@ -559,6 +570,7 @@ export function SeatingBoard({
         );
         show(r.error, "error");
       } else {
+        mutationAt.current = Date.now();
         notifyAdminDataChanged();
       }
     })();

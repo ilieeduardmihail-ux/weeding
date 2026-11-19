@@ -67,3 +67,15 @@ export const ADMIN_DATA_EVENT = "admin-data-change";
 export function notifyAdminDataChanged() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(ADMIN_DATA_EVENT));
 }
+
+/**
+ * Whether a server snapshot may replace the local optimistic state.
+ *
+ * A request that started before the last write finished can still hold the old
+ * value: applying it would flash a guest back to „Fără masă" for a moment, then
+ * the next refresh would seat them again. Such snapshots are dropped; the
+ * refresh queued by the successful write brings the same data a moment later.
+ */
+export function snapshotIsFresh(loadedAt: number, mutatedAt: number, pending: number) {
+  return pending === 0 && loadedAt >= mutatedAt;
+}

@@ -11,6 +11,8 @@ type AdminDataValue = {
   error: string | null;
   /** True while the Supabase Realtime subscription is connected. */
   live: boolean;
+  /** When `data` was requested. A write that finished later must not apply it. */
+  loadedAt: number;
   /** Silent revalidation: the current data stays on screen while it loads. */
   refresh: () => Promise<void>;
 };
@@ -29,48 +31,61 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AdminData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [live, setLive] = useState(false);
+  const [loadedAt, setLoadedAt] = useState(0);
 
-  const inFlight = useRef<Promise<void> | null>(null);
+  const running = useRef(false);
+  const queued = useRef(false);
   const lastLoaded = useRef(0);
   const lastPayload = useRef("");
   const liveRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    // Several sections may ask at the same time; they share one request.
-    if (inFlight.current) return inFlight.current;
+    // Requests are serialized: while one runs, later callers mark it dirty and
+    // get one more round afterwards. Returning the running request instead
+    // would let a mutation finish without ever loading the value it wrote.
+    if (running.current) {
+      queued.current = true;
+      return;
+    }
 
-    const request = (async () => {
-      try {
-        const response = await fetch(`/${slug}/admin/bootstrap`, { cache: "no-store" });
-        if (response.status === 401) {
-          router.replace(`/${slug}/admin/login`);
-          return;
-        }
-        // 403 means the wedding is suspended or the access ran out: the section
-        // skeletons would never fill, so send the couple to the explainer.
-        if (response.status === 403) {
-          router.replace(`/${slug}/admin/expired`);
-          return;
-        }
-        if (!response.ok) throw new Error(String(response.status));
-        // Realtime pushes and the fallback poll very often bring back exactly
-        // what is already on screen. Comparing the raw body first keeps big
-        // lists from re-rendering (and re-parsing) for nothing.
-        const body = await response.text();
-        lastLoaded.current = Date.now();
-        setError(null);
-        if (body === lastPayload.current) return;
-        lastPayload.current = body;
-        setData(JSON.parse(body) as AdminData);
-      } catch {
-        setError("Nu am putut încărca datele. Verifică conexiunea și încearcă din nou.");
-      } finally {
-        inFlight.current = null;
-      }
-    })();
+    running.current = true;
+    try {
+      do {
+        queued.current = false;
 
-    inFlight.current = request;
-    return request;
+        // The moment the request leaves tells the caller whether the snapshot
+        // could have seen a write that finished later.
+        const startedAt = Date.now();
+        try {
+          const response = await fetch(`/${slug}/admin/bootstrap`, { cache: "no-store" });
+          if (response.status === 401) {
+            router.replace(`/${slug}/admin/login`);
+            return;
+          }
+          // 403 means the wedding is suspended or the access ran out: the section
+          // skeletons would never fill, so send the couple to the explainer.
+          if (response.status === 403) {
+            router.replace(`/${slug}/admin/expired`);
+            return;
+          }
+          if (!response.ok) throw new Error(String(response.status));
+          // Realtime pushes and the fallback poll very often bring back exactly
+          // what is already on screen. Comparing the raw body first keeps big
+          // lists from re-rendering (and re-parsing) for nothing.
+          const body = await response.text();
+          lastLoaded.current = Date.now();
+          setError(null);
+          if (body === lastPayload.current) continue;
+          lastPayload.current = body;
+          setData(JSON.parse(body) as AdminData);
+          setLoadedAt(startedAt);
+        } catch {
+          setError("Nu am putut încărca datele. Verifică conexiunea și încearcă din nou.");
+        }
+      } while (queued.current);
+    } finally {
+      running.current = false;
+    }
   }, [router, slug]);
 
   useEffect(() => {
@@ -138,8 +153,8 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const value = useMemo<AdminDataValue>(
-    () => ({ data, error, live, refresh }),
-    [data, error, live, refresh]
+    () => ({ data, error, live, loadedAt, refresh }),
+    [data, error, live, loadedAt, refresh]
   );
 
   return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>;

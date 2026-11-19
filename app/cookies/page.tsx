@@ -14,7 +14,7 @@ const rows: { name: string; provider: string; purpose: string; duration: string;
   {
     name: "sb-<proiect>-auth-token",
     provider: "Supabase (pe domeniul nostru)",
-    purpose: "Ține minte sesiunea de administrare, ca să nu reintroduci parola la fiecare pagină.",
+    purpose: "Ține minte sesiunea de administrare, ca să nu reintroduci parola la fiecare pagină — la fel și când intri în contul demo.",
     duration: "sesiunea de lucru; expiră la deconectare sau când tokenul își pierde valabilitatea",
     basis: "strict necesar",
   },

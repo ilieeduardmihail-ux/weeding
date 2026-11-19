@@ -315,7 +315,7 @@ function LeadCard({
         </div>
       </div>
 
-      <dl className="mt-3 grid gap-x-6 gap-y-1 text-xs text-ink/60 sm:grid-cols-3">
+      <dl className="mt-3 grid gap-x-6 gap-y-1 text-xs text-ink/60 sm:grid-cols-4">
         <div>
           <dt className="inline text-ink/45">Înscris: </dt>
           <dd className="inline">{formatDate(lead.createdAt)}</dd>
@@ -323,6 +323,10 @@ function LeadCard({
         <div>
           <dt className="inline text-ink/45">Confirmat: </dt>
           <dd className="inline">{formatDate(lead.verifiedAt)}</dd>
+        </div>
+        <div>
+          <dt className="inline text-ink/45">Acord ofertă: </dt>
+          <dd className="inline">{lead.marketingAt ? "da" : "nu"}</dd>
         </div>
         <div>
           <dt className="inline text-ink/45">

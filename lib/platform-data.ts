@@ -199,9 +199,29 @@ export async function loadVisitStats(): Promise<VisitStats> {
   }
 }
 
+const MAIL_KINDS: MailEntry["kind"][] = ["oferta", "factura", "cheie", "raspuns", "lead", "cod"];
+
+function asMailKind(value: unknown): MailEntry["kind"] {
+  return MAIL_KINDS.includes(value as MailEntry["kind"])
+    ? (value as MailEntry["kind"])
+    : "oferta";
+}
+
+/** The policy promises 30 days for the mail log; the cron calls this daily. */
+export async function purgeExpiredMailLog(): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - RETENTION.logsDays * 86_400_000).toISOString();
+    await serviceClient().from("mail_log").delete().lt("at", cutoff);
+  } catch {
+    // Housekeeping must never break the page that triggered it.
+  }
+}
+
 /** Metadata of the emails the app sent, newest first. Empty before migration. */
 export async function loadMailLog(limit = 200): Promise<MailEntry[]> {
   try {
+    await purgeExpiredMailLog();
+
     const { data, error } = await serviceClient()
       .from("mail_log")
       .select("id, at, kind, to_address, subject, reply_to, ok, error, tenants(slug, display_name)")
@@ -214,9 +234,7 @@ export async function loadMailLog(limit = 200): Promise<MailEntry[]> {
       return {
         id: String(row.id),
         at: String(row.at),
-        kind: (row.kind === "factura" || row.kind === "cheie" || row.kind === "raspuns"
-          ? row.kind
-          : "oferta") as MailEntry["kind"],
+        kind: asMailKind(row.kind),
         to: String(row.to_address ?? ""),
         subject: String(row.subject ?? ""),
         replyTo: typeof row.reply_to === "string" ? row.reply_to : null,
@@ -235,16 +253,22 @@ function toOfferStatus(value: unknown): OfferStatus {
   return value === "raspuns" || value === "inchis" ? value : "nou";
 }
 
+/** Deletes offer requests older than the contact retention, for the daily cron. */
+export async function purgeExpiredOffers(): Promise<void> {
+  try {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - RETENTION.contactYears);
+    await serviceClient().from("offer_requests").delete().lt("at", cutoff.toISOString());
+  } catch {
+    // Housekeeping must never break the page that triggered it.
+  }
+}
+
 /** Requests from the offer form, newest first. Empty before the migration. */
 export async function loadOfferRequests(limit = 200): Promise<OfferRequest[]> {
   try {
     const service = serviceClient();
-
-    // The privacy page promises contact correspondence is kept for
-    // `RETENTION.contactYears`; there is no cron, so the cleanup runs here.
-    const cutoff = new Date();
-    cutoff.setFullYear(cutoff.getFullYear() - RETENTION.contactYears);
-    await service.from("offer_requests").delete().lt("at", cutoff.toISOString());
+    await purgeExpiredOffers();
 
     const { data, error } = await service
       .from("offer_requests")
@@ -291,7 +315,7 @@ export async function countNewOfferRequests(): Promise<number> {
 /* -------------------------------------------------------------------- leads */
 
 const LEAD_COLUMNS =
-  "id, email, name, created_at, verified_at, last_seen_at, consent_at, policy_version, note, archived_at, sandbox_tenant_id";
+  "id, email, name, created_at, verified_at, last_seen_at, consent_at, policy_version, marketing_at, note, archived_at, sandbox_tenant_id";
 
 /**
  * The demo accounts, newest first, each with the state of its copy. Runs after
@@ -345,6 +369,7 @@ export async function loadLeads(limit = 300): Promise<PlatformLead[]> {
         lastSeenAt: typeof row.last_seen_at === "string" ? row.last_seen_at : null,
         consentAt: String(row.consent_at),
         policyVersion: String(row.policy_version ?? ""),
+        marketingAt: typeof row.marketing_at === "string" ? row.marketing_at : null,
         note: typeof row.note === "string" && row.note.trim() ? row.note : null,
         archivedAt: typeof row.archived_at === "string" ? row.archived_at : null,
         // A sandbox washed away by `purge_expired_sandboxes` leaves the lead

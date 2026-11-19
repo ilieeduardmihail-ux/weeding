@@ -35,7 +35,7 @@ export default function TermsPage() {
       ))}
 
       <section>
-        <h2 className="font-display text-2xl leading-snug text-ink">9. Contact</h2>
+        <h2 className="font-display text-2xl leading-snug text-ink">10. Contact</h2>
         <div className="mt-3 space-y-3 leading-relaxed">
           <p>
             Pentru ofertă, modificări sau orice nelămurire legată de acești termeni, scrie-ne la{" "}

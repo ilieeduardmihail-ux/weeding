@@ -78,8 +78,8 @@ export const SUB_PROCESSORS: SubProcessor[] = [
   },
   {
     name: "Supabase Inc.",
-    role: "Bază de date PostgreSQL, autentificare și stocare de fișiere, în regiunea Frankfurt",
-    location: "Uniunea Europeană (Frankfurt, Germania)",
+    role: "Bază de date PostgreSQL, autentificare și stocare de fișiere, în regiunea Paris",
+    location: "Uniunea Europeană (Paris, Franța)",
     transfer: "Datele rămân în UE; DPA cu clauze contractuale standard pentru asistență",
     link: "https://supabase.com/legal/dpa",
   },
@@ -117,35 +117,43 @@ export const TERMS_SECTIONS: LegalSection[] = [
     ],
   },
   {
-    title: "4. Disponibilitate și suport",
+    title: "4. Contul demo",
+    body: [
+      "Contul demo este gratuit. Îți dă acces la o copie de lucru a nunții demonstrative, ca să vezi cum funcționează panoul. Copia nu are adresă publică, nu poate fi exportată sau tipărită și nu înlocuiește o invitație reală.",
+      "Datele din demo sunt fictive. Modificările pe care le faci în copia ta sunt ale tale, dar nu le folosim în alt scop și nu le arătăm altor vizitatori. Contul și copia se șterg automat după 7 zile de la creare. Numele, adresa și dovada acordului se păstrează separat, conform politicii de confidențialitate, iar datele pentru ofertă doar dacă ai bifat acordul special.",
+      "Crearea contului demo nu formează un contract și nu generează nicio plată. Trecerea la o invitație reală se face doar după ce stabilim oferta și ne dai acordul explicit; nu taxăm automat și nu pornim o perioadă plătită fără confirmarea ta.",
+    ],
+  },
+  {
+    title: "5. Disponibilitate și suport",
     body: [
       "Ne propunem o disponibilitate de 99% pe lună, fără a include mentenanța anunțată anterior. Găzduirea este asigurată de Vercel, iar baza de date de Supabase, ambele cu măsuri de securitate și copii de siguranță.",
       "Suportul se acordă pe email, în zilele lucrătoare, în cel mult 2 zile lucrătoare pentru întrebări și 1 zi lucrătoare pentru probleme care fac invitația inaccesibilă.",
     ],
   },
   {
-    title: "5. Anulare și retragere",
+    title: "6. Anulare și retragere",
     body: [
       "Clientul poate anula înainte de publicarea invitației, cu restituirea sumelor plătite mai puțin costurile deja angajate, dacă au fost făcute la cererea lui.",
       "După publicare, sumele nu se restituie pentru perioada deja livrată. La finalul perioadei contractate, site-ul poate fi prelungit sau închis; datele se șterg conform politicii de confidențialitate.",
     ],
   },
   {
-    title: "6. Date personale",
+    title: "7. Date personale",
     body: [
       "Pentru invitații lor, mirii sunt operatori de date, iar platforma este persoana împuternicită care doar găzduiește datele. Relația este detaliată în acordul de prelucrare încheiat la comandă și în politica de confidențialitate a fiecărei invitații.",
       "Pentru propriile date de client (nume, email, facturare), noi suntem operatori și le prelucrăm conform politicii de confidențialitate a platformei.",
     ],
   },
   {
-    title: "7. Răspundere",
+    title: "8. Răspundere",
     body: [
       "Răspundem pentru funcționarea serviciului conform descrierii din ofertă. Nu răspundem pentru întreruperi cauzate de furnizori externi, de rețeaua clientului sau de utilizarea greșită a linkurilor de administrare.",
       "Clientul păstrează confidențial parola panoului și ne anunță imediat dacă bănuiește că a fost compromisă.",
     ],
   },
   {
-    title: "8. Modificări și legea aplicabilă",
+    title: "9. Modificări și legea aplicabilă",
     body: [
       "Putem actualiza acești termeni pentru comenzi viitoare; versiunea aplicabilă unei comenzi este cea afișată la data confirmării. Modificările nu se aplică retroactiv.",
       "Termenii sunt guvernați de legea română. Neînțelegerile se rezolvă pe cale amiabilă, iar dacă nu este posibil, de instanțele competente din România.",

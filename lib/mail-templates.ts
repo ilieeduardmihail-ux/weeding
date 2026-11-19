@@ -221,10 +221,12 @@ export type LeadNoticeContext = {
   sandboxUrl: string;
   /** Already formatted for reading, e.g. "19.11.2026, 14:32". */
   when: string;
+  /** The separate opt-in for an offer, not the account itself. */
+  marketing: boolean;
 };
 
 /** The owner's notification: someone reached the panel and is worth calling. */
-export function leadNoticeMail({ name, email, sandboxUrl, when }: LeadNoticeContext) {
+export function leadNoticeMail({ name, email, sandboxUrl, when, marketing }: LeadNoticeContext) {
   const who = name?.trim() ? `${name.trim()} <${email}>` : email;
   return {
     subject: `Lead nou: ${name?.trim() || email}`,
@@ -234,6 +236,9 @@ export function leadNoticeMail({ name, email, sandboxUrl, when }: LeadNoticeCont
       `Cine: ${who}`,
       `Când: ${when}`,
       "A confirmat codul primit pe email, deci adresa este reală.",
+      marketing
+        ? "A bifat acordul pentru a fi contactat despre o invitație: poți să îi trimiți oferta."
+        : "NU a bifat acordul pentru ofertă: poți să îi răspunzi dacă îți scrie, dar nu să îi trimiți oferte.",
       "",
       `Panoul lui demo: ${sandboxUrl}`,
       "Îl poți transforma în nuntă reală dintr-un click, din /platform/lead-uri.",

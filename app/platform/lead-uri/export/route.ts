@@ -19,7 +19,7 @@ export async function GET() {
   const leads = await loadLeads(1000);
 
   const lines = [
-    "nume,email,creat,confirmat,ultima_vizita,stare,adresa,expira,nota,arhivat",
+    "nume,email,creat,confirmat,acord_oferta,ultima_vizita,stare,adresa,expira,nota,arhivat",
   ];
   for (const lead of leads) {
     const state = lead.archivedAt
@@ -35,6 +35,7 @@ export async function GET() {
         lead.email,
         date(lead.createdAt),
         date(lead.verifiedAt),
+        lead.marketingAt ? "da" : "nu",
         date(lead.lastSeenAt),
         state,
         lead.sandboxSlug ? `/${lead.sandboxSlug}` : "",

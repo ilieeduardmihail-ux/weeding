@@ -187,11 +187,12 @@ describe("demoCodeMail", () => {
 });
 
 describe("leadNoticeMail", () => {
-  const input = {
+  const input: Parameters<typeof leadNoticeMail>[0] = {
     name: "Ana Popescu",
     email: "ana@exemplu.ro",
     sandboxUrl: "https://wedding-ro.vercel.app/demo-abc123/admin",
     when: "19.11.2026, 14:32",
+    marketing: true,
   };
 
   it("gives the owner who, when and where to look", () => {
@@ -201,6 +202,12 @@ describe("leadNoticeMail", () => {
     expect(mail.text).toContain(input.when);
     expect(mail.text).toContain(input.sandboxUrl);
     expect(mail.text).toContain("/platform/lead-uri");
+  });
+
+  it("says whether an offer is allowed", () => {
+    expect(leadNoticeMail(input).text).toContain("poți să îi trimiți oferta");
+    const noOffer = leadNoticeMail({ ...input, marketing: false });
+    expect(noOffer.text).toContain("NU a bifat acordul pentru ofertă");
   });
 
   it("works with an address alone", () => {

@@ -49,6 +49,8 @@ export type Lead = {
   user_id: string | null;
   verified_at: string | null;
   sandbox_tenant_id: string | null;
+  /** When the visitor agreed to be contacted about an invitation. */
+  marketing_at: string | null;
   code_hash: string | null;
   code_purpose: string | null;
   code_expires_at: string | null;
@@ -57,7 +59,7 @@ export type Lead = {
 };
 
 const LEAD_COLUMNS =
-  "id, email, name, user_id, verified_at, sandbox_tenant_id, code_hash, code_purpose, code_expires_at, code_attempts, code_sent_at";
+  "id, email, name, user_id, verified_at, sandbox_tenant_id, marketing_at, code_hash, code_purpose, code_expires_at, code_attempts, code_sent_at";
 
 /* --------------------------------------------------------------- persistence */
 
@@ -85,6 +87,11 @@ export async function startLeadCode(input: {
   name?: string | null;
   email: string;
   purpose: "signup" | "reset";
+  /**
+   * The separate opt-in for an offer. Undefined means "leave what is stored"
+   * (resend, password reset); on signup it is the visitor's current choice.
+   */
+  marketing?: boolean;
 }): Promise<StartResult> {
   if (!platformIsConfigured()) {
     return { ok: false, error: "Înscrierea nu este disponibilă acum. Scrie-ne pe email." };
@@ -135,6 +142,10 @@ export async function startLeadCode(input: {
               name: input.name?.trim() || lead.name,
               consent_at: sentAt,
               policy_version: PRIVACY_POLICY_VERSION,
+              // Undefined on a resend: keep the choice already stored.
+              ...(input.marketing === undefined
+                ? {}
+                : { marketing_at: input.marketing ? sentAt : null }),
             }
           : {}),
       })
@@ -147,6 +158,7 @@ export async function startLeadCode(input: {
       source: "demo-panou",
       consent_at: sentAt,
       policy_version: PRIVACY_POLICY_VERSION,
+      marketing_at: input.marketing ? sentAt : null,
       ...patch,
     });
     if (error) return { ok: false, error: "Nu am putut salva codul. Încearcă din nou." };
@@ -247,6 +259,7 @@ export async function notifyOwnerOfLead(input: {
   name: string | null;
   email: string;
   sandboxSlug: string | null;
+  marketing: boolean;
 }): Promise<void> {
   if (!mailConfigured()) return;
   try {
@@ -262,6 +275,7 @@ export async function notifyOwnerOfLead(input: {
         ? sandboxPanelUrl(input.sandboxSlug)
         : `${PUBLIC_SITE_URL.replace(/\/+$/, "")}/platform/lead-uri`,
       when,
+      marketing: input.marketing,
     });
     await sendTextMail({
       to: CONTACT_EMAIL,

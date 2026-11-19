@@ -49,6 +49,8 @@ const signupSchema = z.object({
   consent: z.boolean().refine((value) => value === true, {
     message: "Bifează acordul pentru prelucrarea datelor.",
   }),
+  /** Separate opt-in for an offer; not required for the demo account. */
+  marketing: z.boolean().optional(),
   /** Honeypot: a person never sees this field. */
   website: z.string().optional(),
 });
@@ -76,6 +78,7 @@ export async function startDemoSignup(input: z.infer<typeof signupSchema>): Prom
     name: parsed.data.name,
     email: parsed.data.email,
     purpose: "signup",
+    marketing: parsed.data.marketing === true,
   });
   if (!result.ok) return result;
   return { ok: true, email: parsed.data.email, devCode: result.devCode };
@@ -181,7 +184,12 @@ export async function confirmDemoSignup(input: z.infer<typeof confirmSchema>): P
 
   // The owner's email must not delay the visitor's first look at the panel.
   after(async () => {
-    await notifyOwnerOfLead({ name: check.lead.name, email, sandboxSlug: sandbox.slug });
+    await notifyOwnerOfLead({
+      name: check.lead.name,
+      email,
+      sandboxSlug: sandbox.slug,
+      marketing: Boolean(check.lead.marketing_at),
+    });
   });
 
   redirect(`/${sandbox.slug}/admin`);

@@ -75,13 +75,14 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="text-ink">Contul de administrare:</strong> adresa de email și o
-            parolă păstrată criptat de furnizorul de autentificare. Nu vedem parola.
+            parolă stocată sub formă de hash de furnizorul de autentificare. Nu vedem parola.
           </li>
           <li>
             <strong className="text-ink">Contul demo (opțional):</strong> numele, adresa de email,
-            parola criptată de furnizorul de autentificare, momentul acordului, versiunea politicii
-            și copia ta de lucru a nunții demo. Codul de confirmare este păstrat doar sub o formă
-            ireversibilă.
+            parola stocată sub formă de hash de furnizorul de autentificare, momentul acordului,
+            versiunea politicii, copia ta de lucru a nunții demo și, dacă bifezi separat, acordul
+            pentru a fi contactat despre o invitație. Codul de confirmare este păstrat doar sub o
+            formă ireversibilă.
           </li>
         </ul>
         <p>
@@ -120,10 +121,10 @@ export default function PrivacyPage() {
             retrage oricând, ștergând contul.
           </li>
           <li>
-            <strong className="text-ink">Te contactăm după expirarea demo-ului</strong> — interesul
-            legitim de a duce la capăt discuția pe care ai început-o (art. 6 alin. 1 lit. f), dacă
-            nu ai cerut ștergerea. Te poți opune oricând, iar datele dispar și automat după{" "}
-            {RETENTION.contactYears} ani.
+            <strong className="text-ink">Te contactăm după expirarea demo-ului</strong> — doar dacă
+            ai bifat separat „vreau să fiu contactat(ă)”, deci pe baza consimțământului (art. 6
+            alin. 1 lit. a). Fără acea bifă nu îți trimitem oferte. Îl poți retrage oricând, iar
+            datele dispar și automat după {RETENTION.contactYears} ani.
           </li>
         </ul>
         <p>
@@ -158,7 +159,7 @@ export default function PrivacyPage() {
         <p>
           Vercel și Google sunt certificați în EU-US Data Privacy Framework, decizie de adecvare a
           Comisiei Europene din 10 iulie 2023. Supabase păstrează baza de date în Uniunea Europeană
-          (Frankfurt) și acoperă orice acces din afara UE prin clauze contractuale standard,
+          (Paris, Franța) și acoperă orice acces din afara UE prin clauze contractuale standard,
           aprobate de Comisie. Detaliile fiecărui furnizor sunt pe pagina{" "}
           <Link href="/subprocesatori" className="text-ink underline decoration-ink/40 underline-offset-4">
             subprocesatori
@@ -200,8 +201,13 @@ export default function PrivacyPage() {
                 <td className="py-3">7 zile de la creare, apoi ștergere automată</td>
               </tr>
               <tr className="border-b border-ink/10">
-                <td className="py-3 pr-4">Datele de contact din demo, dacă nu devin client</td>
-                <td className="py-3">{RETENTION.contactYears} ani de la ultima discuție</td>
+                <td className="py-3 pr-4">
+                  Datele de contact din demo, dacă nu devin client și ai bifat acordul pentru ofertă
+                </td>
+                <td className="py-3">
+                  {RETENTION.contactYears} ani de la ultima discuție sau până la retragerea
+                  acordului
+                </td>
               </tr>
               <tr className="border-b border-ink/10">
                 <td className="py-3 pr-4">Facturi și documente contabile</td>
@@ -291,8 +297,9 @@ export default function PrivacyPage() {
           <Link href={DEMO_PATH} className="text-ink underline decoration-ink/40 underline-offset-4">
             {DEMO_PATH}
           </Link>{" "}
-          este fictivă: numele, locurile, sumele și confirmările sunt inventate pentru prezentare.
-          Dacă trimiți o confirmare în demo, o ștergem la curățenia periodică.
+          este fictivă: numele, locurile și sumele sunt inventate pentru prezentare, iar confirmările
+          trimise acolo nu ajung la o nuntă reală și nu sunt folosite în alt scop. Le înlocuim când
+          reîmprospătăm demonstrația.
         </p>
       </LegalSection>
 
@@ -305,7 +312,7 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-2 pl-5">
           <li>
             <strong className="text-ink">Ce salvăm:</strong> numele, adresa de email și o parolă
-            păstrată criptat de furnizorul de autentificare. Nu vedem parola.
+            stocată sub formă de hash de furnizorul de autentificare. Nu vedem parola.
           </li>
           <li>
             <strong className="text-ink">Codul de confirmare:</strong> îți trimitem un cod de 6
@@ -322,7 +329,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="text-ink">Cine o vede:</strong> tu, în panou, și noi, ca să îți
-            răspundem dacă ne scrii. Nu o folosim pentru publicitate fără acordul tău.
+            răspundem dacă ne scrii. Nu îți trimitem oferte fără acordul tău separat.
           </li>
         </ul>
         <p>

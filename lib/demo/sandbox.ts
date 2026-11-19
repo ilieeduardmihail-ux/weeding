@@ -4,8 +4,8 @@
  *
  * Se creează cu cheia de service, printr-o funcție SQL care copiază tot
  * conținutul demo și dă vizitatorului acces la panou. Trăiesc 7 zile; curățarea
- * rulează oportunist (la o înscriere nouă, când se deschide „Lead-uri"), ca să
- * nu fie nevoie de un cron și de un secret în plus.
+ * rulează zilnic prin `/api/cron/cleanup` și, în plus, oportunist la o înscriere
+ * nouă sau când se deschide „Lead-uri", ca un sandbox expirat să nu rămână mult.
  */
 import "server-only";
 
@@ -50,10 +50,12 @@ export async function createSandboxFor(email: string): Promise<Sandbox | null> {
 }
 
 /** Deletes every sandbox whose 7 days are gone. Safe to call often. */
-export async function purgeExpiredSandboxes(): Promise<void> {
+export async function purgeExpiredSandboxes(): Promise<number> {
   try {
-    await serviceClient().rpc("purge_expired_sandboxes");
+    const { data } = await serviceClient().rpc("purge_expired_sandboxes");
+    return typeof data === "number" ? data : 0;
   } catch {
     // Housekeeping must never break the page that triggered it.
+    return 0;
   }
 }

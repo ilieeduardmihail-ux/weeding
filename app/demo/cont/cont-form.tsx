@@ -36,6 +36,7 @@ export function ContForm({ initialTab = "signup", initialEmail = "", notice }: P
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [consent, setConsent] = useState(false);
+  const [marketing, setMarketing] = useState(false);
   const [code, setCode] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const [devCode, setDevCode] = useState<string | null>(null);
@@ -60,6 +61,7 @@ export function ContForm({ initialTab = "signup", initialEmail = "", notice }: P
         email,
         password,
         consent,
+        marketing,
         website: String(data.get("website") ?? ""),
       });
       if (!result.ok) {
@@ -206,6 +208,19 @@ export function ContForm({ initialTab = "signup", initialEmail = "", notice }: P
                 politicii de confidențialitate
               </Link>
               . Pot șterge contul oricând, dintr-un click.
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-lg border border-ink/10 p-3 text-xs leading-relaxed text-ink/65">
+            <input
+              type="checkbox"
+              checked={marketing}
+              onChange={(event) => setMarketing(event.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-[var(--color-gold)]"
+            />
+            <span>
+              Opțional: vreau să fiu contactat(ă) despre o invitație după ce se termină demo-ul.
+              Dacă nu bifez, primesc doar emailurile despre cont. Pot retrage acordul oricând.
             </span>
           </label>
 

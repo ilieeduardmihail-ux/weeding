@@ -107,6 +107,8 @@ export type PlatformLead = {
   lastSeenAt: string | null;
   consentAt: string;
   policyVersion: string;
+  /** When the visitor agreed to be contacted about an offer; null = no opt-in. */
+  marketingAt: string | null;
   /** The owner's own note: called, waiting, not interested. */
   note: string | null;
   archivedAt: string | null;

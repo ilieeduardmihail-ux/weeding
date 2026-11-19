@@ -3,9 +3,12 @@ import {
   ACCESS_DURATIONS,
   REPLY_TEMPLATES,
   accessBlock,
+  demoCodeMail,
   durationDaysFromPeriod,
   durationLabel,
   keyMail,
+  leadNoticeMail,
+  sandboxConvertedMail,
 } from "../mail-templates";
 
 const ctx = {
@@ -161,5 +164,61 @@ describe("keyMail", () => {
     const mail = keyMail({ code: "X", days: 180, siteUrl });
     expect(mail.text.startsWith("Bună ziua,")).toBe(true);
     expect(mail.text.trimEnd().endsWith("Ne căsătorim")).toBe(true);
+  });
+});
+
+describe("demoCodeMail", () => {
+  it("puts the code on its own line, where a phone can copy it", () => {
+    const mail = demoCodeMail({ code: "004271", minutes: 15, purpose: "signup" });
+    expect(mail.subject).toContain("004271");
+    expect(mail.text.split("\n")).toContain("004271");
+    expect(mail.text).toContain("expiră în 15 minute");
+    expect(mail.text).toContain("o singură dată");
+  });
+
+  it("says what happens when the message was not asked for", () => {
+    const signup = demoCodeMail({ code: "111111", minutes: 15, purpose: "signup" });
+    expect(signup.text).toContain("nu ai cerut tu contul");
+
+    const reset = demoCodeMail({ code: "222222", minutes: 15, purpose: "reset" });
+    expect(reset.text).toContain("parolă nouă");
+    expect(reset.text).toContain("contul rămâne neschimbat");
+  });
+});
+
+describe("leadNoticeMail", () => {
+  const input = {
+    name: "Ana Popescu",
+    email: "ana@exemplu.ro",
+    sandboxUrl: "https://wedding-ro.vercel.app/demo-abc123/admin",
+    when: "19.11.2026, 14:32",
+  };
+
+  it("gives the owner who, when and where to look", () => {
+    const mail = leadNoticeMail(input);
+    expect(mail.subject).toContain("Ana Popescu");
+    expect(mail.text).toContain("ana@exemplu.ro");
+    expect(mail.text).toContain(input.when);
+    expect(mail.text).toContain(input.sandboxUrl);
+    expect(mail.text).toContain("/platform/lead-uri");
+  });
+
+  it("works with an address alone", () => {
+    const mail = leadNoticeMail({ ...input, name: null });
+    expect(mail.subject).toContain("ana@exemplu.ro");
+    expect(mail.text).toContain("ana@exemplu.ro");
+  });
+});
+
+describe("sandboxConvertedMail", () => {
+  it("points at the new panel and names the period", () => {
+    const mail = sandboxConvertedMail({
+      name: "Ana",
+      panelUrl: "https://wedding-ro.vercel.app/ana-si-stefan/admin",
+      days: 365,
+    });
+    expect(mail.text).toContain("https://wedding-ro.vercel.app/ana-si-stefan/admin");
+    expect(mail.text).toContain("1 an");
+    expect(mail.text).toContain("publica invitația");
   });
 });

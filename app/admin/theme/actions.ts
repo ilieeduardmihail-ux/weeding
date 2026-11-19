@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { currentTenantId } from "@/lib/tenant-session";
+import { currentTenantId, currentTenantIsSandbox } from "@/lib/tenant-session";
+import { SANDBOX_LOCK_ERROR } from "@/lib/demo/locks";
 import { normalizeTheme, type Theme } from "@/lib/theme";
 
 export type ThemeResult = { ok: true } | { ok: false; error: string };
@@ -15,6 +16,10 @@ export type ThemeResult = { ok: true } | { ok: false; error: string };
 export async function saveTheme(theme: Theme): Promise<ThemeResult> {
   const tenantId = await currentTenantId();
   if (!tenantId) return { ok: false, error: "Sesiune expirată. Intră din nou în admin." };
+
+  // The look of the invitation is part of what the client pays for; in a demo
+  // copy the site keeps the demo palette.
+  if (await currentTenantIsSandbox()) return { ok: false, error: SANDBOX_LOCK_ERROR.theme };
 
   const clean = normalizeTheme(theme);
 

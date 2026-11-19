@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Download, FileText } from "lucide-react";
 import { useAdminData } from "@/components/admin/admin-data";
-import { useAdminPath } from "@/components/admin/admin-tenant";
+import { useAdminIsSandbox, useAdminPath } from "@/components/admin/admin-tenant";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
 import { Button } from "@/components/ui/button";
 import { buildRestaurantReport } from "@/lib/restaurant-report";
@@ -11,6 +11,7 @@ import { buildRestaurantReport } from "@/lib/restaurant-report";
 export default function RestaurantPage() {
   const { data } = useAdminData();
   const adminPath = useAdminPath();
+  const isSandbox = useAdminIsSandbox();
   if (!data) return <AdminSectionSkeleton />;
 
   const report = buildRestaurantReport(data.report);
@@ -34,16 +35,25 @@ export default function RestaurantPage() {
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Button asChild className="bg-ink text-sea hover:bg-ink/85">
-          <a href={adminPath("/export/restaurant")}>
-            <Download className="size-4" /> Descarcă Excel (.xlsx)
-          </a>
-        </Button>
-        <Button asChild variant="outline">
-          <a href={adminPath("/export/restaurant?format=csv")}>
-            <FileText className="size-4" /> Descarcă CSV
-          </a>
-        </Button>
+        {isSandbox ? (
+          <p className="rounded-lg border border-gold/35 bg-gold/10 p-4 text-sm text-ink/80">
+            Lista se citește aici, dar fișierul pentru local (Excel sau CSV) se descarcă după
+            rezervare. Datele pe care le-ai completat rămân în panoul tău.
+          </p>
+        ) : (
+          <>
+            <Button asChild className="bg-ink text-sea hover:bg-ink/85">
+              <a href={adminPath("/export/restaurant")}>
+                <Download className="size-4" /> Descarcă Excel (.xlsx)
+              </a>
+            </Button>
+            <Button asChild variant="outline">
+              <a href={adminPath("/export/restaurant?format=csv")}>
+                <FileText className="size-4" /> Descarcă CSV
+              </a>
+            </Button>
+          </>
+        )}
       </div>
 
       <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">

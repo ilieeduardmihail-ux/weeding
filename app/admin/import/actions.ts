@@ -3,7 +3,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { adminBasePath, currentAdminSlug, currentTenantId } from "@/lib/tenant-session";
+import { adminBasePath, currentAdminSlug, currentTenantId, currentTenantIsSandbox } from "@/lib/tenant-session";
+import { SANDBOX_LOCK_ERROR } from "@/lib/demo/locks";
 import { MAX_IMPORT_NAMES, NAME_MAX_LENGTH, NAME_MIN_LENGTH } from "@/lib/import-names";
 
 const guestSchema = z.object({
@@ -31,6 +32,12 @@ export type ImportResult =
   | { ok: false; error: string };
 
 export async function importGuests(input: { guests: ImportGuestInput[] }): Promise<ImportResult> {
+  // Importing from a spreadsheet is part of the paid product. In a demo copy
+  // names are added one by one, which is enough to try the panel.
+  if (await currentTenantIsSandbox()) {
+    return { ok: false, error: SANDBOX_LOCK_ERROR.import };
+  }
+
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: `Poți importa între 1 și ${MAX_IMPORT_NAMES} nume o dată.` };

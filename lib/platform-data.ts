@@ -14,12 +14,14 @@ import type {
   OfferStatus,
   PlatformAdmin,
   PlatformKey,
+  PlatformLead,
   PlatformTenant,
   PlatformOverview,
   VisitCounter,
   VisitStats,
 } from "@/lib/platform-types";
 import { EMPTY_ISSUER, EMPTY_VISITS } from "@/lib/platform-types";
+import { purgeExpiredSandboxes } from "@/lib/demo/sandbox";
 
 export type { PlatformAdmin, PlatformKey, PlatformTenant, PlatformOverview } from "@/lib/platform-types";
 
@@ -31,8 +33,10 @@ export async function loadPlatformOverview(): Promise<PlatformOverview> {
       .from("tenants")
       .select("id, slug, display_name, status, plan, created_at, activated_at, expires_at")
       // The demo is a real tenant, but not a client: it never belongs in the
-      // owner's list, its counts or the invoice client picker.
+      // owner's list, its counts or the invoice client picker. Sandboxes are
+      // visitors' copies, listed under „Lead-uri" instead.
       .neq("slug", DEMO_SLUG)
+      .eq("is_sandbox", false)
       .order("created_at", { ascending: true }),
     service.from("tenant_admins").select("tenant_id, email").order("email", { ascending: true }),
     service
@@ -277,6 +281,94 @@ export async function countNewOfferRequests(): Promise<number> {
       .from("offer_requests")
       .select("id", { count: "exact", head: true })
       .eq("status", "nou");
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/* -------------------------------------------------------------------- leads */
+
+const LEAD_COLUMNS =
+  "id, email, name, created_at, verified_at, last_seen_at, consent_at, policy_version, note, archived_at, sandbox_tenant_id";
+
+/**
+ * The demo accounts, newest first, each with the state of its copy. Runs after
+ * an owner check; it also sweeps the expired copies, so opening this page is
+ * enough to keep the database clean without a cron.
+ */
+export async function loadLeads(limit = 300): Promise<PlatformLead[]> {
+  try {
+    const service = serviceClient();
+    await purgeExpiredSandboxes();
+
+    const { data, error } = await service
+      .from("leads")
+      .select(LEAD_COLUMNS)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+
+    const rows = data as Record<string, unknown>[];
+    const tenantIds = rows
+      .map((row) => row.sandbox_tenant_id)
+      .filter((id): id is string => typeof id === "string");
+
+    const tenants = new Map<
+      string,
+      { slug: string; expiresAt: string | null; isSandbox: boolean }
+    >();
+    if (tenantIds.length > 0) {
+      const { data: tenantRows } = await service
+        .from("tenants")
+        .select("id, slug, expires_at, is_sandbox")
+        .in("id", tenantIds);
+      for (const row of (tenantRows ?? []) as Record<string, unknown>[]) {
+        tenants.set(String(row.id), {
+          slug: String(row.slug),
+          expiresAt: typeof row.expires_at === "string" ? row.expires_at : null,
+          isSandbox: row.is_sandbox === true,
+        });
+      }
+    }
+
+    return rows.map((row) => {
+      const tenantId = typeof row.sandbox_tenant_id === "string" ? row.sandbox_tenant_id : null;
+      const tenant = tenantId ? tenants.get(tenantId) ?? null : null;
+      return {
+        id: String(row.id),
+        email: String(row.email ?? ""),
+        name: typeof row.name === "string" && row.name.trim() ? row.name : null,
+        createdAt: String(row.created_at),
+        verifiedAt: typeof row.verified_at === "string" ? row.verified_at : null,
+        lastSeenAt: typeof row.last_seen_at === "string" ? row.last_seen_at : null,
+        consentAt: String(row.consent_at),
+        policyVersion: String(row.policy_version ?? ""),
+        note: typeof row.note === "string" && row.note.trim() ? row.note : null,
+        archivedAt: typeof row.archived_at === "string" ? row.archived_at : null,
+        // A sandbox washed away by `purge_expired_sandboxes` leaves the lead
+        // behind with a dangling id; the row is still worth a call.
+        sandboxTenantId: tenant ? tenantId : null,
+        sandboxSlug: tenant?.slug ?? null,
+        expiresAt: tenant?.expiresAt ?? null,
+        isSandbox: tenant?.isSandbox ?? false,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** Confirmed leads nobody has written a note about yet, for the nav badge. */
+export async function countNewLeads(): Promise<number> {
+  try {
+    const { count, error } = await serviceClient()
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .not("verified_at", "is", null)
+      .is("archived_at", null)
+      .is("note", null);
     if (error) return 0;
     return count ?? 0;
   } catch {

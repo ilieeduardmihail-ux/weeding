@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { currentTenantId } from "@/lib/tenant-session";
+import { currentTenantId, currentTenantIsSandbox } from "@/lib/tenant-session";
 import { buildRestaurantReport, restaurantCsv, type VenueRow } from "@/lib/restaurant-report";
 
 const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -14,6 +14,11 @@ export async function GET(request: Request) {
 
   const tenantId = await currentTenantId();
   if (!tenantId) return new Response("Neautorizat", { status: 401 });
+
+  // Same rule as the RSVP list: a demo copy cannot hand out the finished lists.
+  if (await currentTenantIsSandbox()) {
+    return new Response("Exportul se deblochează după rezervare.", { status: 403 });
+  }
 
   const [reportResult, allergyResult, tableResult] = await Promise.all([
     // `*` keeps the export working while the view gains columns (migration v32).

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { eventSettingsSchema } from "@/lib/event-settings";
-import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
+import { adminBasePath, currentTenantId, currentTenantIsSandbox } from "@/lib/tenant-session";
 
 export async function saveSettings(formData: FormData) {
   const supabase = await createClient();
@@ -28,7 +28,13 @@ export async function saveSettings(formData: FormData) {
 
   if (!parsed.success) redirect(`${base}/settings?error=validation`);
 
-  const { error } = await supabase.from("event_settings").update(parsed.data).eq("tenant_id", tenantId);
+  // A sandbox has no public page, so it can never be published and its address
+  // stays empty even if the form was tampered with. Everything else is editable.
+  const data = (await currentTenantIsSandbox())
+    ? { ...parsed.data, seating_published: false, public_url: null }
+    : parsed.data;
+
+  const { error } = await supabase.from("event_settings").update(data).eq("tenant_id", tenantId);
   if (error) redirect(`${base}/settings?error=save`);
 
   revalidatePath("/");

@@ -18,9 +18,10 @@ import { DEFAULT_TENANT_SLUG } from "@/lib/tenants";
 import { loadInvoice } from "@/lib/platform-data";
 import { buildInvoicePdf, invoicePdfFileName } from "@/lib/invoice-pdf";
 import { invoiceEmailBody, invoiceEmailSubject } from "@/lib/invoice-email";
-import { keyMail, cleanName, durationDaysFromPeriod } from "@/lib/mail-templates";
+import { keyMail, cleanName, durationDaysFromPeriod, sandboxConvertedMail } from "@/lib/mail-templates";
 import { PUBLIC_SITE_URL } from "@/lib/message-template";
 import { mailConfigured, mailError, sendInvoiceMail, sendTextMail } from "@/lib/mail";
+import { deleteLeadData } from "@/lib/leads";
 
 export type Result = { ok: true } | { ok: false; error: string };
 export type KeyResult =
@@ -933,6 +934,205 @@ export async function setOfferStatus(input: z.infer<typeof offerStatusSchema>): 
   if (error) return { ok: false, error: "Nu am putut schimba starea." };
 
   revalidatePath("/platform/mesaje");
+  revalidatePath("/platform");
+  return { ok: true };
+}
+
+/* -------------------------------------------------------------------- leads */
+
+const leadIdSchema = z.object({ id: z.string().uuid() });
+
+export type ConvertLeadResult =
+  | { ok: true; slug: string; mailWarning?: string }
+  | { ok: false; error: string };
+
+const convertLeadSchema = z.object({
+  id: z.string().uuid(),
+  slug: z.string().trim().min(2).max(60),
+  displayName: z.string().trim().min(2, "Scrie numele mirilor.").max(120),
+  days: z.number().int().min(1).max(3650),
+  plan: z.enum(["standard", "premium"]).optional(),
+});
+
+/**
+ * Turns a visitor's copy into their real wedding, in one step: the sandbox
+ * stops being a sandbox, gets a public address and a paid period, and the
+ * visitor receives the panel address by email. Nothing they worked on moves —
+ * it is the same tenant, only unlocked.
+ */
+export async function convertLead(input: z.infer<typeof convertLeadSchema>): Promise<ConvertLeadResult> {
+  if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
+  if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
+
+  const parsed = convertLeadSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Verifică datele." };
+  }
+
+  const service = serviceClient();
+  const { data: lead } = await service
+    .from("leads")
+    .select("id, email, name, sandbox_tenant_id")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  if (!lead) return { ok: false, error: "Lead-ul nu mai există." };
+
+  const tenantId = typeof lead.sandbox_tenant_id === "string" ? lead.sandbox_tenant_id : null;
+  if (!tenantId) {
+    return { ok: false, error: "Copia demo a expirat și a fost ștearsă. Poți trimite o cheie de acces." };
+  }
+
+  const { data: tenant } = await service
+    .from("tenants")
+    .select("id, slug, is_sandbox")
+    .eq("id", tenantId)
+    .maybeSingle();
+  if (!tenant) return { ok: false, error: "Copia demo nu mai există." };
+  if (tenant.is_sandbox !== true) return { ok: false, error: "Lead-ul este deja client." };
+
+  const slug = normalizeSlug(parsed.data.slug);
+  const problem = slugProblem(slug);
+  if (problem) return { ok: false, error: problem };
+
+  const { data: clash } = await service
+    .from("tenants")
+    .select("id")
+    .eq("slug", slug)
+    .neq("id", tenantId)
+    .maybeSingle();
+  if (clash) return { ok: false, error: "Adresa publică este deja folosită. Alege alta." };
+
+  const now = new Date();
+  const expires = new Date(now.getTime() + parsed.data.days * 86_400_000).toISOString();
+  const { error } = await service
+    .from("tenants")
+    .update({
+      slug,
+      display_name: parsed.data.displayName,
+      is_sandbox: false,
+      status: "active",
+      plan: parsed.data.plan ?? "standard",
+      activated_at: now.toISOString(),
+      expires_at: expires,
+    })
+    .eq("id", tenantId);
+  if (error) return { ok: false, error: "Nu am putut activa nunta. Încearcă din nou." };
+
+  await service.from("leads").update({ last_seen_at: now.toISOString() }).eq("id", parsed.data.id);
+
+  let warning: string | undefined;
+  if (mailConfigured()) {
+    const mail = sandboxConvertedMail({
+      name: typeof lead.name === "string" ? lead.name : null,
+      panelUrl: `${PUBLIC_SITE_URL.replace(/\/+$/, "")}/${slug}/admin`,
+      days: parsed.data.days,
+    });
+    try {
+      await sendTextMail({
+        to: String(lead.email),
+        subject: mail.subject,
+        text: mail.text,
+        fromName: BRAND,
+        replyTo: CONTACT_EMAIL,
+        kind: "lead",
+        tenantId,
+      });
+    } catch (error) {
+      // The conversion stands; the owner can still write to them from Mesaje.
+      warning = `Nunta este activă, dar emailul nu a plecat: ${mailError(error)}`;
+    }
+  } else {
+    warning = "Nunta este activă. Emailul nu a plecat: Gmail nu este configurat.";
+  }
+
+  revalidatePath("/platform");
+  revalidatePath("/platform/lead-uri");
+  revalidatePath("/", "layout");
+  return { ok: true, slug, mailWarning: warning };
+}
+
+const noteSchema = z.object({
+  id: z.string().uuid(),
+  note: z.string().trim().max(1000, "Nota este prea lungă."),
+});
+
+/** The owner's own line about a lead: called, waiting, not interested. */
+export async function setLeadNote(input: z.infer<typeof noteSchema>): Promise<Result> {
+  if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
+  if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
+
+  const parsed = noteSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Verifică nota." };
+  }
+
+  const { error } = await serviceClient()
+    .from("leads")
+    .update({ note: parsed.data.note || null })
+    .eq("id", parsed.data.id);
+  if (error) return { ok: false, error: "Nu am putut salva nota." };
+
+  revalidatePath("/platform/lead-uri");
+  return { ok: true };
+}
+
+const archiveSchema = z.object({ id: z.string().uuid(), archived: z.boolean() });
+
+/** Hides a lead from the working list without deleting anything. */
+export async function archiveLead(input: z.infer<typeof archiveSchema>): Promise<Result> {
+  if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
+  if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
+
+  const parsed = archiveSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Cerere invalidă." };
+
+  const { error } = await serviceClient()
+    .from("leads")
+    .update({ archived_at: parsed.data.archived ? new Date().toISOString() : null })
+    .eq("id", parsed.data.id);
+  if (error) return { ok: false, error: "Nu am putut arhiva lead-ul." };
+
+  revalidatePath("/platform/lead-uri");
+  return { ok: true };
+}
+
+/**
+ * GDPR deletion on the owner's side: the copy, the auth account and the lead
+ * row. A lead that already became a paying wedding is refused — that one is a
+ * client, and deleting it belongs to the clients list, with its confirmation.
+ */
+export async function deleteLead(input: z.infer<typeof leadIdSchema>): Promise<Result> {
+  if (!(await isOwnerRequest())) return { ok: false, error: "Sesiunea a expirat." };
+  if (!platformIsConfigured()) return { ok: false, error: "Cheia de service nu este configurată." };
+
+  const parsed = leadIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Cerere invalidă." };
+
+  const service = serviceClient();
+  const { data: lead } = await service
+    .from("leads")
+    .select("id, email, sandbox_tenant_id")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  if (!lead) return { ok: false, error: "Lead-ul nu mai există." };
+
+  if (typeof lead.sandbox_tenant_id === "string") {
+    const { data: tenant } = await service
+      .from("tenants")
+      .select("is_sandbox")
+      .eq("id", lead.sandbox_tenant_id)
+      .maybeSingle();
+    if (tenant && tenant.is_sandbox !== true) {
+      return {
+        ok: false,
+        error: "Lead-ul a devenit client. Șterge-l din Clienți, ca să nu pierzi nunta.",
+      };
+    }
+  }
+
+  await deleteLeadData(String(lead.email));
+
+  revalidatePath("/platform/lead-uri");
   revalidatePath("/platform");
   return { ok: true };
 }

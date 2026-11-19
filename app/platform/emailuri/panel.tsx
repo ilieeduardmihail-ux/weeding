@@ -22,6 +22,8 @@ const KIND_LABEL: Record<MailEntry["kind"], string> = {
   raspuns: "Răspuns la cerere",
   factura: "Factură",
   cheie: "Cheie de acces",
+  lead: "Lead demo",
+  cod: "Cod de acces",
 };
 
 type Filter = "all" | MailEntry["kind"];
@@ -32,6 +34,8 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "raspuns", label: "Răspunsuri" },
   { id: "factura", label: "Facturi" },
   { id: "cheie", label: "Chei" },
+  { id: "lead", label: "Lead-uri" },
+  { id: "cod", label: "Coduri" },
 ];
 
 /**

@@ -83,7 +83,7 @@ export const OFFER_STATUS_LABEL: Record<OfferStatus, string> = {
 export type MailEntry = {
   id: string;
   at: string;
-  kind: "oferta" | "factura" | "cheie" | "raspuns";
+  kind: "oferta" | "factura" | "cheie" | "raspuns" | "lead" | "cod";
   to: string;
   subject: string;
   replyTo: string | null;
@@ -91,6 +91,32 @@ export type MailEntry = {
   tenantName: string | null;
   ok: boolean;
   error: string | null;
+};
+
+/**
+ * A visitor who made a demo account and confirmed the code sent by email.
+ * `sandbox` is their copy of the wedding: while it lives, it is where they
+ * work; once converted, it becomes their real wedding.
+ */
+export type PlatformLead = {
+  id: string;
+  email: string;
+  name: string | null;
+  createdAt: string;
+  verifiedAt: string | null;
+  lastSeenAt: string | null;
+  consentAt: string;
+  policyVersion: string;
+  /** The owner's own note: called, waiting, not interested. */
+  note: string | null;
+  archivedAt: string | null;
+  /** Null when the copy was cleaned up (expired) or never created. */
+  sandboxTenantId: string | null;
+  sandboxSlug: string | null;
+  /** Their copy's 7 days, or the paid period after conversion. */
+  expiresAt: string | null;
+  /** True while this is still a demo copy; false after it became a wedding. */
+  isSandbox: boolean;
 };
 
 /** A simple payment note: no VAT, the amount is entered freely per invoice. */

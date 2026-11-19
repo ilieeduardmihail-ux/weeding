@@ -1,10 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { DEMO_COOKIE, demoMode } from "@/lib/demo/mode";
+import { DEMO_SLUG } from "@/lib/marketing";
 import { legacyRootPath } from "@/lib/routing";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 
 const PLATFORM_LOGIN = "/platform/login"; // platform owner
+// The demo lives on the real backend: a visitor without an account is sent to
+// the account form (a code by email), not to the bare admin login used by
+// clients. Sandboxes share the prefix `demo-…`, so they land in the same place.
+const DEMO_ACCOUNT = "/demo/cont";
 // The bare /admin is a resolver, not a panel: it reads the signed-in account's
 // own panels and forwards to the one it can actually use (a wedding's admin or
 // the platform). Sending a signed-in visitor there — instead of to the public
@@ -72,8 +77,11 @@ export async function proxy(request: NextRequest) {
   const adminHome = slug ? `/${slug}/admin` : "/admin";
   const adminLogin = slug ? `/${slug}/admin/login` : "/admin/login";
   const panelHome = isPlatform ? "/platform" : adminHome;
+  // The public demo and every visitor sandbox use the account form; a client
+  // wedding keeps its own /<slug>/admin/login.
+  const demoFlow = slug === DEMO_SLUG || (slug !== null && slug.startsWith(`${DEMO_SLUG}-`));
   // Where an unauthenticated visitor is sent: this panel's own login page.
-  const loginPath = isPlatform ? PLATFORM_LOGIN : adminLogin;
+  const loginPath = isPlatform ? PLATFORM_LOGIN : demoFlow ? DEMO_ACCOUNT : adminLogin;
 
   // DEMO MODE: no Supabase session. The platform panel needs the real backend,
   // so previews are sent to the admin demo instead.

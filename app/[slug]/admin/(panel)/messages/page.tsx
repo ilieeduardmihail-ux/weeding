@@ -6,11 +6,13 @@ import { Copy, Download, ImagePlus, MessageCircle, Search, Trash2 } from "lucide
 import type { AdminData } from "@/lib/admin-data";
 import { notifyAdminDataChanged } from "@/lib/admin-data";
 import { useAdminData } from "@/components/admin/admin-data";
+import { useAdminIsSandbox } from "@/components/admin/admin-tenant";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toast, useToast } from "@/components/ui/toast";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
+import { SANDBOX_LOCK } from "@/lib/demo/locks";
 import {
   DEFAULT_INVITE_MESSAGE,
   MESSAGE_PLACEHOLDERS,
@@ -55,6 +57,7 @@ export default function MessagesPage() {
 
 function Messages({ data }: { data: AdminData }) {
   const { toast, show, dismiss } = useToast();
+  const isSandbox = useAdminIsSandbox();
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -293,79 +296,87 @@ function Messages({ data }: { data: AdminData }) {
         completează singure.
       </p>
 
-      <section className="glass mt-8 rounded-xl p-5">
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="min-w-0 flex-1">
-            <h2 className="font-display text-2xl">Poza invitației</h2>
-            <p className="mt-1 max-w-md text-sm text-ink/60">
-              Încarcă fotografia invitației tipărite. Ea apare ca previzualizare când trimiți
-              linkul pe WhatsApp, iar butonul „Deschide WhatsApp” o atașează direct pe telefon,
-              acolo unde partajarea cu fișiere este disponibilă.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <input
-                ref={fileInput}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="sr-only"
-                aria-label="Alege poza invitației"
-                onChange={(event) => pickPhoto(event.target.files?.[0] ?? null)}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInput.current?.click()}
-                disabled={savingPhoto}
-              >
-                <ImagePlus className="size-4" />
-                {savingPhoto ? "Se încarcă…" : photoUrl ? "Schimbă poza" : "Încarcă poza"}
-              </Button>
-              {photoUrl && (
-                <>
-                  <Button asChild variant="ghost" size="sm">
-                    <a href={downloadHref ?? undefined} download="invitatie.jpg">
-                      <Download className="size-4" /> Descarcă
-                    </a>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={removePhoto}
-                    disabled={savingPhoto}
-                  >
-                    <Trash2 className="size-4" /> Șterge
-                  </Button>
-                </>
-              )}
+      {!isSandbox && (
+        <section className="glass mt-8 rounded-xl p-5">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-2xl">Poza invitației</h2>
+              <p className="mt-1 max-w-md text-sm text-ink/60">
+                Încarcă fotografia invitației tipărite. Ea apare ca previzualizare când trimiți
+                linkul pe WhatsApp, iar butonul „Deschide WhatsApp” o atașează direct pe telefon,
+                acolo unde partajarea cu fișiere este disponibilă.
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  aria-label="Alege poza invitației"
+                  onChange={(event) => pickPhoto(event.target.files?.[0] ?? null)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInput.current?.click()}
+                  disabled={savingPhoto}
+                >
+                  <ImagePlus className="size-4" />
+                  {savingPhoto ? "Se încarcă…" : photoUrl ? "Schimbă poza" : "Încarcă poza"}
+                </Button>
+                {photoUrl && (
+                  <>
+                    <Button asChild variant="ghost" size="sm">
+                      <a href={downloadHref ?? undefined} download="invitatie.jpg">
+                        <Download className="size-4" /> Descarcă
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removePhoto}
+                      disabled={savingPhoto}
+                    >
+                      <Trash2 className="size-4" /> Șterge
+                    </Button>
+                  </>
+                )}
+              </div>
+              <p className="mt-3 text-xs text-ink/45">JPG, PNG sau WebP, până la 8 MB.</p>
             </div>
-            <p className="mt-3 text-xs text-ink/45">JPG, PNG sau WebP, până la 8 MB.</p>
-          </div>
 
-          {photoUrl ? (
-            <a
-              href={photoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="shrink-0 transition-transform duration-200 hover:-translate-y-0.5"
-              aria-label="Deschide poza invitației"
-            >
-              <Image
-                src={photoUrl}
-                alt="Poza invitației"
-                width={220}
-                height={275}
-                unoptimized
-                className="max-h-56 w-auto rounded-lg border border-gold/40 object-contain shadow-lg shadow-black/15"
-              />
-            </a>
-          ) : (
-            <div className="flex h-40 w-32 shrink-0 items-center justify-center rounded-lg border border-dashed border-ink/25 text-ink/30">
-              <ImagePlus className="size-6" aria-hidden />
-            </div>
-          )}
-        </div>
-      </section>
+            {photoUrl ? (
+              <a
+                href={photoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 transition-transform duration-200 hover:-translate-y-0.5"
+                aria-label="Deschide poza invitației"
+              >
+                <Image
+                  src={photoUrl}
+                  alt="Poza invitației"
+                  width={220}
+                  height={275}
+                  unoptimized
+                  className="max-h-56 w-auto rounded-lg border border-gold/40 object-contain shadow-lg shadow-black/15"
+                />
+              </a>
+            ) : (
+              <div className="flex h-40 w-32 shrink-0 items-center justify-center rounded-lg border border-dashed border-ink/25 text-ink/30">
+                <ImagePlus className="size-6" aria-hidden />
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {isSandbox && (
+        <p className="mt-8 rounded-lg border border-gold/35 bg-gold/10 p-4 text-sm text-ink/80">
+          <strong>{SANDBOX_LOCK.photo.title}.</strong> {SANDBOX_LOCK.photo.body}
+        </p>
+      )}
 
       <section className="glass mt-8 rounded-xl p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { WeddingSite } from "@/components/wedding-site";
 import { VisitBeacon } from "@/components/visit-beacon";
+import { DemoAccountBar } from "@/components/marketing/demo-account-bar";
+import { DEMO_SLUG } from "@/lib/marketing";
 import { loadPublicPage } from "@/lib/public-page";
 import { weddingMetadata } from "@/lib/wedding-metadata";
 
@@ -28,6 +30,7 @@ export default async function TenantHome({ params, searchParams }: Props) {
   const { slug } = await params;
   return (
     <>
+      {slug === DEMO_SLUG && <DemoAccountBar />}
       <VisitBeacon path={`/${slug}`} />
       <WeddingSite slug={slug} searchParams={searchParams} />
     </>

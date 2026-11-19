@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { demoMode } from "@/lib/demo/mode";
-import { adminBasePath, currentTenantId } from "@/lib/tenant-session";
+import { SANDBOX_LOCK_ERROR } from "@/lib/demo/locks";
+import { adminBasePath, currentTenantId, currentTenantIsSandbox } from "@/lib/tenant-session";
 
 type Result = { ok: true } | { ok: false; error: string };
 type UploadResult = { ok: true; url: string } | { ok: false; error: string };
@@ -64,6 +65,12 @@ async function removeStoredPhoto(supabase: Awaited<ReturnType<typeof createClien
 
 /** Uploads the invitation photo shown in the WhatsApp preview and share sheet. */
 export async function uploadInvitationImage(formData: FormData): Promise<UploadResult> {
+  // Storage is a paid feature, and a sandbox has no public page for the photo
+  // to appear on. Checked before the file is read into memory.
+  if (await currentTenantIsSandbox()) {
+    return { ok: false, error: SANDBOX_LOCK_ERROR.photo };
+  }
+
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "Alege o poză cu invitația." };
@@ -133,6 +140,10 @@ export async function uploadInvitationImage(formData: FormData): Promise<UploadR
 
 /** Removes the uploaded photo and clears the public link. */
 export async function removeInvitationImage(): Promise<Result> {
+  if (await currentTenantIsSandbox()) {
+    return { ok: false, error: SANDBOX_LOCK_ERROR.photo };
+  }
+
   const supabase = await createClient();
   const tenantId = await currentTenantId();
   if (!tenantId) {

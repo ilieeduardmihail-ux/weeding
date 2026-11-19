@@ -26,7 +26,12 @@ const OpenContactDialog = createContext<(() => void) | null>(null);
 
 export function ContactDialogProvider({ children }: { children: ReactNode }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [open, setOpen] = useState(false);
+  // The demo panel's bar sends visitors to /?oferta=1: the request form starts
+  // open, so the click after „Vreau invitația mea" lands on the first field.
+  // Read during the first render rather than in an effect, so nothing flashes.
+  const [open, setOpen] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("oferta")
+  );
 
   useEffect(() => {
     const element = dialog.current;

@@ -11,7 +11,7 @@ import "server-only";
 import { demoMode } from "@/lib/demo/mode";
 import { serviceClient } from "@/lib/platform";
 
-export type MailKind = "oferta" | "factura" | "cheie" | "raspuns";
+export type MailKind = "oferta" | "factura" | "cheie" | "raspuns" | "lead" | "cod";
 
 export type MailLogEntry = {
   kind: MailKind;

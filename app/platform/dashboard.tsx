@@ -147,6 +147,7 @@ export function PlatformDashboard({
   now,
   activity,
   newRequests,
+  newLeads,
 }: {
   overview: PlatformOverview;
   ownerEmail: string;
@@ -156,6 +157,8 @@ export function PlatformDashboard({
   activity: VisitStats;
   /** Offer requests still waiting for an answer, for the „Mesaje" badge. */
   newRequests: number;
+  /** Confirmed leads nobody has written a note about, for „Lead-uri". */
+  newLeads: number;
 }) {
   const { toast, show, dismiss } = useToast();
 
@@ -177,6 +180,16 @@ export function PlatformDashboard({
               {newRequests > 0 && (
                 <span className="ml-1 rounded-full bg-gold px-1.5 py-0.5 text-[10px] font-medium leading-none text-ink">
                   {newRequests}
+                </span>
+              )}
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/platform/lead-uri" className="relative">
+              Lead-uri
+              {newLeads > 0 && (
+                <span className="ml-1 rounded-full bg-gold px-1.5 py-0.5 text-[10px] font-medium leading-none text-ink">
+                  {newLeads}
                 </span>
               )}
             </Link>

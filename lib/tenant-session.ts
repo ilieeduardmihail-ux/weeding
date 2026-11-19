@@ -17,6 +17,8 @@ export type ContextTenant = {
   status: string;
   plan: TenantPlan;
   expires_at: string | null;
+  /** A copy of the demo wedding, created for a visitor; never public. */
+  is_sandbox?: boolean;
 };
 
 type BaseContext = {
@@ -71,12 +73,13 @@ const loadBaseContext = cache(async (): Promise<BaseContext> => {
   if (tenantIds.length > 0) {
     const { data: rows } = await supabase
       .from("tenants")
-      .select("id, slug, display_name, status, plan, expires_at, created_at")
+      .select("id, slug, display_name, status, plan, expires_at, is_sandbox, created_at")
       .in("id", tenantIds)
       .order("created_at", { ascending: true });
     tenants = ((rows ?? []) as (Omit<ContextTenant, "plan"> & { plan?: unknown })[]).map((row) => ({
       ...row,
       plan: normalizePlan(row.plan),
+      is_sandbox: row.is_sandbox === true,
     }));
   }
 
@@ -160,7 +163,7 @@ export const getAdminTenant = cache(async (): Promise<ContextTenant | null> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("tenant_admins")
-    .select("tenants!inner(id, slug, display_name, status, plan, expires_at)")
+    .select("tenants!inner(id, slug, display_name, status, plan, expires_at, is_sandbox)")
     .eq("tenants.slug", slug)
     .limit(1);
 
@@ -171,9 +174,19 @@ export const getAdminTenant = cache(async (): Promise<ContextTenant | null> => {
   const fast = Array.isArray(joined) ? joined[0] ?? null : joined;
 
   return fast
-    ? { ...fast, plan: normalizePlan((fast as { plan?: unknown }).plan) }
+    ? { ...fast, plan: normalizePlan((fast as { plan?: unknown }).plan), is_sandbox: fast.is_sandbox === true }
     : (await getTenantContextForSlug(slug)).tenant;
 });
+
+/**
+ * True when the panel being opened is a visitor's copy of the demo. Export,
+ * import, theme and photo uploads are switched off there; the wedding is theirs,
+ * but the product's output (a published site, a printed list) is not.
+ */
+export async function currentTenantIsSandbox(): Promise<boolean> {
+  const tenant = await getAdminTenant();
+  return tenant?.is_sandbox === true;
+}
 
 /** Convenience for the server actions: the tenant they may write to. An expired
  * or suspended wedding has no writable tenant, so every action fails closed. */

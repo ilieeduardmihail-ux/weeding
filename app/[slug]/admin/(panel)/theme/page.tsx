@@ -3,7 +3,9 @@
 import { Suspense, useState, useTransition, type CSSProperties } from "react";
 import { Check, Palette as PaletteIcon, RotateCcw, Sparkles } from "lucide-react";
 import { useAdminData } from "@/components/admin/admin-data";
+import { useAdminIsSandbox } from "@/components/admin/admin-tenant";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
+import { SandboxLock } from "@/components/admin/sandbox-lock";
 import { FloralDecor } from "@/components/floral-decor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -361,8 +363,17 @@ function ThemeEditor({ theme, settings }: { theme: Theme; settings: EventSetting
 }
 
 function Theme() {
+  const isSandbox = useAdminIsSandbox();
   const { data } = useAdminData();
   if (!data) return <AdminSectionSkeleton />;
+  if (isSandbox) {
+    return (
+      <main className="mx-auto max-w-4xl px-6 py-10">
+        <h1 className="font-display text-4xl">Aspectul invitației</h1>
+        <SandboxLock feature="theme" />
+      </main>
+    );
+  }
   return <ThemeEditor theme={data.theme} settings={data.settings} />;
 }
 

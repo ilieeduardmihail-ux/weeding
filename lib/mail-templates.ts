@@ -179,6 +179,97 @@ export function keyMail({
   };
 }
 
+/* ------------------------------------------------- contul demo (lead-uri) */
+
+export type DemoCodeContext = {
+  code: string;
+  /** Minutes until the code stops working, as shown to the person. */
+  minutes: number;
+  purpose: "signup" | "reset";
+};
+
+/**
+ * The six-digit code that opens the demo panel. Plain text, short, and the code
+ * on its own line: this is read on a phone, often copied by hand.
+ */
+export function demoCodeMail({ code, minutes, purpose }: DemoCodeContext) {
+  const title = purpose === "reset" ? "Codul pentru parolă nouă" : "Codul tău de acces";
+  return {
+    subject:
+      purpose === "reset"
+        ? `Cod pentru parolă nouă: ${code}`
+        : `Codul tău de acces: ${code}`,
+    text: [
+      title,
+      "",
+      code,
+      "",
+      `Codul expiră în ${minutes} minute și poate fi folosit o singură dată.`,
+      purpose === "reset"
+        ? "Dacă nu ai cerut schimbarea parolei, ignoră acest mesaj: contul rămâne neschimbat."
+        : "Dacă nu ai cerut tu contul, ignoră acest mesaj și nu se întâmplă nimic.",
+      "",
+      signature(),
+    ].join("\n"),
+  };
+}
+
+export type LeadNoticeContext = {
+  name: string | null;
+  email: string;
+  /** Absolute address of the visitor's own demo panel. */
+  sandboxUrl: string;
+  /** Already formatted for reading, e.g. "19.11.2026, 14:32". */
+  when: string;
+};
+
+/** The owner's notification: someone reached the panel and is worth calling. */
+export function leadNoticeMail({ name, email, sandboxUrl, when }: LeadNoticeContext) {
+  const who = name?.trim() ? `${name.trim()} <${email}>` : email;
+  return {
+    subject: `Lead nou: ${name?.trim() || email}`,
+    text: [
+      "Lead nou pe site.",
+      "",
+      `Cine: ${who}`,
+      `Când: ${when}`,
+      "A confirmat codul primit pe email, deci adresa este reală.",
+      "",
+      `Panoul lui demo: ${sandboxUrl}`,
+      "Îl poți transforma în nuntă reală dintr-un click, din /platform/lead-uri.",
+      "",
+      signature(),
+    ].join("\n"),
+  };
+}
+
+export type SandboxConvertedContext = {
+  name: string | null;
+  /** Absolute panel address after conversion. */
+  panelUrl: string;
+  days: number;
+};
+
+/** Sent to the visitor when the owner turns their sandbox into a real wedding. */
+export function sandboxConvertedMail({ name, panelUrl, days }: SandboxConvertedContext) {
+  return {
+    subject: "Contul tău este activ — invitația poate fi publicată",
+    text: [
+      greeting(name ?? ""),
+      "",
+      `Am păstrat tot ce ai lucrat în demo și am activat contul pentru ${durationLabel(days)}.`,
+      "",
+      `Panoul tău: ${panelUrl}`,
+      "",
+      "De acum poți publica invitația din „Setări” și o poți trimite invitaților. Confirmările lor apar direct în panou.",
+      "",
+      "Dacă vrei să schimbi ceva, răspunde la acest mesaj.",
+      "",
+      signature(),
+    ].join("\n"),
+  };
+}
+
 export type AccessContext = {
   code: string;
   days: number;

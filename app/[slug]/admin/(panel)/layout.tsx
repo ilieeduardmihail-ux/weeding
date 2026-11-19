@@ -8,6 +8,7 @@ import { AdminDataStatus } from "@/components/admin/admin-data-status";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { AdminTenantProvider } from "@/components/admin/admin-tenant";
 import { PasswordChangeNotice } from "@/components/admin/password-change-notice";
+import { SandboxBar } from "@/components/admin/sandbox-bar";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/app/admin/actions";
 import { getTenantContextForSlug } from "@/lib/tenant-session";
@@ -40,19 +41,24 @@ export default async function AdminPanelLayout({
   if (!tenantIsAvailable(tenant)) redirect(`/${slug}/admin/expired`);
 
   return (
-    <AdminTenantProvider slug={slug}>
+    <AdminTenantProvider slug={slug} isSandbox={tenant.is_sandbox}>
       <AdminDataProvider>
+        {tenant.is_sandbox && <SandboxBar expiresAt={tenant.expires_at} />}
         <header className="glass-bar border-b border-ink/15">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
             <div className="min-w-0">
               <p className="truncate font-display text-lg">{tenant.display_name}</p>
-              <Link
-                href={`/${tenant.slug}`}
-                target="_blank"
-                className="text-xs text-ink/60 underline-offset-4 transition-colors duration-200 hover:text-ink hover:underline"
-              >
-                /{tenant.slug}
-              </Link>
+              {tenant.is_sandbox ? (
+                <span className="text-xs text-ink/60">Copie de lucru, fără pagină publică</span>
+              ) : (
+                <Link
+                  href={`/${tenant.slug}`}
+                  target="_blank"
+                  className="text-xs text-ink/60 underline-offset-4 transition-colors duration-200 hover:text-ink hover:underline"
+                >
+                  /{tenant.slug}
+                </Link>
+              )}
             </div>
             <form action={signOut}>
               <Button type="submit" variant="ghost" size="sm">

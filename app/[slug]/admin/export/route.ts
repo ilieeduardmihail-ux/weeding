@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { currentTenantId } from "@/lib/tenant-session";
+import { currentTenantId, currentTenantIsSandbox } from "@/lib/tenant-session";
 
 const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
@@ -13,6 +13,11 @@ export async function GET() {
 
   const tenantId = await currentTenantId();
   if (!tenantId) return new Response("Neautorizat", { status: 401 });
+
+  // Taking the data out is part of the paid invitation, not of the demo.
+  if (await currentTenantIsSandbox()) {
+    return new Response("Exportul se deblochează după rezervare.", { status: 403 });
+  }
 
   const { data } = await supabase.from("rsvps").select("*, rsvp_guests(*)").eq("tenant_id", tenantId).order("name");
   const lines = ["nume,participa,masa,insotitori,mesaj,raspuns_la"];

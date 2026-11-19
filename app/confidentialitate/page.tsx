@@ -77,6 +77,12 @@ export default function PrivacyPage() {
             <strong className="text-ink">Contul de administrare:</strong> adresa de email și o
             parolă păstrată criptat de furnizorul de autentificare. Nu vedem parola.
           </li>
+          <li>
+            <strong className="text-ink">Contul demo (opțional):</strong> numele, adresa de email,
+            parola criptată de furnizorul de autentificare, momentul acordului, versiunea politicii
+            și copia ta de lucru a nunții demo. Codul de confirmare este păstrat doar sub o formă
+            ireversibilă.
+          </li>
         </ul>
         <p>
           Nu cerem date sensibile (sănătate, religie, convingeri) și nu cerem date de plată prin
@@ -107,6 +113,17 @@ export default function PrivacyPage() {
           <li>
             <strong className="text-ink">Răspundem la mesaje</strong> — interesul legitim de a purta
             discuția comercială pe care ai început-o sau, după caz, executarea contractului.
+          </li>
+          <li>
+            <strong className="text-ink">Îți ținem contul demo</strong> — consimțământul tău,
+            exprimat când bifezi acordul înainte de a cere codul (art. 6 alin. 1 lit. a). Îl poți
+            retrage oricând, ștergând contul.
+          </li>
+          <li>
+            <strong className="text-ink">Te contactăm după expirarea demo-ului</strong> — interesul
+            legitim de a duce la capăt discuția pe care ai început-o (art. 6 alin. 1 lit. f), dacă
+            nu ai cerut ștergerea. Te poți opune oricând, iar datele dispar și automat după{" "}
+            {RETENTION.contactYears} ani.
           </li>
         </ul>
         <p>
@@ -177,6 +194,14 @@ export default function PrivacyPage() {
               <tr className="border-b border-ink/10">
                 <td className="py-3 pr-4">Cereri de ofertă și corespondență fără contract</td>
                 <td className="py-3">{RETENTION.contactYears} ani</td>
+              </tr>
+              <tr className="border-b border-ink/10">
+                <td className="py-3 pr-4">Contul demo: adresa, parola și copia de lucru</td>
+                <td className="py-3">7 zile de la creare, apoi ștergere automată</td>
+              </tr>
+              <tr className="border-b border-ink/10">
+                <td className="py-3 pr-4">Datele de contact din demo, dacă nu devin client</td>
+                <td className="py-3">{RETENTION.contactYears} ani de la ultima discuție</td>
               </tr>
               <tr className="border-b border-ink/10">
                 <td className="py-3 pr-4">Facturi și documente contabile</td>
@@ -268,6 +293,54 @@ export default function PrivacyPage() {
           </Link>{" "}
           este fictivă: numele, locurile, sumele și confirmările sunt inventate pentru prezentare.
           Dacă trimiți o confirmare în demo, o ștergem la curățenia periodică.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Contul demo (opțional)">
+        <p>
+          Pe lângă invitația publică, poți să îți faci un cont ca să intri în panoul de organizare
+          și să lucrezi pe o copie a nunții demo. Contul este opțional și nu îți dă acces la
+          invitația publică, care rămâne liberă.
+        </p>
+        <ul className="list-disc space-y-2 pl-5">
+          <li>
+            <strong className="text-ink">Ce salvăm:</strong> numele, adresa de email și o parolă
+            păstrată criptat de furnizorul de autentificare. Nu vedem parola.
+          </li>
+          <li>
+            <strong className="text-ink">Codul de confirmare:</strong> îți trimitem un cod de 6
+            cifre pe email. În baza de date păstrăm doar o formă ireversibilă a lui, momentul
+            trimiterii și numărul de încercări, ca să nu poată fi ghicit.
+          </li>
+          <li>
+            <strong className="text-ink">Dovada acordului:</strong> momentul în care ai bifat acordul
+            și versiunea acestei politici pe care ai citit-o.
+          </li>
+          <li>
+            <strong className="text-ink">Copia ta de lucru:</strong> o copie a nunții demo, doar a
+            ta, în care poți modifica orice. Nu este publică și nu o vede alt vizitator.
+          </li>
+          <li>
+            <strong className="text-ink">Cine o vede:</strong> tu, în panou, și noi, ca să îți
+            răspundem dacă ne scrii. Nu o folosim pentru publicitate fără acordul tău.
+          </li>
+        </ul>
+        <p>
+          După 7 zile de la creare, copia ta de lucru și contul de autentificare — adresa, parola
+          și sesiunile — se șterg automat. Păstrăm doar numele, adresa și dovada acordului, ca să
+          te putem suna sau scrie despre invitație: cel mult {RETENTION.contactYears} ani de la
+          ultima discuție, dacă nu devii client, și fără să le folosim pentru altceva. Le poți
+          șterge oricând, mai devreme, dintr-un click în bara panoului („Șterge contul”) sau
+          scriindu-ne la{" "}
+          <ContactLink className="text-ink underline decoration-ink/40 underline-offset-4 transition-colors duration-200 hover:decoration-ink">
+            {CONTACT_EMAIL}
+          </ContactLink>
+          . Ștergerea duce cu ea contul de autentificare, tot ce ai completat în copie și rândul de
+          contact.
+        </p>
+        <p>
+          Dacă alegi să continuăm cu o invitație reală, copia devine nunta ta: îi dăm o adresă
+          publică și o perioadă plătită, iar datele rămân aceleași, fără să le copiem în altă parte.
         </p>
       </LegalSection>
 

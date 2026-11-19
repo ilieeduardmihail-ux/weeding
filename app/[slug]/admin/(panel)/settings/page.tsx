@@ -3,6 +3,7 @@
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAdminData } from "@/components/admin/admin-data";
+import { useAdminIsSandbox } from "@/components/admin/admin-tenant";
 import { AdminSectionSkeleton } from "@/components/admin/admin-section-skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,7 @@ function SettingsFeedback() {
 
 function Settings() {
   const { data } = useAdminData();
+  const isSandbox = useAdminIsSandbox();
   if (!data) return <AdminSectionSkeleton />;
   const settings = data.settings;
 
@@ -78,7 +80,9 @@ function Settings() {
     <main className="mx-auto max-w-2xl px-6 py-12">
       <h1 className="font-display text-4xl">Setările nunții</h1>
       <p className="mt-2 text-ink/70">
-        Aceste valori apar pe pagina publică, în numărătoare și la termenul de confirmare.
+        {isSandbox
+          ? "Aceste valori stau la baza invitației tale. Le poți modifica oricând; publicarea vine după rezervare."
+          : "Aceste valori apar pe pagina publică, în numărătoare și la termenul de confirmare."}
       </p>
 
       <Suspense fallback={null}>
@@ -131,26 +135,36 @@ function Settings() {
         <Field label="Confirmările se închid pe" hint="Lasă gol ca formularul să rămână deschis fără termen.">
           <Input type="date" name="rsvp_cutoff_date" defaultValue={settings.rsvp_cutoff_date ?? ""} />
         </Field>
-        <Field label="Link public" hint="Opțional, trebuie să înceapă cu https://.">
-          <Input
-            type="url"
-            name="public_url"
-            defaultValue={settings.public_url ?? ""}
-            placeholder="https://exemplu.ro"
-          />
-        </Field>
+        {isSandbox ? (
+          <div className="sm:col-span-2 rounded-lg border border-gold/35 bg-gold/10 p-4 text-sm text-ink/80">
+            <strong>Demo-ul nu are pagină publică.</strong> Aici completezi datele nunții; publicarea
+            invitației se face după rezervare, din același loc. Planul meselor rămâne vizibil doar
+            în panou.
+          </div>
+        ) : (
+          <>
+            <Field label="Link public" hint="Opțional, trebuie să înceapă cu https://.">
+              <Input
+                type="url"
+                name="public_url"
+                defaultValue={settings.public_url ?? ""}
+                placeholder="https://exemplu.ro"
+              />
+            </Field>
 
-        <div className="sm:col-span-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="seating_published"
-              defaultChecked={settings.seating_published}
-              className="size-4 accent-ink"
-            />
-            Publică planul meselor pe pagina publică
-          </label>
-        </div>
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="seating_published"
+                  defaultChecked={settings.seating_published}
+                  className="size-4 accent-ink"
+                />
+                Publică planul meselor pe pagina publică
+              </label>
+            </div>
+          </>
+        )}
 
         <div className="sm:col-span-2">
           <Button type="submit" className="bg-ink text-sea hover:bg-ink/85">

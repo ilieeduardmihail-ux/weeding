@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isOwnerRequest, platformIsConfigured } from "@/lib/platform";
-import { loadPlatformOverview, loadVisitStats, countNewOfferRequests } from "@/lib/platform-data";
+import { loadPlatformOverview, loadVisitStats, countNewOfferRequests, countNewLeads } from "@/lib/platform-data";
 import { EMPTY_VISITS } from "@/lib/platform-types";
 import { requestNow } from "@/lib/request-now";
 import { PlatformDashboard } from "./dashboard";
@@ -26,13 +26,14 @@ export default async function PlatformPage() {
   if (!(await isOwnerRequest())) redirect("/platform/login");
 
   const configured = platformIsConfigured();
-  // One round trip instead of three sequential ones: the panel needs all of it
+  // One round trip instead of four sequential ones: the panel needs all of it
   // before it can paint anyway.
-  const [overview, activity, newRequests] = configured
-    ? await Promise.all([loadPlatformOverview(), loadVisitStats(), countNewOfferRequests()])
+  const [overview, activity, newRequests, newLeads] = configured
+    ? await Promise.all([loadPlatformOverview(), loadVisitStats(), countNewOfferRequests(), countNewLeads()])
     : [
         { tenants: [], owners: [] },
         { marketing: EMPTY_VISITS, invites: EMPTY_VISITS, hourly: [] },
+        0,
         0,
       ];
 
@@ -44,6 +45,7 @@ export default async function PlatformPage() {
       now={requestNow()}
       activity={activity}
       newRequests={newRequests}
+      newLeads={newLeads}
     />
   );
 }

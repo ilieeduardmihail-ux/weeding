@@ -22,7 +22,7 @@ export function Accordion({
   items,
   idPrefix,
   defaultOpen = null,
-  className = "mt-10 divide-y divide-ink/10 border-y border-ink/10",
+  className = "mt-6 divide-y divide-ink/10 border-y border-ink/10",
 }: {
   items: readonly AccordionItem[];
   /** Prefix for `aria-controls`, so two accordions can live on one page. */

@@ -22,7 +22,10 @@ import { CONTACT_EMAIL } from "@/lib/marketing";
 const field =
   "flex w-full rounded-md border border-ink/20 bg-ink/5 px-3 text-base text-ink placeholder:text-ink/40 transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-ink/35 focus-visible:border-gold/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/30 disabled:cursor-not-allowed disabled:opacity-50";
 
-export function ContactForm() {
+const card =
+  "rounded-2xl bg-paper p-6 text-ink shadow-[0_18px_40px_-32px_rgba(0,0,0,0.6)] sm:p-8";
+
+export function ContactForm({ framed = true }: { framed?: boolean }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -54,7 +57,7 @@ export function ContactForm() {
 
   if (sent) {
     return (
-      <div className="rounded-2xl bg-paper p-7 text-ink shadow-[0_18px_40px_-32px_rgba(0,0,0,0.6)] sm:p-8">
+      <div className={framed ? card : ""}>
         <p className="font-display text-2xl">Mulțumim!</p>
         <p className="mt-3 leading-relaxed text-ink/70">
           Am primit mesajul. Vă răspundem pe email în cel mult o zi lucrătoare.
@@ -67,10 +70,7 @@ export function ContactForm() {
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="rounded-2xl bg-paper p-6 text-ink shadow-[0_18px_40px_-32px_rgba(0,0,0,0.6)] sm:p-8"
-    >
+    <form onSubmit={submit} className={framed ? card : ""}>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="contact-name">Nume</Label>

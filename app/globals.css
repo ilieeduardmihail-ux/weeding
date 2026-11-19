@@ -139,6 +139,9 @@
   --color-ink: #2c3325;      /* deep olive text */
   --color-sage: #6b7a4e;     /* the olive base colour */
   --color-gold: #a9853f;     /* antique gold foil */
+  /* Stays deep olive in both themes: the only readable type on a gold fill,
+     since `ink` turns ivory in dark mode. */
+  --color-olive: #2c3325;
   --color-rose: #b07984;     /* dusty rose */
   --color-ok: #3f6b46;       /* confirmations, paid invoices */
   --color-warn: #8a611c;     /* warnings, unpaid invoices */

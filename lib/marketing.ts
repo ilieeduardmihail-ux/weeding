@@ -53,9 +53,8 @@ export const HERO = {
   lead:
     "Programul, locurile pe hartă și confirmarea, toate într-un singur link pe care invitații îl deschid din WhatsApp. Voi vedeți cine vine, fără să întrebați pe rând.",
   primary: "Deschide invitația demo",
-  secondary: "Cum funcționează",
+  secondary: "Cere ofertă",
   note: "Nu trebuie instalat nimic, iar invitații nu au nevoie de cont.",
-  points: ["Linkul vostru, gata în câteva zile", "Se deschide pe orice telefon", "Datele rămân la voi"],
 };
 
 export const GUEST_FEATURES = [
@@ -83,8 +82,6 @@ export type PanelSection = {
   title: string;
   text: string;
   bullets: readonly string[];
-  image: string;
-  alt: string;
 };
 
 export const PANEL_SECTIONS: readonly PanelSection[] = [
@@ -98,8 +95,6 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
       "Găsiți un invitat în câteva secunde, pe grupuri",
       "Fiecare invitat primește linkul lui, cu numele deja completat",
     ],
-    image: "panou-invitati",
-    alt: "Lista invitaților din panou, cu răspunsuri, refuzuri, participanți și copii",
   },
   {
     id: "confirmari",
@@ -111,8 +106,6 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
       "Mesajele invitaților, exact cum le-au scris",
       "Corectați un răspuns dacă se răzgândește cineva",
     ],
-    image: "panou-confirmari",
-    alt: "Pagina de confirmări din panou, cu numărul de răspunsuri și lista invitaților",
   },
   {
     id: "mese",
@@ -124,8 +117,6 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
       "Însoțitorii se mută împreună cu invitatul",
       "Raportul pentru restaurant, gata de tipărit",
     ],
-    image: "panou-mese",
-    alt: "Planul meselor din panou, cu invitații așezați și locurile rămase libere",
   },
   {
     id: "buget",
@@ -137,8 +128,6 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
       "Plătiți în etape și vedeți tot ce ați dat",
       "Totaluri separate pentru lei și euro",
     ],
-    image: "panou-buget",
-    alt: "Pagina de buget din panou, cu totalurile în lei și euro și cheltuielile adăugate",
   },
   {
     id: "mesaje",
@@ -150,23 +139,21 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
       "Fiecare invitat primește linkul lui",
       "Atașați și imaginea invitației, dacă o aveți",
     ],
-    image: "panou-mesaje",
-    alt: "Pagina de mesaje din panou, cu șablonul de invitație pentru WhatsApp",
   },
 ];
 
 export const STEPS = [
   {
     title: "Ne spuneți ce vă doriți",
-    text: "Ne scrieți ce invitație aveți în minte și ce perioadă vă interesează. Vă răspundem cu o ofertă potrivită.",
+    text: "Ne scrieți ce invitație aveți în minte; vă răspundem cu o ofertă potrivită.",
   },
   {
     title: "Primiți cheia de acces",
-    text: "Vă trimitem cheia și linkul de activare. Cu ele vă creați contul în câteva minute și intrați direct în panou.",
+    text: "Vă trimitem cheia și linkul de activare, apoi intrați direct în panou.",
   },
   {
     title: "Completați totul în panou",
-    text: "Data, ora, locațiile, mesele și tema se fac acolo, în ritmul vostru. Apoi trimiteți linkul pe WhatsApp.",
+    text: "Data, locațiile, mesele și tema, în ritmul vostru. Apoi trimiteți linkul.",
   },
 ] as const;
 
@@ -201,13 +188,11 @@ export const PLANS: readonly Plan[] = [
     included: [
       "Site public cu link propriu pentru nuntă",
       "Paletă de culori și decor floral ales de voi",
-      "Confirmări RSVP, listă de invitați și însoțitori",
-      "Meniu de pici și alergii / preferințe alimentare",
-      "Așezare la mese și raport pentru restaurant (.xlsx)",
+      "Confirmări RSVP, listă de invitați, însoțitori și copii",
+      "Meniul de pici și alergii, așezare la mese și raport .xlsx",
       "Mesaje gata de trimis pe WhatsApp",
-      "Suport pe email, până după nuntă",
     ],
-    note: "Ideal dacă țineți bugetul separat, într-un fișier al vostru.",
+    note: "Include suport pe email, până după nuntă. Ideal dacă țineți bugetul separat.",
   },
   {
     id: "premium",
@@ -217,8 +202,7 @@ export const PLANS: readonly Plan[] = [
       "Tot ce include Standard",
       "Buget pe categorii, în lei și euro",
       "Furnizori cu avans, rest înainte de nuntă și rest în ziua nunții",
-      "Planificator financiar: câte luni au rămas și cât economisiți lunar",
-      "Calculator de dar: dar minim recomandat per persoană și per cuplu",
+      "Planificator financiar și calculator de dar",
     ],
     note: "Recomandat dacă vreți să țineți și banii în același loc.",
     featured: true,
@@ -230,16 +214,6 @@ export const FAQ = [
     question: "Trebuie să instaleze invitații?",
     answer:
       "Nu. Invitația e un site simplu: se deschide din link, pe telefon sau pe calculator. Nu are nevoie de cont și nu trimite notificări.",
-  },
-  {
-    question: "Pot trimite invitația pe WhatsApp?",
-    answer:
-      "Da, exact așa e gândită. Linkul se deschide direct în WhatsApp, iar din panou puteți lua un link personalizat pentru fiecare invitat, cu numele lui deja completat în formular.",
-  },
-  {
-    question: "Cum arată pe telefon?",
-    answer:
-      "Aproape toți o vor deschide de pe telefon, așa că am făcut-o întâi pentru ecran mic: text pe care îl citești fără zoom, butoane mari și hărți care se deschid în aplicația de hărți.",
   },
   {
     question: "Pot schimba tema după ce am trimis linkul?",
@@ -255,16 +229,6 @@ export const FAQ = [
     question: "Ce se întâmplă cu datele invitaților?",
     answer:
       "Sunt folosite doar pentru nunta voastră: confirmarea, așezarea la mese și raportul pentru restaurant. Nu le folosim în alt scop și nu le vindem. Detalii în pagina de confidențialitate.",
-  },
-  {
-    question: "Care e diferența dintre Standard și Premium?",
-    answer:
-      "Standard acoperă invitația și tot ce ține de invitați: confirmări, meniul de pici, alergii, așezarea la mese și raportul pentru restaurant. Premium adaugă partea financiară: bugetul pe furnizori, planificatorul lunar și calculatorul de dar.",
-  },
-  {
-    question: "Cât timp rămâne site-ul online?",
-    answer:
-      "Rămâne online pe toată perioada pachetului ales. Perioada începe din momentul activării, iar la final o puteți prelungi, ca să păstrați invitația și mesajele.",
   },
 ] as const;
 
